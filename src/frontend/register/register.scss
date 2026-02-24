@@ -17,7 +17,7 @@ $hover-color: #ffed4e;
   transition: all 0.3s ease;
 }
 
-.login-container {
+.register-container {
   @include flex-center;
   flex-direction: column;
   min-height: 100vh;
@@ -52,7 +52,7 @@ $hover-color: #ffed4e;
   }
 }
 
-.login-box {
+.register-box {
   background: $text-light;
   border-radius: 12px;
   padding: 50px 40px;
@@ -180,7 +180,7 @@ $hover-color: #ffed4e;
   }
 }
 
-.register-link {
+.login-link {
   text-align: center;
   margin-top: 1rem;
   
@@ -226,7 +226,7 @@ $hover-color: #ffed4e;
 }
 
 @media (max-width: 480px) {
-  .login-box {
+  .register-box {
     padding: 40px 25px;
     max-width: 100%;
     margin: 0 15px;
@@ -241,7 +241,7 @@ $hover-color: #ffed4e;
     font-size: 18px;
   }
 
-  .login-box h2 {
+  .register-box h2 {
     font-size: 24px;
   }
 
@@ -253,11 +253,11 @@ $hover-color: #ffed4e;
 }
 
 @media (max-width: 320px) {
-  .login-container {
+  .register-container {
     padding: 15px;
   }
 
-  .login-box {
+  .register-box {
     padding: 30px 20px;
     margin: 0 10px;
   }

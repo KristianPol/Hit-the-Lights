@@ -1,13 +1,13 @@
-<div class="login-container">
+<div class="register-container">
   <div class="logo-section">
     <img ngSrc="../../../assets/HTL(proj).png" alt="Hit The Lights Logo" class="logo" height="561" width="567" priority>
     <h1 class="beta-badge">Hit The Lights</h1>
   </div>
 
-  <div class="login-box">
-    <h2>Login</h2>
+  <div class="register-box">
+    <h2>Register</h2>
 
-    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+    <form [formGroup]="loginForm" (ngSubmit)="onRegister()">
       <div class="form-group">
         <label for="username" class="form-label">Username</label>
         <input
@@ -30,6 +30,7 @@
         }
       </div>
 
+      <!-- Password Input -->
       <div class="form-group">
         <label for="password" class="form-label">Password</label>
         <input
@@ -52,13 +53,15 @@
         }
       </div>
 
-      <button type="submit" class="submit-btn">Enter</button>
+      <!-- Submit Button -->
+      <button type="submit" class="submit-btn">Register</button>
 
+      <!-- Reset Button -->
       <button type="button" class="reset-btn" (click)="resetForm()">Clear</button>
     </form>
-    <p class="register-link">
-      <span>Don't have an account? </span>
-      <a routerLink="/register">Register here</a>
+    <p class="login-link">
+      <span>Already have an account? </span>
+      <a routerLink="/login">Login here</a>
     </p>
   </div>
 </div>
