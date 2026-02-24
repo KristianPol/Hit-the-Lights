@@ -1,13 +1,13 @@
 import { Component } from '@angular/core';
 import {FormBuilder, FormGroup, ReactiveFormsModule, Validators} from '@angular/forms';
-import {NgIf} from "@angular/common";
+import {NgIf, NgOptimizedImage} from "@angular/common";
 
 @Component({
     selector: 'app-login',
     templateUrl: './login.component.html',
   imports: [
     ReactiveFormsModule,
-    NgIf
+    NgOptimizedImage
   ],
     styleUrls: ['./login.component.scss']
 })

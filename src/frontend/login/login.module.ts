@@ -5,17 +5,18 @@ import { LoginComponent } from './login.component';
 
 @NgModule({
   declarations: [
-    LoginComponent
+
   ],
   imports: [
     CommonModule,
     ReactiveFormsModule,
-    FormsModule
+    FormsModule,
+    LoginComponent
   ],
   exports: [
     LoginComponent
   ]
 })
-export class LoginModule { 
+export class LoginModule {
     // TODO Implement Login Module
 }

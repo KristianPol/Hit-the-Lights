@@ -1,43 +1,43 @@
 <div class="login-container">
   <div class="logo-section">
-    <img src="../../assets/HTL(proj).png" alt="Hit The Lights Logo" class="logo">
-    <h1 class="beta-badge">BETA</h1>
+    <img ngSrc="../../../assets/HTL(proj).png" alt="Hit The Lights Logo" class="logo" height="561" width="567">
+    <h1 class="beta-badge">Hit The Lights</h1>
   </div>
 
   <div class="login-box">
     <h2>Login</h2>
-    
+
     <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
       <div class="form-group">
         <label for="username" class="form-label">Username</label>
-        <input 
-          type="text" 
-          id="username" 
-          class="form-input" 
+        <input
+          type="text"
+          id="username"
+          class="form-input"
           formControlName="username"
           placeholder="Enter your username"
           [class.is-invalid]="submitted && f['username'].errors"
         >
         <div class="error-message" [@if]="submitted && f['username'].errors">
-          <span [@if]="f['username'].errors['required']">Username is required</span>
-          <span [@if]="f['username'].errors['minlength']">Username must be at least 3 characters</span>
+          <span [@if]="f['username'].errors?.['required']">Username is required</span>
+          <span [@if]="f['username'].errors?.['minlength']">Username must be at least 3 characters</span>
         </div>
       </div>
 
       <!-- Password Input -->
       <div class="form-group">
         <label for="password" class="form-label">Password</label>
-        <input 
-          type="password" 
-          id="password" 
-          class="form-input" 
+        <input
+          type="password"
+          id="password"
+          class="form-input"
           formControlName="password"
           placeholder="Enter your password"
           [class.is-invalid]="submitted && f['password'].errors"
         >
         <div class="error-message" [@if]="submitted && f['password'].errors">
-          <span [@if]="f['password'].errors['required']">Password is required</span>
-          <span [@if]="f['password'].errors['minlength']">Password must be at least 6 characters</span>
+          <span [@if]="f['password'].errors?.['required']">Password is required</span>
+          <span [@if]="f['password'].errors?.['minlength']">Password must be at least 6 characters</span>
         </div>
       </div>
 
