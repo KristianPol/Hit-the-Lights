@@ -50,6 +50,11 @@ $hover-color: #ffed4e;
     text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
     animation: pulse 2s ease-in-out infinite;
   }
+
+  .beta-badge::selection{
+    background-color: $primary-color;
+    color: $text-light;
+  }
 }
 
 .register-box {
@@ -73,6 +78,11 @@ $hover-color: #ffed4e;
     display: flex;
     flex-direction: column;
     gap: 20px;
+  }
+
+  ::selection{
+    color: $text-light;
+    background-color: $primary-color;
   }
 }
 
@@ -183,11 +193,11 @@ $hover-color: #ffed4e;
 .login-link {
   text-align: center;
   margin-top: 1rem;
-  
+
   a {
     color: #007bff;
     text-decoration: none;
-    
+
     &:hover {
       text-decoration: underline;
     }
