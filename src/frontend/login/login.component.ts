@@ -41,7 +41,7 @@ export class LoginComponent {
       password: this.f['password'].value
     };
 
-    console.log('Login credentials:', credentials);
+    // console.log('Login credentials:', credentials);
     // TODO Implement auth. services
   }
 
