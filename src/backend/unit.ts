@@ -120,7 +120,7 @@ class DB {
             CREATE TABLE IF NOT EXISTS User (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 username TEXT NOT NULL,
-                password TEXT NULL,
+                password TEXT NOT NULL,
                 CONSTRAINT uq_username UNIQUE (username)
             ) STRICT
         `);
