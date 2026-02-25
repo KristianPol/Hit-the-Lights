@@ -104,6 +104,19 @@ class DB {
   }
 
   private static ensureTablesCreated(connection: Database): void {
+
+    connection.exec(`PRAGMA foreign_keys = ON`);
+
+    connection.exec(`
+           CREATE TABLE IF NOT EXISTS Song (
+             id INTEGER PRIMARY KEY AUTOINCREMENT,
+             name TEXT,
+             author TEXT,
+             bpm INTEGER,
+             difficulty INTEGER
+             ) STRICT
+           `);
+
     connection.exec(`
             CREATE TABLE IF NOT EXISTS User (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -111,6 +124,18 @@ class DB {
                 password TEXT NULL,
                 CONSTRAINT uq_username UNIQUE (username)
             ) STRICT
+        `);
+
+    connection.exec(`
+            CREATE TABLE IF NOT EXISTS Highscore (
+              user_id INTEGER,
+              song_id INTEGER,
+              score INTEGER,
+              max_combo INTEGER,
+              accuracy INTEGER,
+              CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES User(id),
+              CONSTRAINT fk_song FOREIGN KEY (song_id) REFERENCES Song(id)
+              ) STRICT
         `);
   }
 }
