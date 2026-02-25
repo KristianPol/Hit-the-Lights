@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "ts-node test-htl.ts",
+    "test": "jest --config ../jest.config.js",
     "build": "tsc",
     "check": "tsc --noEmit"
   },
@@ -19,7 +19,6 @@
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^22.15.18",
-    "ts-node": "^10.9.2",
     "typescript": "^5.9.2"
   }
 }

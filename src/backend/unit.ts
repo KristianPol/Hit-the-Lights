@@ -1,4 +1,4 @@
-﻿import BetterSqlite3, { Database } from "better-sqlite3";
+import BetterSqlite3, { Database } from "better-sqlite3";
 
 const dbFileName = "htl.db";
 
