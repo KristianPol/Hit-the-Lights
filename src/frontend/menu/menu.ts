@@ -1,6 +1,7 @@
-import { Component,} from '@angular/core';
+import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';
+import { AuthService, User } from '../../app/services/auth.service';
 
 interface Song {
   id: number;
@@ -29,6 +30,7 @@ export class MenuComponent {
   ];
 
   activeItem = 'Dashboard';
+  currentUser: User | null;
 
   songs: Song[] = [
     {
@@ -59,11 +61,28 @@ export class MenuComponent {
 
   selectedSong: Song | null = null;
 
+  constructor(
+    private authService: AuthService,
+    private router: Router
+  ) {
+    this.currentUser = this.authService.currentUser;
+  }
+
   setActive(item: string) {
     this.activeItem = item;
+    
+    // Handle logout action
+    if (item === 'Logout') {
+      this.logout();
+    }
   }
 
   selectSong(song: Song) {
     this.selectedSong = song;
+  }
+
+  logout() {
+    this.authService.logout();
+    this.router.navigate(['/login']);
   }
 }

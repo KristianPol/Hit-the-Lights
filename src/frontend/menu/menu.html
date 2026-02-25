@@ -29,9 +29,9 @@
 
     <div class="menu-footer">
       <div class="user-mini">
-        <div class="user-avatar">JD</div>
+        <div class="user-avatar">{{ currentUser?.username?.charAt(0)?.toUpperCase() || '?' }}</div>
         <div class="user-info">
-          <span class="user-name">John Doe</span>
+          <span class="user-name">{{ currentUser?.username || 'Guest' }}</span>
           <span class="user-status">Online</span>
         </div>
       </div>
