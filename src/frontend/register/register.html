@@ -53,11 +53,23 @@
         }
       </div>
 
+      @if (errorMessage) {
+        <div class="error-message" style="margin-bottom: 15px; color: #ff4444; text-align: center;">
+          {{ errorMessage }}
+        </div>
+      }
+
       <!-- Submit Button -->
-      <button type="submit" class="submit-btn">Register</button>
+      <button type="submit" class="submit-btn" [disabled]="loading">
+        @if (loading) {
+          <span>Loading...</span>
+        } @else {
+          <span>Register</span>
+        }
+      </button>
 
       <!-- Reset Button -->
-      <button type="button" class="reset-btn" (click)="resetForm()">Clear</button>
+      <button type="button" class="reset-btn" (click)="resetForm()" [disabled]="loading">Clear</button>
     </form>
     <p class="login-link">
       <span>Already have an account? </span>
