@@ -1,0 +1,121 @@
+<div class="dashboard-layout">
+  <!-- Sidebar Menu -->
+  <div class="menu-container">
+    <div class="menu-header">
+      <div class="logo">
+        <span class="logo-icon">⚡</span>
+        <span class="logo-text">Hit The Lights</span>
+      </div>
+      <div class="glow-line"></div>
+    </div>
+
+    <nav class="menu-nav">
+      <ul class="menu-list">
+        <li *ngFor="let item of menuItems"
+            class="menu-item"
+            [class.active]="activeItem === item.label"
+            [class.action-item]="item.isAction"
+            (click)="setActive(item.label)">
+          <a [routerLink]="item.route" class="menu-link">
+            <span class="item-icon">{{ item.icon }}</span>
+            <span class="item-label">{{ item.label }}</span>
+            <span *ngIf="item.badge" class="badge">{{ item.badge }}</span>
+            <span class="hover-glow"></span>
+            <span class="active-indicator"></span>
+          </a>
+        </li>
+      </ul>
+    </nav>
+
+    <div class="menu-footer">
+      <div class="user-mini">
+        <div class="user-avatar">JD</div>
+        <div class="user-info">
+          <span class="user-name">John Doe</span>
+          <span class="user-status">Online</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="main-content">
+    <div class="songs-panel">
+      <div class="panel-header">
+        <h2>Track Library</h2>
+        <span class="track-count">{{ songs.length }} tracks</span>
+      </div>
+
+      <div class="songs-list">
+        <div *ngFor="let song of songs"
+             class="song-card"
+             [class.selected]="selectedSong?.id === song.id"
+             (click)="selectSong(song)">
+
+          <div class="song-cover">{{ song.cover }}</div>
+
+          <div class="song-info">
+            <div class="song-primary">
+              <span class="song-name">{{ song.name }}</span>
+              <span class="song-author">{{ song.author }}</span>
+            </div>
+
+            <div class="song-meta">
+              <div class="meta-item">
+                <span class="meta-icon">⏱</span>
+                <span class="meta-value">{{ song.length }}</span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-icon">🥁</span>
+                <span class="meta-value">{{ song.bpm }} BPM</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="selection-indicator">
+            <div class="indicator-bar"></div>
+          </div>
+
+          <div class="card-glow"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="detail-panel" [class.has-selection]="selectedSong">
+      <div *ngIf="selectedSong" class="detail-content">
+        <div class="detail-cover">{{ selectedSong.cover }}</div>
+
+        <div class="detail-info">
+          <h1 class="detail-title">{{ selectedSong.name }}</h1>
+          <p class="detail-artist">{{ selectedSong.author }}</p>
+
+          <div class="detail-stats">
+            <div class="stat-box">
+              <span class="stat-label">Duration</span>
+              <span class="stat-value">{{ selectedSong.length }}</span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-label">Tempo</span>
+              <span class="stat-value">{{ selectedSong.bpm }} <small>BPM</small></span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-label">Difficulty</span>
+              <span class="stat-value">Medium</span>
+            </div>
+          </div>
+
+          <div class="visualizer">
+            <div class="bar" *ngFor="let i of [1,2,3,4,5,6,7,8]" [style.animation-delay]="i * 0.1 + 's'"></div>
+          </div>
+        </div>
+
+        <div class="detail-glow"></div>
+      </div>
+
+      <div *ngIf="!selectedSong" class="empty-state">
+        <div class="empty-icon">♪</div>
+        <p>Select a track to view details</p>
+        <div class="empty-glow"></div>
+      </div>
+    </div>
+  </div>
+</div>
