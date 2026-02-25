@@ -106,7 +106,6 @@ class DB {
   private static ensureTablesCreated(connection: Database): void {
 
     connection.exec(`PRAGMA foreign_keys = ON`);
-
     connection.exec(`
            CREATE TABLE IF NOT EXISTS Song (
              id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -133,6 +132,7 @@ class DB {
               score INTEGER,
               max_combo INTEGER,
               accuracy INTEGER,
+              date TEXT,
               CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES User(id),
               CONSTRAINT fk_song FOREIGN KEY (song_id) REFERENCES Song(id)
               ) STRICT
