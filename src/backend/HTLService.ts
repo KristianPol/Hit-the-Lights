@@ -3,5 +3,5 @@
 export class HTLService{
   constructor(private unit: Unit) {}
 
-  // todo
+  // todo add toJSON and fromJSON functions
 }
