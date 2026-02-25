@@ -109,10 +109,9 @@ class DB {
     connection.exec(`
            CREATE TABLE IF NOT EXISTS Song (
              id INTEGER PRIMARY KEY AUTOINCREMENT,
-             name TEXT,
-             author TEXT,
-             bpm INTEGER,
-             difficulty INTEGER
+             name TEXT NOT NULL,
+             author TEXT NOT NULL,
+             bpm INTEGER NOT NULL
              ) STRICT
            `);
 
@@ -127,14 +126,36 @@ class DB {
 
     connection.exec(`
             CREATE TABLE IF NOT EXISTS Highscore (
-              user_id INTEGER,
-              song_id INTEGER,
-              score INTEGER,
-              max_combo INTEGER,
-              accuracy INTEGER,
-              date TEXT,
+              user_id INTEGER NOT NULL,
+              difficulty_id INTEGER NOT NULL,
+              score INTEGER NOT NULL,
+              max_combo INTEGER NOT NULL,
+              accuracy INTEGER NOT NULL,
+              date TEXT NOT NULL,
               CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES User(id),
+              CONSTRAINT fk_difficulty FOREIGN KEY (difficulty_id) REFERENCES Difficulty(id)
+              ) STRICT
+        `);
+
+    connection.exec(`
+            CREATE TABLE IF NOT EXISTS Difficulty (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              song_id INTEGER NOT NULL,
+              difficulty INTEGER NOT NULL,
+              note_count INTEGER NOT NULL,
               CONSTRAINT fk_song FOREIGN KEY (song_id) REFERENCES Song(id)
+              ) STRICT
+        `);
+
+    connection.exec(`
+            CREATE TABLE IF NOT EXISTS Note (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              difficulty_id INTEGER NOT NULL,
+              time_ms INTEGER NOT NULL,
+              lane INTEGER NOT NULL,
+              type INTEGER NOT NULL,
+              duration_ms INTEGER,
+              CONSTRAINT fk_difficulty FOREIGN KEY (difficulty_id) REFERENCES Difficulty(id)
               ) STRICT
         `);
   }
