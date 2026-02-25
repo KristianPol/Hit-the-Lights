@@ -1,7 +1,4 @@
-import * as BetterSqlite3Module from 'better-sqlite3';
-import type { Database } from 'better-sqlite3';
-
-const BetterSqlite3 = (BetterSqlite3Module as any).default || BetterSqlite3Module;
+import BetterSqlite3, { Database } from "better-sqlite3";
 
 const dbFileName = "htl.db";
 
