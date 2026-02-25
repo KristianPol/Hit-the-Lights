@@ -33,10 +33,10 @@ export class MenuComponent {
   songs: Song[] = [
     {
       id: 1,
-      name: 'Midnight City',
-      author: 'M83',
-      length: '4:03',
-      bpm: 105,
+      name: 'Parabola',
+      author: 'TOOL',
+      length: '6:03',
+      bpm: 79,
       cover: '🌃'
     },
     {

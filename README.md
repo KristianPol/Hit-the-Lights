@@ -1,59 +1,52 @@
-# HitTheLights
+# Hit the Lights – Browser Rhythm Game
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.1.3.
+## Overview
 
-## Development server
+**Hit the Lights** is a browser-based rhythm game built with **Angular**, **TypeScript**, **SQLite**, and **REST APIs**. Players can log in, select songs with multiple difficulties, and compete for high scores.
 
-To start a local development server, run:
+- Play songs with 3 difficulty levels: Easy, Medium, Hard
+- Track highscores, accuracy, and combo for each difficulty
+- Notes are timed precisely for responsive gameplay
 
-```bash
-ng serve
-```
+---
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+## Features
 
-## Code scaffolding
+- User authentication (login/register)
+- Dynamic song selection with multiple difficulties
+- Score tracking per user and per difficulty
+- Note charts for each song loaded from the database
+- Clean, responsive browser UI
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+---
 
-```bash
-ng generate component component-name
-```
+## Tech Stack
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+- **Frontend:** Angular, HTML5, SCSS
+- **Backend:** Node.js, TypeScript
+- **Database:** SQLite
+- **APIs:** RESTful endpoints for users, songs, notes, and highscores
 
-```bash
-ng generate --help
-```
+---
 
-## Building
+## Database Schema
 
-To build the project run:
+| Table       | Key Columns | Notes |
+|------------|------------|-------|
+| **User**   | id (PK), username, password | Stores player accounts |
+| **Song**   | id (PK), name, author, bpm | Stores song metadata |
+| **Difficulty** | id (PK), song_id (FK), difficulty (enum), note_count | Multiple charts per song |
+| **Note**   | id (PK), difficulty_id (FK), time_ms, lane, type, duration_ms | Actual gameplay note data |
+| **Highscore** | user_id (FK), difficulty_id (FK), score, max_combo, accuracy, played_at | Tracks user performance per chart |
 
-```bash
-ng build
-```
+> **Note:** `difficulty` uses enums: `"Easy"`, `"Medium"`, `"Hard"`.
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+## Usage
 
-## Running unit tests
+1. Register a new user or log in.
 
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
+2. Select a song and difficulty.
 
-```bash
-ng test
-```
+3. Play by hitting notes in time with the music.
 
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+4. Highscores are saved automatically.
