@@ -10,6 +10,7 @@ interface Song {
   length: string;
   bpm: number;
   cover: string;
+  audioUrl: string;
 }
 
 @Component({
@@ -31,7 +32,7 @@ export class MenuComponent {
 
   activeItem = 'Dashboard';
   currentUser: User | null;
-
+  private audio = new Audio();
   songs: Song[] = [
     {
       id: 1,
@@ -39,7 +40,8 @@ export class MenuComponent {
       author: 'TOOL',
       length: '6:03',
       bpm: 79,
-      cover: '🌃'
+      cover: '🌃',
+      audioUrl: 'assets/music/Parabola.mp3'
     },
     {
       id: 2,
@@ -47,7 +49,8 @@ export class MenuComponent {
       author: 'Kavinsky',
       length: '4:18',
       bpm: 92,
-      cover: '🏎️'
+      cover: '🏎️',
+      audioUrl: 'r4144'
     },
     {
       id: 3,
@@ -55,7 +58,8 @@ export class MenuComponent {
       author: 'Daft Punk',
       length: '5:37',
       bpm: 110,
-      cover: '🤖'
+      cover: '🤖',
+      audioUrl: ''
     }
   ];
 
@@ -66,6 +70,20 @@ export class MenuComponent {
     private router: Router
   ) {
     this.currentUser = this.authService.currentUser;
+    this.audio = new Audio();
+    this.audio.volume = 1;
+  }
+
+  ngOnDestroy() {
+    this.stopAudio();
+  }
+
+  private stopAudio() {
+    if (this.audio) {
+      this.audio.pause();
+      this.audio.currentTime = 0;
+      this.audio.src = '';
+    }
   }
 
   setActive(item: string) {
@@ -79,10 +97,37 @@ export class MenuComponent {
 
   selectSong(song: Song) {
     this.selectedSong = song;
+    this.playSong(this.selectedSong.audioUrl).then(r => "Audio played");
   }
 
   logout() {
     this.authService.logout();
     this.router.navigate(['/login']);
+  }
+
+  async playSong(url: string) {
+    try {
+      this.stopAudio();
+
+      if (!this.audio) {
+        this.audio = new Audio();
+        this.audio.volume = 1;
+      }
+
+      this.audio.src = url;
+
+      await new Promise((resolve, reject) => {
+        this.audio!.onloadedmetadata = resolve;
+        this.audio!.onerror = reject;
+        this.audio!.load();
+      });
+
+      await this.audio.play();
+    } catch (error) {
+      console.error('Playback failed:', error);
+      if (error instanceof DOMException && error.name === 'NotSupportedError') {
+        alert('Audio format not supported or file not found');
+      }
+    }
   }
 }
