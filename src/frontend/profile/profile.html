@@ -1,0 +1,98 @@
+<div class="profile-container">
+  <!-- When u can't load a website in  0.5 sec -->
+  <div *ngIf="loading" class="loading-state">
+    <div class="spinner"></div>
+    <p>Loading profile...</p>
+  </div>
+
+  <!-- Big bad-->
+  <div *ngIf="error && !loading" class="error-state">
+    <div class="error-icon">⚠</div>
+    <p>{{ error }}</p>
+    <button class="btn btn-primary" (click)="retry()">Retry</button>
+  </div>
+
+  <!-- How the profile should look -->
+  <ng-container *ngIf="!loading && !error">
+    <div class="profile-header">
+      <h1>Profile</h1>
+    </div>
+
+    <div class="profile-card" *ngIf="user; else noUser">
+     <!-- Avatar stuff -->
+      <div class="avatar-section">
+        <div class="avatar-wrapper">
+          <div class="avatar-glow"></div>
+          <div class="avatar">{{ user.username.charAt(0).toUpperCase() }}</div>
+          <div class="status-ring"></div>
+        </div>
+        <h2 class="username">{{ user.username }}</h2>
+        <span class="user-id">ID: {{ user.id }}</span>
+      </div>
+
+      <div class="info-grid">
+        <div class="info-item">
+          <span class="info-icon">👤</span>
+          <span class="info-label">Username</span>
+          <span class="info-value">{{ user.username }}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-icon">🆔</span>
+          <span class="info-label">User ID</span>
+          <span class="info-value">#{{ user.id }}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-icon">📅</span>
+          <span class="info-label">Member Since</span>
+          <span class="info-value">Today</span>
+        </div>
+        <div class="info-item">
+          <span class="info-icon">✉</span>
+          <span class="info-label">Messages</span>
+          <span class="info-value">0</span>
+        </div>
+      </div>
+
+      <!-- User's stats -->
+      <div class="stats-section">
+        <div class="stats-header">Activity Stats</div>
+        <div class="stats-grid">
+          <div class="stat-box">
+            <span class="stat-icon">♪</span>
+            <span class="stat-value">12</span>
+            <span class="stat-label">Tracks</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-icon">⏱</span>
+            <span class="stat-value">48h</span>
+            <span class="stat-label">Playtime</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-icon">★</span>
+            <span class="stat-value">PRO</span>
+            <span class="stat-label">Status</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Edit and Logout buttons-->
+      <div class="action-buttons">
+        <button class="btn btn-primary" (click)="editProfile()">
+          Edit Profile
+        </button>
+        <button class="btn btn-secondary" (click)="logout()">
+          Logout
+        </button>
+      </div>
+    </div>
+
+    <!-- If the user's a guest -->
+    <ng-template #noUser>
+      <div class="profile-card error-state">
+        <div class="error-icon">👤</div>
+        <p>No user data found</p>
+        <button class="btn btn-primary" routerLink="/login">Go to Login</button>
+      </div>
+    </ng-template>
+  </ng-container>
+</div>
