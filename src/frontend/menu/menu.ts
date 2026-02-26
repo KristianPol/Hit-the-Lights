@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { AuthService, User } from '../../app/services/auth.service';
@@ -12,6 +12,7 @@ interface Song {
   cover: string;
   audioUrl: string;
 }
+
 
 @Component({
   selector: 'app-menu',
@@ -40,26 +41,26 @@ export class MenuComponent {
       author: 'TOOL',
       length: '6:03',
       bpm: 79,
-      cover: '🌃',
+      cover: 'assets/images/parabola.jpg',
       audioUrl: 'assets/music/Parabola.mp3'
     },
     {
       id: 2,
-      name: 'Nightcall',
-      author: 'Kavinsky',
-      length: '4:18',
-      bpm: 92,
-      cover: '🏎️',
-      audioUrl: 'r4144'
+      name: '505',
+      author: 'Arctic Monkeys',
+      length: '4:14',
+      bpm: 140,
+      cover: 'assets/images/505.jpg',
+      audioUrl: 'assets/music/505.mp3'
     },
     {
       id: 3,
-      name: 'Instant Crush',
-      author: 'Daft Punk',
-      length: '5:37',
-      bpm: 110,
-      cover: '🤖',
-      audioUrl: ''
+      name: 'Full Moon Full Life',
+      author: 'Atlas Sound Team',
+      length: '4:54',
+      bpm: 192,
+      cover: 'assets/images/p3.jpg',
+      audioUrl: 'assets/music/FullMoonFullLife.mp3'
     }
   ];
 
@@ -88,7 +89,7 @@ export class MenuComponent {
 
   setActive(item: string) {
     this.activeItem = item;
-    
+
     // Handle logout action
     if (item === 'Logout') {
       this.logout();
