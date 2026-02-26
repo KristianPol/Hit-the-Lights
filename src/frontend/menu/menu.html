@@ -51,7 +51,9 @@
              [class.selected]="selectedSong?.id === song.id"
              (click)="selectSong(song)">
 
-          <div class="song-cover">{{ song.cover }}</div>
+          <div class="song-cover">
+            <img [src]="song.cover" [alt]="song.name + ' cover'">
+          </div>
 
           <div class="song-info">
             <div class="song-primary">
@@ -82,7 +84,9 @@
 
     <div class="detail-panel" [class.has-selection]="selectedSong">
       <div *ngIf="selectedSong" class="detail-content">
-        <div class="detail-cover">{{ selectedSong.cover }}</div>
+        <div class="detail-cover">
+          <img [src]="selectedSong.cover" [alt]="selectedSong.name + ' cover'">
+        </div>
 
         <div class="detail-info">
           <h1 class="detail-title">{{ selectedSong.name }}</h1>
