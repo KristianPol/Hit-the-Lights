@@ -5,13 +5,9 @@ import { RegistrationService, AuthenticationService } from '../services';
 
 export const authRouter = Router();
 
-/**
- * POST /api/auth/register
- * Register a new user
- */
 authRouter.post('/register', (req: Request, res: Response) => {
   const unit = new Unit(false);
-  
+
   try {
     const { username, password } = req.body;
 
@@ -49,13 +45,10 @@ authRouter.post('/register', (req: Request, res: Response) => {
   }
 });
 
-/**
- * POST /api/auth/login
- * Login a user
- */
+
 authRouter.post('/login', (req: Request, res: Response) => {
   const unit = new Unit(true); // Read-only for login
-  
+
   try {
     const { username, password } = req.body;
 
@@ -76,7 +69,7 @@ authRouter.post('/login', (req: Request, res: Response) => {
       // Return user without password
       const htlService = new HTLService(unit);
       const userJson = htlService.userToJSON(result.user!);
-      
+
       res.status(200).json({
         success: true,
         user: userJson,
@@ -97,10 +90,6 @@ authRouter.post('/login', (req: Request, res: Response) => {
   }
 });
 
-/**
- * GET /api/auth/health
- * Health check endpoint
- */
 authRouter.get('/health', (_req: Request, res: Response) => {
   res.status(200).json({
     status: 'OK',

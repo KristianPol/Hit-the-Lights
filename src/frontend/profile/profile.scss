@@ -1,11 +1,9 @@
-// Variables (matching your menu.scss)
+// Variables (matching menu.scss)
 $black-primary: #0a0a0a;
 $black-secondary: #111111;
 $black-tertiary: #1a1a1a;
 $black-light: #222222;
 $yellow-primary: #ffd700;
-$yellow-glow: rgba(255, 215, 0, 0.3);
-$yellow-bright: #ffed4e;
 $text-primary: #ffffff;
 $text-secondary: #888888;
 $text-muted: #555555;
@@ -16,61 +14,26 @@ $text-muted: #555555;
   justify-content: center;
 }
 
-@mixin neon-glow {
-  box-shadow: 0 0 20px $yellow-glow, 0 0 40px rgba(255, 215, 0, 0.1);
-}
-
 // Main container
 .profile-container {
   min-height: 100vh;
-  background: linear-gradient(135deg, $black-primary 0%, #0f0f0f 100%);
+  background: $black-primary;
   padding: 3rem;
   display: flex;
   flex-direction: column;
   align-items: center;
-  position: relative;
-  overflow: hidden;
-
-  // Background ambient glow
-  &::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(circle at 30% 30%, rgba(255, 215, 0, 0.03) 0%, transparent 50%),
-    radial-gradient(circle at 70% 70%, rgba(255, 215, 0, 0.02) 0%, transparent 50%);
-    pointer-events: none;
-  }
 }
 
 // Header section
 .profile-header {
   text-align: center;
   margin-bottom: 3rem;
-  position: relative;
-  z-index: 1;
 
   h1 {
-    font-size: 2.5rem;
-    font-weight: 800;
-    letter-spacing: 0.1em;
+    font-size: 2rem;
+    font-weight: 700;
+    color: $yellow-primary;
     margin: 0;
-    background: linear-gradient(90deg, $yellow-primary, $yellow-bright);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    text-shadow: 0 0 30px $yellow-glow;
-    position: relative;
-
-    &::after {
-      content: '⚡';
-      margin-left: 0.5rem;
-      -webkit-text-fill-color: $yellow-primary;
-      filter: drop-shadow(0 0 10px $yellow-glow);
-      animation: pulse 2s ease-in-out infinite;
-    }
   }
 }
 
@@ -78,40 +41,10 @@ $text-muted: #555555;
 .profile-card {
   width: 100%;
   max-width: 600px;
-  background: rgba($black-secondary, 0.6);
-  border: 1px solid rgba(255, 215, 0, 0.2);
-  border-radius: 24px;
+  background: $black-secondary;
+  border: 1px solid #333;
+  border-radius: 8px;
   padding: 3rem;
-  position: relative;
-  z-index: 1;
-  backdrop-filter: blur(10px);
-  @include neon-glow;
-
-  // Animated border glow
-  &::before {
-    content: '';
-    position: absolute;
-    inset: -2px;
-    border-radius: 24px;
-    background: linear-gradient(135deg, rgba(255, 215, 0, 0.3), transparent, rgba(255, 215, 0, 0.3));
-    z-index: -1;
-    filter: blur(15px);
-    opacity: 0.5;
-    animation: borderRotate 4s linear infinite;
-  }
-
-  // Scanline effect at top
-  &::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, $yellow-primary, transparent);
-    animation: scanline 3s linear infinite;
-    opacity: 0.6;
-  }
 }
 
 // Avatar section
@@ -120,7 +53,6 @@ $text-muted: #555555;
   flex-direction: column;
   align-items: center;
   margin-bottom: 2.5rem;
-  position: relative;
 
   .avatar-wrapper {
     position: relative;
@@ -128,34 +60,16 @@ $text-muted: #555555;
     height: 120px;
     margin-bottom: 1.5rem;
 
-    .avatar-glow {
-      position: absolute;
-      inset: -10px;
-      border-radius: 50%;
-      background: conic-gradient(from 0deg, transparent, $yellow-primary, transparent, $yellow-primary, transparent);
-      animation: rotate 3s linear infinite;
-      opacity: 0.5;
-      filter: blur(10px);
-    }
-
     .avatar {
       width: 100%;
       height: 100%;
       border-radius: 50%;
-      background: linear-gradient(135deg, $yellow-primary, $yellow-bright);
+      background: $yellow-primary;
       color: $black-primary;
       font-size: 3rem;
       font-weight: 800;
       @include flex-center;
-      position: relative;
-      z-index: 1;
-      border: 3px solid rgba(255, 215, 0, 0.5);
-      box-shadow: 0 0 40px $yellow-glow, inset 0 0 20px rgba(255, 255, 255, 0.2);
-      transition: transform 0.3s ease;
-
-      &:hover {
-        transform: scale(1.05);
-      }
+      border: 2px solid #444;
     }
 
     .status-ring {
@@ -167,28 +81,25 @@ $text-muted: #555555;
       background: #00ff88;
       border-radius: 50%;
       border: 3px solid $black-secondary;
-      box-shadow: 0 0 10px #00ff88;
-      animation: pulse 2s infinite;
       z-index: 2;
     }
   }
 
   .username {
-    font-size: 2rem;
+    font-size: 1.75rem;
     font-weight: 700;
     color: $text-primary;
     margin: 0 0 0.5rem;
-    letter-spacing: 0.02em;
   }
 
   .user-id {
     color: $text-muted;
     font-size: 0.875rem;
     font-family: 'Courier New', monospace;
-    background: rgba(255, 255, 255, 0.05);
+    background: $black-tertiary;
     padding: 0.25rem 0.75rem;
-    border-radius: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    border: 1px solid #333;
   }
 }
 
@@ -200,38 +111,16 @@ $text-muted: #555555;
   margin-bottom: 2.5rem;
 
   .info-item {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 16px;
+    background: $black-tertiary;
+    border: 1px solid #333;
+    border-radius: 8px;
     padding: 1.5rem;
-    transition: all 0.3s ease;
-    position: relative;
-    overflow: hidden;
-
-    &::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 2px;
-      background: linear-gradient(90deg, transparent, $yellow-primary, transparent);
-      transform: translateX(-100%);
-      transition: transform 0.3s ease;
-    }
 
     &:hover {
-      border-color: rgba(255, 215, 0, 0.3);
-      background: rgba(255, 215, 0, 0.05);
-      transform: translateY(-4px);
-
-      &::before {
-        transform: translateX(0);
-      }
+      border-color: $yellow-primary;
 
       .info-icon {
         color: $yellow-primary;
-        filter: drop-shadow(0 0 8px $yellow-glow);
       }
     }
 
@@ -239,7 +128,6 @@ $text-muted: #555555;
       font-size: 1.5rem;
       margin-bottom: 0.75rem;
       display: block;
-      transition: all 0.3s ease;
       color: $text-secondary;
     }
 
@@ -247,7 +135,7 @@ $text-muted: #555555;
       color: $text-secondary;
       font-size: 0.75rem;
       text-transform: uppercase;
-      letter-spacing: 0.1em;
+      letter-spacing: 0.05em;
       margin-bottom: 0.5rem;
       display: block;
     }
@@ -262,14 +150,14 @@ $text-muted: #555555;
 
 // Stats section
 .stats-section {
-  border-top: 1px solid rgba(255, 215, 0, 0.1);
+  border-top: 1px solid #333;
   padding-top: 2rem;
 
   .stats-header {
     color: $text-secondary;
     font-size: 0.875rem;
     text-transform: uppercase;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.05em;
     margin-bottom: 1.5rem;
     text-align: center;
   }
@@ -280,33 +168,26 @@ $text-muted: #555555;
     gap: 1rem;
 
     .stat-box {
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 16px;
+      background: $black-tertiary;
+      border: 1px solid #333;
+      border-radius: 8px;
       padding: 1.5rem 1rem;
       text-align: center;
-      transition: all 0.3s ease;
-      position: relative;
-      overflow: hidden;
 
       &:hover {
-        border-color: rgba(255, 215, 0, 0.4);
-        background: rgba(255, 215, 0, 0.08);
-        transform: translateY(-4px);
+        border-color: $yellow-primary;
 
         .stat-value {
           color: $yellow-primary;
-          text-shadow: 0 0 20px $yellow-glow;
         }
       }
 
       .stat-value {
-        font-size: 1.75rem;
-        font-weight: 800;
+        font-size: 1.5rem;
+        font-weight: 700;
         color: $text-primary;
         display: block;
         margin-bottom: 0.5rem;
-        transition: all 0.3s ease;
       }
 
       .stat-label {
@@ -337,64 +218,32 @@ $text-muted: #555555;
   .btn {
     flex: 1;
     padding: 1rem 1.5rem;
-    border-radius: 12px;
+    border-radius: 8px;
     font-size: 0.95rem;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.3s ease;
     border: none;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    position: relative;
-    overflow: hidden;
 
     &.btn-primary {
-      background: linear-gradient(135deg, $yellow-primary, $yellow-bright);
+      background: $yellow-primary;
       color: $black-primary;
-      box-shadow: 0 4px 20px rgba(255, 215, 0, 0.3);
 
       &:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 30px rgba(255, 215, 0, 0.4);
-      }
-
-      &:active {
-        transform: translateY(0);
+        background: #e6c200;
       }
     }
 
     &.btn-secondary {
       background: transparent;
       color: $text-secondary;
-      border: 1px solid rgba(255, 255, 255, 0.2);
+      border: 1px solid #444;
 
       &:hover {
-        border-color: rgba(255, 215, 0, 0.4);
+        border-color: $yellow-primary;
         color: $text-primary;
-        background: rgba(255, 215, 0, 0.05);
       }
-    }
-
-    // Button shine effect
-    &::after {
-      content: '';
-      position: absolute;
-      top: -50%;
-      left: -50%;
-      width: 200%;
-      height: 200%;
-      background: linear-gradient(
-          45deg,
-          transparent 30%,
-          rgba(255, 255, 255, 0.1) 50%,
-          transparent 70%
-      );
-      transform: translateX(-100%) rotate(45deg);
-      transition: transform 0.6s;
-    }
-
-    &:hover::after {
-      transform: translateX(100%) rotate(45deg);
     }
   }
 }
@@ -409,17 +258,15 @@ $text-muted: #555555;
   .spinner {
     width: 50px;
     height: 50px;
-    border: 3px solid rgba(255, 215, 0, 0.2);
+    border: 3px solid #333;
     border-top-color: $yellow-primary;
     border-radius: 50%;
     animation: spin 1s linear infinite;
     margin-bottom: 1.5rem;
-    box-shadow: 0 0 20px $yellow-glow;
   }
 
   p {
     font-size: 1.1rem;
-    letter-spacing: 0.05em;
   }
 }
 
@@ -442,26 +289,6 @@ $text-muted: #555555;
 }
 
 // Animations
-@keyframes pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.8; transform: scale(1.05); }
-}
-
-@keyframes scanline {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
-}
-
-@keyframes rotate {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-@keyframes borderRotate {
-  0% { filter: blur(15px) hue-rotate(0deg); }
-  100% { filter: blur(15px) hue-rotate(360deg); }
-}
-
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
@@ -473,17 +300,12 @@ $text-muted: #555555;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 4px;
+  background: $black-primary;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: $yellow-primary;
+  background: #444;
   border-radius: 4px;
-
-  &:hover {
-    background: $yellow-bright;
-  }
 }
 
 // Responsive
@@ -509,6 +331,6 @@ $text-muted: #555555;
   }
 
   .profile-header h1 {
-    font-size: 1.75rem;
+    font-size: 1.5rem;
   }
 }
