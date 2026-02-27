@@ -46,11 +46,7 @@ export interface UserJSON {
 export class HTLService {
   constructor(private unit: Unit) {}
 
-  /**
-   * Converts a User entity to JSON format
-   * @param user The User object to convert
-   * @returns UserJSON object
-   */
+
   public userToJSON(user: User): UserJSON {
     return {
       id: user.id,
@@ -58,12 +54,7 @@ export class HTLService {
     };
   }
 
-  /**
-   * Converts a Song entity to JSON format
-   * @param song The song data from database
-   * @param includeDifficulties Whether to include nested difficulties
-   * @returns SongJSON object
-   */
+
   public songToJSON(song: {
     id: number;
     name: string;
@@ -88,12 +79,7 @@ export class HTLService {
     return result;
   }
 
-  /**
-   * Converts a Difficulty entity to JSON format
-   * @param difficulty The difficulty data from database
-   * @param includeNotes Whether to include nested notes
-   * @returns DifficultyJSON object
-   */
+
   public difficultyToJSON(difficulty: {
     id: number;
     song_id: number;
@@ -118,11 +104,7 @@ export class HTLService {
     return result;
   }
 
-  /**
-   * Converts a Note entity to JSON format
-   * @param note The note data from database
-   * @returns NoteJSON object
-   */
+
   public noteToJSON(note: {
     id: number;
     difficulty_id: number;
@@ -141,12 +123,7 @@ export class HTLService {
     };
   }
 
-  /**
-   * Converts a Highscore entity to JSON format
-   * Always includes username and song name
-   * @param highscore The highscore data from database
-   * @returns HighscoreJSON object with user and song info
-   */
+
   public highscoreToJSON(highscore: {
     user_id: number;
     difficulty_id: number;
@@ -181,13 +158,7 @@ export class HTLService {
     };
   }
 
-  /**
-   * Generic toJSON method that handles any entity type
-   * @param entity The entity to convert
-   * @param entityType The type of entity ('user', 'song', 'difficulty', 'note', 'highscore')
-   * @param options Additional options based on entity type
-   * @returns The JSON representation
-   */
+
   public toJSON(
     entity: unknown,
     entityType: 'user' | 'song' | 'difficulty' | 'note' | 'highscore',
@@ -221,11 +192,7 @@ export class HTLService {
 
   // ==================== FROM JSON METHODS ====================
 
-  /**
-   * Converts JSON to User entity format
-   * @param json The UserJSON object
-   * @returns User entity ready for database operations
-   */
+
   public userFromJSON(json: Omit<UserJSON, 'id'> & { password: string; id?: number }): User {
     if (!json.username || json.username.length < 3) {
       throw new Error('Username must be at least 3 characters');
@@ -241,11 +208,7 @@ export class HTLService {
     };
   }
 
-  /**
-   * Converts JSON to Song entity format
-   * @param json The SongJSON object (id optional for creation)
-   * @returns Song entity ready for database operations
-   */
+
   public songFromJSON(json: Omit<SongJSON, 'id'> & { id?: number }): {
     id: number;
     name: string;
@@ -270,11 +233,7 @@ export class HTLService {
     };
   }
 
-  /**
-   * Converts JSON to Difficulty entity format
-   * @param json The DifficultyJSON object (id optional for creation)
-   * @returns Difficulty entity ready for database operations
-   */
+
   public difficultyFromJSON(json: Omit<DifficultyJSON, 'id'> & { id?: number }): {
     id: number;
     song_id: number;
@@ -299,11 +258,7 @@ export class HTLService {
     };
   }
 
-  /**
-   * Converts JSON to Note entity format
-   * @param json The NoteJSON object (id optional for creation)
-   * @returns Note entity ready for database operations
-   */
+
   public noteFromJSON(json: Omit<NoteJSON, 'id'> & { id?: number }): {
     id: number;
     difficulty_id: number;
@@ -337,11 +292,7 @@ export class HTLService {
     };
   }
 
-  /**
-   * Converts JSON to Highscore entity format
-   * @param json The HighscoreJSON object
-   * @returns Highscore entity ready for database operations
-   */
+
   public highscoreFromJSON(json: Omit<HighscoreJSON, 'username' | 'song_name'>): {
     user_id: number;
     difficulty_id: number;
@@ -381,12 +332,7 @@ export class HTLService {
     };
   }
 
-  /**
-   * Generic fromJSON method that handles any entity type
-   * @param json The JSON object to convert
-   * @param entityType The type of entity ('user', 'song', 'difficulty', 'note', 'highscore')
-   * @returns The entity in database format
-   */
+
   public fromJSON(
     json: unknown,
     entityType: 'user' | 'song' | 'difficulty' | 'note' | 'highscore'

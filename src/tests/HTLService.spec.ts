@@ -9,6 +9,12 @@ describe('HTLService', () => {
   beforeEach(() => {
     unit = new Unit(false);
     service = new HTLService(unit);
+    // Clear all tables to prevent UNIQUE constraint violations between tests
+    unit.prepare("DELETE FROM Highscore").run();
+    unit.prepare("DELETE FROM Note").run();
+    unit.prepare("DELETE FROM Difficulty").run();
+    unit.prepare("DELETE FROM Song").run();
+    unit.prepare("DELETE FROM User").run();
   });
 
   afterEach(() => {
