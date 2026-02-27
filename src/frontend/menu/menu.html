@@ -27,7 +27,7 @@
       </ul>
     </nav>
 
-    <div class="menu-footer">
+    <div class="menu-footer" (click) = "navigateToProfile()" style="cursor: pointer;">
       <div class="user-mini">
         <div class="user-avatar">{{ currentUser?.username?.charAt(0)?.toUpperCase() || '?' }}</div>
         <div class="user-info">

@@ -131,4 +131,9 @@ export class MenuComponent {
       }
     }
   }
+
+  navigateToProfile() {
+    this.router.navigate(['/profile']);
+    this.activeItem = 'Profile';
+  }
 }
