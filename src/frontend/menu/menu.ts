@@ -3,6 +3,14 @@ import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { AuthService, User } from '../../app/services/auth.service';
 
+interface MenuItem {
+  label: string;
+  icon: string;
+  route: string;
+  badge?: number;
+  isAction?: boolean;
+}
+
 interface Song {
   id: number;
   name: string;
@@ -21,8 +29,8 @@ interface Song {
   templateUrl: './menu.html',
   styleUrls: ['./menu.scss']
 })
-export class MenuComponent {
-  menuItems = [
+export class MenuComponent implements OnDestroy {
+  menuItems:MenuItem[] = [
     { label: 'Dashboard', icon: '◆', route: '/dashboard' },
     { label: 'Profile', icon: '◎', route: '/profile' },
     { label: 'Settings', icon: '⚙', route: '/settings' },
@@ -32,7 +40,7 @@ export class MenuComponent {
   ];
 
   activeItem = 'Dashboard';
-  currentUser: User | null;
+  currentUser: User | null = null;
   private audio = new Audio();
   songs: Song[] = [
     {

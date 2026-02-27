@@ -11,19 +11,22 @@
 
     <nav class="menu-nav">
       <ul class="menu-list">
-        <li *ngFor="let item of menuItems"
-            class="menu-item"
-            [class.active]="activeItem === item.label"
-            [class.action-item]="item.isAction"
-            (click)="setActive(item.label)">
-          <a [routerLink]="item.route" class="menu-link">
-            <span class="item-icon">{{ item.icon }}</span>
-            <span class="item-label">{{ item.label }}</span>
-            <span *ngIf="item.badge" class="badge">{{ item.badge }}</span>
-            <span class="hover-glow"></span>
-            <span class="active-indicator"></span>
-          </a>
-        </li>
+        @for (item of menuItems; track item.label) {
+          <li class="menu-item"
+              [class.active]="activeItem === item.label"
+              [class.action-item]="item.isAction"
+              (click)="setActive(item.label)">
+            <a [routerLink]="item.route" class="menu-link">
+              <span class="item-icon">{{ item.icon }}</span>
+              <span class="item-label">{{ item.label }}</span>
+              @if (item.badge) {
+                <span class="badge">{{ item.badge }}</span>
+              }
+              <span class="hover-glow"></span>
+              <span class="active-indicator"></span>
+            </a>
+          </li>
+        }
       </ul>
     </nav>
 
