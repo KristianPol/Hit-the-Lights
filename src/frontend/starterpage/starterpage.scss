@@ -1,3 +1,5 @@
+$yellow-glow: rgba(255, 215, 0, 0.3);
+
 .starter-layout {
   min-height: 100vh;
   background: #0a0a0a;
@@ -32,6 +34,8 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  filter: drop-shadow(0 0 10px $yellow-glow);
+  animation: float 3s ease-in-out infinite;
 
   img {
     width: 100%;
@@ -49,12 +53,23 @@
   margin: 0;
 }
 
+.game-title::selection{
+  color:#ffffff;
+  background-color: rgb(211, 208, 27);
+  backdrop-filter: drop-shadow(1px 0 0 #86693EE5);
+}
+
 .game-description {
   font-size: 1.1rem;
   color: #888888;
   line-height: 1.6;
   max-width: 500px;
   margin: 0 auto;
+}
+
+.game-description::selection{
+  color:#ffffff;
+  background-color: #dad120;
 }
 
 .auth-buttons {
@@ -84,6 +99,7 @@
   &:hover {
     background: transparent;
     color: #ffd700;
+    filter: drop-shadow(0 0 10px $yellow-glow);
   }
 }
 

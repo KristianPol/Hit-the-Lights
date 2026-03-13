@@ -1,4 +1,4 @@
-// Variables (matching menu.scss)
+// Variables (matching your menu.scss)
 $black-primary: #0a0a0a;
 $black-secondary: #111111;
 $black-tertiary: #1a1a1a;
@@ -23,7 +23,7 @@ $text-muted: #555555;
 // Main container
 .profile-container {
   min-height: 100vh;
-  background: linear-gradient(135deg, $black-primary 0%, #0f0f0f 100%);;
+  background: linear-gradient(135deg, $black-primary 0%, #0f0f0f 100%);
   padding: 3rem;
   display: flex;
   flex-direction: column;
@@ -31,6 +31,7 @@ $text-muted: #555555;
   position: relative;
   overflow: hidden;
 
+  // Background ambient glow
   &::before {
     content: '';
     position: absolute;
@@ -63,6 +64,11 @@ $text-muted: #555555;
     text-shadow: 0 0 30px $yellow-glow;
     position: relative;
 
+    &::selection{
+      color: $text-primary;
+      background-color: gold;
+    }
+
     &::after {
       content: '⚡';
       margin-left: 0.5rem;
@@ -85,6 +91,11 @@ $text-muted: #555555;
   z-index: 1;
   backdrop-filter: blur(10px);
   @include neon-glow;
+
+  &::selection{
+    color: $text-primary;
+    background-color: gold;
+  }
 
   // Animated border glow
   &::before {
@@ -136,6 +147,7 @@ $text-muted: #555555;
       opacity: 0.5;
       filter: blur(10px);
     }
+
     .avatar {
       width: 100%;
       height: 100%;
@@ -179,11 +191,16 @@ $text-muted: #555555;
     letter-spacing: 0.02em;
   }
 
+  &::selection{
+    color: $text-primary;
+    background-color: gold;
+  }
+
   .user-id {
     color: $text-muted;
     font-size: 0.875rem;
     font-family: 'Courier New', monospace;
-    background: rgba(255, 255, 255, 0.05);;
+    background: rgba(255, 255, 255, 0.05);
     padding: 0.25rem 0.75rem;
     border-radius: 20px;
     border: 1px solid rgba(255, 255, 255, 0.1);
@@ -205,6 +222,11 @@ $text-muted: #555555;
     transition: all 0.3s ease;
     position: relative;
     overflow: hidden;
+
+    &::selection{
+      color: $text-primary;
+      background-color: gold;
+    }
 
     &::before {
       content: '';
@@ -237,15 +259,15 @@ $text-muted: #555555;
       font-size: 1.5rem;
       margin-bottom: 0.75rem;
       display: block;
-      color: $text-secondary;
       transition: all 0.3s ease;
+      color: $text-secondary;
     }
 
     .info-label {
       color: $text-secondary;
       font-size: 0.75rem;
       text-transform: uppercase;
-      letter-spacing: 0.05em;
+      letter-spacing: 0.1em;
       margin-bottom: 0.5rem;
       display: block;
     }
@@ -267,7 +289,7 @@ $text-muted: #555555;
     color: $text-secondary;
     font-size: 0.875rem;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.1em;
     margin-bottom: 1.5rem;
     text-align: center;
   }
@@ -278,9 +300,9 @@ $text-muted: #555555;
     gap: 1rem;
 
     .stat-box {
-      background: $black-tertiary;
+      background: rgba(255, 255, 255, 0.03);
       border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 8px;
+      border-radius: 16px;
       padding: 1.5rem 1rem;
       text-align: center;
       transition: all 0.3s ease;
@@ -298,9 +320,14 @@ $text-muted: #555555;
         }
       }
 
+      &::selection{
+        color: $text-primary;
+        background-color: gold;
+      }
+
       .stat-value {
-        font-size: 1.5rem;
-        font-weight: 700;
+        font-size: 1.75rem;
+        font-weight: 800;
         color: $text-primary;
         display: block;
         margin-bottom: 0.5rem;
@@ -335,19 +362,19 @@ $text-muted: #555555;
   .btn {
     flex: 1;
     padding: 1rem 1.5rem;
-    border-radius: 8px;
+    border-radius: 12px;
     font-size: 0.95rem;
     font-weight: 600;
     cursor: pointer;
+    transition: all 0.3s ease;
     border: none;
     text-transform: uppercase;
-    transition: all 0.3s ease;
+    letter-spacing: 0.05em;
     position: relative;
     overflow: hidden;
-    letter-spacing: 0.05em;
 
     &.btn-primary {
-      background:  linear-gradient(135deg, $yellow-primary, $yellow-bright);;
+      background: linear-gradient(135deg, $yellow-primary, $yellow-bright);
       color: $black-primary;
       box-shadow: 0 4px 20px rgba(255, 215, 0, 0.3);
 
@@ -356,7 +383,7 @@ $text-muted: #555555;
         box-shadow: 0 6px 30px rgba(255, 215, 0, 0.4);
       }
 
-      &:active{
+      &:active {
         transform: translateY(0);
       }
     }
@@ -364,15 +391,16 @@ $text-muted: #555555;
     &.btn-secondary {
       background: transparent;
       color: $text-secondary;
-      border: 1px solid #444;
+      border: 1px solid rgba(255, 255, 255, 0.2);
 
       &:hover {
-        border-color: $yellow-primary;
+        border-color: rgba(255, 215, 0, 0.4);
         color: $text-primary;
         background: rgba(255, 215, 0, 0.05);
       }
     }
 
+    // Button shine effect
     &::after {
       content: '';
       position: absolute;
@@ -406,15 +434,17 @@ $text-muted: #555555;
   .spinner {
     width: 50px;
     height: 50px;
-    border: 3px solid #333;
+    border: 3px solid rgba(255, 215, 0, 0.2);
     border-top-color: $yellow-primary;
     border-radius: 50%;
     animation: spin 1s linear infinite;
     margin-bottom: 1.5rem;
+    box-shadow: 0 0 20px $yellow-glow;
   }
 
   p {
     font-size: 1.1rem;
+    letter-spacing: 0.05em;
   }
 }
 
@@ -437,6 +467,26 @@ $text-muted: #555555;
 }
 
 // Animations
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(1.05); }
+}
+
+@keyframes scanline {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+@keyframes rotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes borderRotate {
+  0% { filter: blur(15px) hue-rotate(0deg); }
+  100% { filter: blur(15px) hue-rotate(360deg); }
+}
+
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
@@ -448,12 +498,17 @@ $text-muted: #555555;
 }
 
 ::-webkit-scrollbar-track {
-  background: $black-primary;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #444;
+  background: $yellow-primary;
   border-radius: 4px;
+
+  &:hover {
+    background: $yellow-bright;
+  }
 }
 
 // Responsive
@@ -479,6 +534,6 @@ $text-muted: #555555;
   }
 
   .profile-header h1 {
-    font-size: 1.5rem;
+    font-size: 1.75rem;
   }
 }
