@@ -22,13 +22,6 @@ interface Song {
   audioUrl: string;
 }
 
-interface NewTrack {
-  name: string;
-  author: string;
-  bpm: number | null;
-  file: File | null;
-}
-
 @Component({
   selector: 'app-menu',
   standalone: true,
@@ -84,12 +77,7 @@ export class MenuComponent implements OnDestroy {
 
   // Add Track Form
   showAddTrackForm = false;
-  newTrack: NewTrack = {
-    name: '',
-    author: '',
-    bpm: null,
-    file: null,
-  };
+  pendingSong: Partial<Song> = {};
 
   constructor(
     private authService: AuthService,
@@ -167,39 +155,41 @@ export class MenuComponent implements OnDestroy {
 
   closeAddTrackForm(): void {
     this.showAddTrackForm = false;
-    this.resetNewTrack();
-  }
-
-  private resetNewTrack(): void {
-    this.newTrack = { name: '', author: '', bpm: null, file: null };
+    this.pendingSong = {};
   }
 
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     if (input.files?.length) {
-      this.newTrack.file = input.files[0];
+      this.pendingSong.audioUrl = URL.createObjectURL(input.files[0]);
+    }
+  }
+
+  onCoverSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files?.length) {
+      this.pendingSong.cover = URL.createObjectURL(input.files[0]);
     }
   }
 
   submitTrack(): void {
-    if (!this.newTrack.name || !this.newTrack.author || !this.newTrack.bpm || !this.newTrack.file) {
+    const { name, author, bpm, audioUrl, cover } = this.pendingSong;
+
+    if (!name || !author || !bpm || !audioUrl || !cover) {
       alert('Please fill in all fields.');
       return;
     }
 
-    const audioUrl = URL.createObjectURL(this.newTrack.file);
-
-    const newSong: Song = {
+    this.songs.push({
       id: this.songs.length + 1,
-      name: this.newTrack.name,
-      author: this.newTrack.author,
+      name,
+      author,
+      bpm,
       length: '0:00',
-      bpm: this.newTrack.bpm,
-      cover: 'assets/images/default.jpg',
-      audioUrl
-    };
+      audioUrl,
+      cover
+    });
 
-    this.songs.push(newSong);
     this.closeAddTrackForm();
   }
 }

@@ -137,6 +137,7 @@
 @if (showAddTrackForm) {
   <div class="modal-overlay" (click)="closeAddTrackForm()">
     <div class="modal" (click)="$event.stopPropagation()">
+
       <div class="modal-header">
         <h2>Add New Track</h2>
         <button class="modal-close" (click)="closeAddTrackForm()">✕</button>
@@ -145,25 +146,33 @@
       <div class="modal-body">
         <div class="form-group">
           <label for="trackName">Track Name</label>
-          <input id="trackName" type="text" [(ngModel)]="newTrack.name" placeholder="Enter track name" />
+          <input id="trackName" type="text" [(ngModel)]="pendingSong.name" placeholder="Enter track name" />
         </div>
 
         <div class="form-group">
           <label for="trackArtist">Artist</label>
-          <input id="trackArtist" type="text" [(ngModel)]="newTrack.author" placeholder="Enter artist name" />
+          <input id="trackArtist" type="text" [(ngModel)]="pendingSong.author" placeholder="Enter artist name" />
         </div>
 
         <div class="form-group">
           <label for="trackBpm">BPM</label>
-          <input id="trackBpm" type="number" [(ngModel)]="newTrack.bpm" placeholder="e.g. 128" min="1" max="999" />
+          <input id="trackBpm" type="number" [(ngModel)]="pendingSong.bpm" placeholder="e.g. 128" min="1" max="999" />
         </div>
 
         <div class="form-group">
           <label>Song File</label>
           <button class="file-btn" (click)="fileInput.click()">
-            🎵 {{ newTrack.file ? newTrack.file.name : 'Choose MP3 File' }}
+            🎵 {{ pendingSong.audioUrl ? 'Audio Selected' : 'Choose MP3 File' }}
           </button>
           <input #fileInput type="file" accept=".mp3,audio/mpeg" style="display: none" (change)="onFileSelected($event)" />
+        </div>
+
+        <div class="form-group">
+          <label>Cover Image</label>
+          <button class="file-btn" (click)="coverInput.click()">
+            🖼️ {{ pendingSong.cover ? 'Cover Selected' : 'Choose Cover Image' }}
+          </button>
+          <input #coverInput type="file" accept=".png,.jpg,.jpeg,image/png,image/jpeg" style="display: none" (change)="onCoverSelected($event)" />
         </div>
       </div>
 
@@ -171,6 +180,7 @@
         <button class="btn-cancel" (click)="closeAddTrackForm()">Cancel</button>
         <button class="btn-submit" (click)="submitTrack()">Add Track</button>
       </div>
+
     </div>
   </div>
 }
