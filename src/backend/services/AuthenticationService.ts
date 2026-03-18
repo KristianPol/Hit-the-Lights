@@ -1,4 +1,4 @@
-import { Unit } from '../unit';
+import { Unit } from '../database/unit';
 import { User } from '../model';
 
 export interface LoginRequest {

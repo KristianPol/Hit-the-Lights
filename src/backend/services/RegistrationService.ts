@@ -1,5 +1,5 @@
-import { Unit } from '../unit';
-import { HTLService } from '../HTLService';
+import { Unit } from '../database/unit';
+import { HTLService } from './HTLService';
 import { User } from '../model';
 
 export interface RegistrationRequest {

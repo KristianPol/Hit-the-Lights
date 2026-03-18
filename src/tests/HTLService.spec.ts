@@ -1,5 +1,5 @@
-import { Unit } from '../backend/unit';
-import { HTLService } from '../backend/HTLService';
+import { Unit } from '../backend/database/unit';
+import { HTLService } from '../backend/services/HTLService';
 import { User } from '../backend/model';
 
 describe('HTLService', () => {

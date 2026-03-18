@@ -52,7 +52,6 @@ $text-muted: #555555;
   padding: 2rem 1.5rem;
   position: relative;
 
-
   .logo {
     display: flex;
     align-items: center;
@@ -304,6 +303,50 @@ $text-muted: #555555;
       border-radius: 20px;
       border: 1px solid rgba(255, 215, 0, 0.3);
     }
+  }
+}
+
+// Add Track Button
+.add-track-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.9rem;
+  background: transparent;
+  border: 1px solid rgba(255, 215, 0, 0.4);
+  border-radius: 20px;
+  color: $yellow-primary;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at center, rgba(255, 215, 0, 0.15) 0%, transparent 70%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  &:hover {
+    background: rgba(255, 215, 0, 0.1);
+    border-color: $yellow-primary;
+    box-shadow: 0 0 15px $yellow-glow, inset 0 0 15px rgba(255, 215, 0, 0.05);
+    transform: translateY(-1px);
+
+    &::before {
+      opacity: 1;
+    }
+  }
+
+  &:active {
+    transform: translateY(0);
+    box-shadow: 0 0 8px $yellow-glow;
   }
 }
 
@@ -665,6 +708,209 @@ $text-muted: #555555;
     background: radial-gradient(circle, rgba(255, 215, 0, 0.1) 0%, transparent 70%);
     z-index: -1;
   }
+}
+
+// Modal Overlay
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(6px);
+  z-index: 1000;
+  @include flex-center;
+  animation: fadeIn 0.2s ease;
+}
+
+// Modal Box
+.modal {
+  width: 100%;
+  max-width: 460px;
+  background: linear-gradient(160deg, $black-secondary 0%, $black-tertiary 100%);
+  border: 1px solid rgba(255, 215, 0, 0.25);
+  border-radius: 24px;
+  box-shadow: 0 0 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(255, 215, 0, 0.08);
+  overflow: hidden;
+  animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid rgba(255, 215, 0, 0.15);
+    background: rgba(255, 215, 0, 0.03);
+
+    h2 {
+      margin: 0;
+      color: $text-primary;
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+    }
+
+    .modal-close {
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: $text-secondary;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      cursor: pointer;
+      @include flex-center;
+      font-size: 0.85rem;
+      transition: all 0.2s ease;
+
+      &:hover {
+        border-color: rgba(255, 215, 0, 0.4);
+        color: $yellow-primary;
+        box-shadow: 0 0 10px $yellow-glow;
+      }
+    }
+  }
+
+  .modal-body {
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  .modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    padding: 1.25rem 2rem;
+    border-top: 1px solid rgba(255, 215, 0, 0.1);
+    background: rgba(0, 0, 0, 0.2);
+  }
+}
+
+// Form fields
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+
+  label {
+    color: $text-secondary;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  input[type="text"],
+  input[type="number"] {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    padding: 0.75rem 1rem;
+    color: $text-primary;
+    font-size: 0.95rem;
+    outline: none;
+    transition: all 0.25s ease;
+    width: 100%;
+    box-sizing: border-box;
+
+    &::placeholder {
+      color: $text-muted;
+    }
+
+    &:focus {
+      border-color: rgba(255, 215, 0, 0.5);
+      background: rgba(255, 215, 0, 0.04);
+      box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.08);
+    }
+  }
+}
+
+// File picker button
+.file-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px dashed rgba(255, 215, 0, 0.3);
+  border-radius: 10px;
+  color: $text-secondary;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  width: 100%;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  &:hover {
+    border-color: $yellow-primary;
+    color: $yellow-primary;
+    background: rgba(255, 215, 0, 0.05);
+    box-shadow: 0 0 12px rgba(255, 215, 0, 0.1);
+  }
+}
+
+// Modal action buttons
+.btn-cancel {
+  padding: 0.6rem 1.4rem;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  color: $text-secondary;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: rgba(255, 255, 255, 0.25);
+    color: $text-primary;
+  }
+}
+
+.btn-submit {
+  padding: 0.6rem 1.4rem;
+  background: $yellow-primary;
+  border: none;
+  border-radius: 10px;
+  color: $black-primary;
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.15), transparent);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+
+  &:hover {
+    background: $yellow-bright;
+    box-shadow: 0 0 20px $yellow-glow, 0 4px 15px rgba(255, 215, 0, 0.3);
+    transform: translateY(-1px);
+
+    &::before {
+      opacity: 1;
+    }
+  }
+
+  &:active {
+    transform: translateY(0);
+    box-shadow: 0 0 10px $yellow-glow;
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 @keyframes pulse {

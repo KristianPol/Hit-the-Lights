@@ -1,5 +1,5 @@
-﻿import {Unit} from './unit';
-import {User} from './model';
+﻿import {Unit} from '../database/unit';
+import {User} from '../model';
 
 export interface SongJSON {
   id: number;

@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
-import { Unit } from '../unit';
-import { HTLService } from '../HTLService';
+import { Unit } from '../database/unit';
+import { HTLService } from '../services/HTLService';
 import { RegistrationService, AuthenticationService } from '../services';
 
 export const authRouter = Router();
