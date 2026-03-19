@@ -15,6 +15,14 @@ export interface RegisterRequest {
 export interface User {
   id: number;
   username: string;
+  profilePictureUrl?: string;
+}
+
+export interface UpdateProfilePictureResponse {
+  success: boolean;
+  profilePictureUrl?: string;
+  error?: string;
+  message?: string;
 }
 
 export interface AuthResponse {
@@ -36,9 +44,11 @@ export class AuthService {
   constructor(private http: HttpClient) {
     // Load user from localStorage on service initialization
     const storedUser = localStorage.getItem('currentUser');
-    this.currentUserSubject = new BehaviorSubject<User | null>(
-      storedUser ? JSON.parse(storedUser) : null
-    );
+    let user: User | null = null;
+    if (storedUser) {
+      user = JSON.parse(storedUser);
+    }
+    this.currentUserSubject = new BehaviorSubject<User | null>(user);
     this.currentUser$ = this.currentUserSubject.asObservable();
   }
 
@@ -85,7 +95,8 @@ export class AuthService {
           // Create user object from registration data
           const user: User = {
             id: response.userId,
-            username: request.username
+            username: request.username,
+            profilePictureUrl: undefined
           };
           // Store user in localStorage and update subject
           localStorage.setItem('currentUser', JSON.stringify(user));
@@ -106,5 +117,67 @@ export class AuthService {
     // Remove user from localStorage and update subject
     localStorage.removeItem('currentUser');
     this.currentUserSubject.next(null);
+  }
+
+  /**
+   * Update profile picture
+   */
+  updateProfilePicture(userId: number, base64Image: string): Observable<UpdateProfilePictureResponse> {
+    return this.http.post<UpdateProfilePictureResponse>(
+      `${this.apiUrl}/profile-picture`,
+      { userId, profilePictureBase64: base64Image }
+    ).pipe(
+      map(response => {
+        console.log('updateProfilePicture response:', response);
+        if (response.success && response.profilePictureUrl) {
+          // Update current user with new profile picture URL
+          const currentUser = this.currentUser;
+          if (currentUser && currentUser.id === userId) {
+            const updatedUser: User = {
+              ...currentUser,
+              profilePictureUrl: response.profilePictureUrl
+            };
+            console.log('Updating user in localStorage:', updatedUser);
+            localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+            this.currentUserSubject.next(updatedUser);
+          }
+        }
+        return response;
+      }),
+      catchError(error => {
+        console.error('updateProfilePicture error:', error);
+        return throwError(() => new Error(error.error?.error || 'Failed to update profile picture'));
+      })
+    );
+  }
+
+  /**
+   * Refresh user data from server
+   */
+  refreshUser(userId: number): Observable<AuthResponse> {
+    return this.http.get<{ success: boolean; user?: User; error?: string }>(
+      `${this.apiUrl}/user/${userId}`
+    ).pipe(
+      map(response => {
+        console.log('refreshUser response:', response);
+        if (response.success && response.user) {
+          localStorage.setItem('currentUser', JSON.stringify(response.user));
+          this.currentUserSubject.next(response.user);
+          return { success: true, user: response.user };
+        }
+        return { success: false, error: response.error };
+      }),
+      catchError(error => {
+        console.error('refreshUser error:', error);
+        return throwError(() => new Error(error.error?.error || 'Failed to refresh user'));
+      })
+    );
+  }
+
+  /**
+   * Get profile picture URL for a user
+   */
+  getProfilePictureUrl(userId: number): string {
+    return `${this.apiUrl}/profile-picture/${userId}`;
   }
 }

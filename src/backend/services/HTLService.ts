@@ -40,6 +40,7 @@ export interface HighscoreJSON {
 export interface UserJSON {
   id: number;
   username: string;
+  profilePictureUrl?: string;
   highscores?: HighscoreJSON[];
 }
 
@@ -50,7 +51,10 @@ export class HTLService {
   public userToJSON(user: User): UserJSON {
     return {
       id: user.id,
-      username: user.username
+      username: user.username,
+      profilePictureUrl: user.profilePicture
+        ? `http://localhost:3000/api/auth/profile-picture/${user.id}?t=${Date.now()}`
+        : undefined
     };
   }
 

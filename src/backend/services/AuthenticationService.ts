@@ -59,7 +59,8 @@ export class AuthenticationService {
         user: {
           id: user.id,
           username: user.username,
-          password: user.password
+          password: user.password,
+          profilePicture: user.profilePicture
         }
       };
     } catch (error: any) {
@@ -77,7 +78,7 @@ export class AuthenticationService {
    */
   private findUserByUsername(username: string): User | undefined {
     const stmt = this.unit.prepare<User, { username: string }>(
-      'SELECT id, username, password FROM User WHERE username = $username',
+      'SELECT id, username, password, profilePicture FROM User WHERE username = $username',
       { username }
     );
     return stmt.get();
