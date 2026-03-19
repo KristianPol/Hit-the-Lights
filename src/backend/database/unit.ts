@@ -105,15 +105,18 @@ class DB {
 
   private static ensureTablesCreated(connection: Database): void {
 
-    connection.exec(`PRAGMA foreign_keys = ON`);
     connection.exec(`
            CREATE TABLE IF NOT EXISTS Song (
              id INTEGER PRIMARY KEY AUTOINCREMENT,
              name TEXT NOT NULL,
              author TEXT NOT NULL,
-             bpm INTEGER NOT NULL
+             bpm INTEGER NOT NULL,
+             length TEXT NOT NULL,
+             songUrl TEXT NOT NULL,
+             coverUrl TEXT NOT NULL
              ) STRICT
            `);
+
 
     connection.exec(`
             CREATE TABLE IF NOT EXISTS User (
