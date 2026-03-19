@@ -232,6 +232,10 @@ $text-muted: #555555;
       box-shadow: 0 0 15px $yellow-glow;
     }
 
+    .user-avatar-image {
+      object-fit: cover;
+    }
+
     .user-info {
       display: flex;
       flex-direction: column;
