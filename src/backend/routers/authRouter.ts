@@ -53,6 +53,7 @@ authRouter.post('/login', (req: Request, res: Response) => {
     const { username, password } = req.body;
 
     if (!username || !password) {
+      unit.complete();
       res.status(400).json({
         success: false,
         error: 'Username and password are required'
@@ -63,12 +64,12 @@ authRouter.post('/login', (req: Request, res: Response) => {
     const authService = new AuthenticationService(unit);
     const result = authService.login({ username, password });
 
-    unit.complete(); // Close read-only connection
-
     if (result.success) {
       // Return user without password
       const htlService = new HTLService(unit);
       const userJson = htlService.userToJSON(result.user!);
+
+      unit.complete(); // Close read-only connection
 
       res.status(200).json({
         success: true,
@@ -76,6 +77,7 @@ authRouter.post('/login', (req: Request, res: Response) => {
         message: 'Login successful'
       });
     } else {
+      unit.complete(); // Close read-only connection
       res.status(401).json({
         success: false,
         error: result.error
