@@ -50,13 +50,25 @@
       </div>
 
       <div class="songs-list">
+        @if (loadingError) {
+          <div class="error-message">
+            <span class="error-icon">⚠️</span>
+            <p>{{ loadingError }}</p>
+          </div>
+        } @else if (songs.length === 0) {
+          <div class="empty-message">
+            <span class="empty-icon">🎵</span>
+            <p>No tracks available. Add one to get started!</p>
+          </div>
+        }
+
         @for (song of songs; track song.id) {
           <div class="song-card"
                [class.selected]="selectedSong?.id === song.id"
                (click)="selectSong(song)">
 
             <div class="song-cover">
-              <img [src]="song.cover" [alt]="song.name + ' cover'">
+              <img [src]="song.coverUrl" [alt]="song.name + ' cover'">
             </div>
 
             <div class="song-info">
@@ -91,7 +103,7 @@
       @if (selectedSong) {
         <div class="detail-content">
           <div class="detail-cover">
-            <img [src]="selectedSong.cover" [alt]="selectedSong.name + ' cover'">
+            <img [src]="selectedSong.coverUrl" [alt]="selectedSong.name + ' cover'">
           </div>
 
           <div class="detail-info">

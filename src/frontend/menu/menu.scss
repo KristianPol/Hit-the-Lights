@@ -371,6 +371,39 @@ $text-muted: #555555;
   }
 }
 
+.empty-message,
+.error-message {
+  @include flex-center;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 2rem 1rem;
+  text-align: center;
+  color: $text-secondary;
+
+  .empty-icon {
+    font-size: 2.5rem;
+    opacity: 0.6;
+  }
+
+  .error-icon {
+    font-size: 2.5rem;
+    opacity: 0.8;
+  }
+
+  p {
+    margin: 0;
+    font-size: 0.95rem;
+  }
+}
+
+.error-message {
+  color: #ff6b6b;
+
+  p {
+    font-weight: 500;
+  }
+}
+
 .song-card {
   display: flex;
   align-items: center;

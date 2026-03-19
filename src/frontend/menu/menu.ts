@@ -1,8 +1,9 @@
-import { Component, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService, User } from '../../app/services/auth.service';
+import { SongService } from '../../app/services/song.service';
 
 interface MenuItem {
   label: string;
@@ -18,8 +19,16 @@ interface Song {
   author: string;
   length: string;
   bpm: number;
-  cover: string;
-  audioUrl: string;
+  coverUrl: string;
+  songUrl: string;
+}
+
+interface AddSongFormData {
+  name?: string;
+  author?: string;
+  bpm?: number;
+  audioUrl?: string;
+  cover?: string;
 }
 
 @Component({
@@ -29,7 +38,7 @@ interface Song {
   templateUrl: './menu.html',
   styleUrls: ['./menu.scss']
 })
-export class MenuComponent implements OnDestroy {
+export class MenuComponent implements OnInit, OnDestroy {
   menuItems: MenuItem[] = [
     { label: 'Dashboard', icon: '◆', route: '/dashboard' },
     { label: 'Profile', icon: '◎', route: '/profile' },
@@ -43,49 +52,46 @@ export class MenuComponent implements OnDestroy {
   currentUser: User | null = null;
   private audio = new Audio();
 
-  songs: Song[] = [
-    {
-      id: 1,
-      name: 'Parabola',
-      author: 'TOOL',
-      length: '6:03',
-      bpm: 79,
-      cover: 'assets/images/parabola.jpg',
-      audioUrl: 'assets/music/Parabola.mp3'
-    },
-    {
-      id: 2,
-      name: '505',
-      author: 'Arctic Monkeys',
-      length: '4:14',
-      bpm: 140,
-      cover: 'assets/images/505.jpg',
-      audioUrl: 'assets/music/505.mp3'
-    },
-    {
-      id: 3,
-      name: 'Full Moon Full Life',
-      author: 'Atlas Sound Team',
-      length: '4:54',
-      bpm: 192,
-      cover: 'assets/images/p3.jpg',
-      audioUrl: 'assets/music/FullMoonFullLife.mp3'
-    }
-  ];
+  songs: Song[] = [];
+  loadingError: string | null = null;
 
   selectedSong: Song | null = null;
 
   // Add Track Form
   showAddTrackForm = false;
-  pendingSong: Partial<Song> = {};
+  pendingSong: AddSongFormData = {};
 
   constructor(
     private authService: AuthService,
+    private songService: SongService,
     private router: Router
   ) {
     this.currentUser = this.authService.currentUser;
     this.audio = new Audio();
     this.audio.volume = 1;
+  }
+
+  ngOnInit() {
+    this.loadSongsFromDatabase();
+  }
+
+  private loadSongsFromDatabase() {
+    this.songService.getAllSongs().subscribe({
+      next: response => {
+        if (response.success) {
+          this.songs = response.songs;
+          this.loadingError = null;
+        } else {
+          this.loadingError = response.error || 'Failed to load songs';
+          this.songs = [];
+        }
+      },
+      error: error => {
+        this.loadingError = `Error loading songs: ${error.message}`;
+        this.songs = [];
+        console.error('Failed to load songs from database:', error);
+      }
+    });
   }
 
   ngOnDestroy() {
@@ -109,7 +115,7 @@ export class MenuComponent implements OnDestroy {
 
   selectSong(song: Song) {
     this.selectedSong = song;
-    this.playSong(this.selectedSong.audioUrl).then(r => "Audio played");
+    this.playSong(this.selectedSong.songUrl).then(() => "Audio played");
   }
 
   logout() {
@@ -180,16 +186,90 @@ export class MenuComponent implements OnDestroy {
       return;
     }
 
-    this.songs.push({
-      id: this.songs.length + 1,
-      name,
-      author,
-      bpm,
-      length: '0:00',
-      audioUrl,
-      cover
-    });
+    // Calculate song length from audio metadata
+    this.getAudioDuration(audioUrl)
+      .then(length => {
+        // Call backend API to save song to database
+        this.songService
+          .addSong({
+            name,
+            author,
+            bpm: parseInt(bpm.toString(), 10),
+            length,
+            songUrl: audioUrl,
+            coverUrl: cover
+          })
+          .subscribe({
+            next: response => {
+              if (response.success) {
+                // Add to local array after successful database insert
+                this.songs.push({
+                  id: response.songId || this.songs.length + 1,
+                  name,
+                  author,
+                  bpm: parseInt(bpm.toString(), 10),
+                  length,
+                  songUrl: audioUrl,
+                  coverUrl: cover
+                });
+                this.closeAddTrackForm();
+                alert('Song added successfully!');
+              } else {
+                alert(`Failed to add song: ${response.error}`);
+              }
+            },
+            error: error => {
+              alert(`Error adding song: ${error.message}`);
+            }
+          });
+      })
+      .catch(error => {
+        alert(`Failed to load audio file: ${error}`);
+      });
+  }
 
-    this.closeAddTrackForm();
+  private getAudioDuration(audioUrl: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const audio = new Audio();
+      let durationSet = false;
+      const timeout = setTimeout(() => {
+        if (!durationSet) {
+          audio.pause();
+          reject('Timeout: Could not load audio duration');
+        }
+      }, 5000); // 5 second timeout
+
+      audio.onloadedmetadata = () => {
+        if (audio.duration && audio.duration !== Infinity) {
+          durationSet = true;
+          clearTimeout(timeout);
+          const length = this.formatDuration(audio.duration);
+          resolve(length);
+        }
+      };
+
+      audio.oncanplay = () => {
+        if (!durationSet && audio.duration && audio.duration !== Infinity) {
+          durationSet = true;
+          clearTimeout(timeout);
+          const length = this.formatDuration(audio.duration);
+          resolve(length);
+        }
+      };
+
+      audio.onerror = () => {
+        clearTimeout(timeout);
+        reject('Failed to load audio file');
+      };
+
+      audio.src = audioUrl;
+      audio.load();
+    });
+  }
+
+  private formatDuration(seconds: number): string {
+    const minutes = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${minutes}:${secs.toString().padStart(2, '0')}`;
   }
 }
