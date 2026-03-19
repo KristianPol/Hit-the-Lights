@@ -1,6 +1,6 @@
 import express, { Request, Response } from "express";
 import cors from "cors";
-import { authRouter } from "../routers";
+import { authRouter, songRouter } from "../routers";
 
 const app = express();
 const PORT = 3000;
@@ -11,6 +11,7 @@ app.use(express.json());
 
 // API Routes
 app.use('/api/auth', authRouter);
+app.use('/api/songs', songRouter);
 
 // Health check
 app.get('/api/health', (_req: Request, res: Response) => {
@@ -43,5 +44,8 @@ app.listen(PORT, () => {
   console.log(`  POST http://localhost:${PORT}/api/auth/register`);
   console.log(`  POST http://localhost:${PORT}/api/auth/login`);
   console.log(`  GET  http://localhost:${PORT}/api/auth/health`);
+  console.log(`  POST http://localhost:${PORT}/api/songs/add`);
+  console.log(`  GET  http://localhost:${PORT}/api/songs/all`);
+  console.log(`  GET  http://localhost:${PORT}/api/songs/:id`);
   console.log(`  GET  http://localhost:${PORT}/api/health`);
 });
