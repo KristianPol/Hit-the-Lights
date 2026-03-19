@@ -23,7 +23,16 @@
       <div class="avatar-section">
         <div class="avatar-wrapper">
           <div class="avatar-glow"></div>
-          <div class="avatar">{{ user.username.charAt(0).toUpperCase() }}</div>
+          <div class="avatar" *ngIf="!user?.profilePictureUrl || imageError">
+            {{ user.username.charAt(0).toUpperCase() }}
+          </div>
+          <img 
+            *ngIf="user?.profilePictureUrl && !imageError" 
+            [src]="user?.profilePictureUrl" 
+            [alt]="user.username + ' profile picture'"
+            class="avatar avatar-image"
+            (error)="onImageError()"
+          >
           <div class="status-ring"></div>
         </div>
         <h2 class="username">{{ user.username }}</h2>
@@ -95,4 +104,78 @@
       </div>
     </ng-template>
   </ng-container>
+</div>
+
+<!-- Edit Profile Modal -->
+<div class="modal-overlay" *ngIf="showEditModal" (click)="closeEditModal()">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>Edit Profile</h2>
+      <button class="modal-close" (click)="closeEditModal()">✕</button>
+    </div>
+
+    <div class="modal-body">
+      <!-- Current Profile Picture -->
+      <div class="current-picture-section">
+        <label>Current Profile Picture</label>
+        <div class="current-avatar-wrapper">
+          <div class="current-avatar" *ngIf="!user?.profilePictureUrl && !profilePicturePreview">
+            {{ user?.username?.charAt(0)?.toUpperCase() || '?' }}
+          </div>
+          <img 
+            *ngIf="user?.profilePictureUrl && !profilePicturePreview" 
+            [src]="user?.profilePictureUrl" 
+            [alt]="'Current profile picture'"
+            class="current-avatar avatar-image"
+          >
+          <img 
+            *ngIf="profilePicturePreview" 
+            [src]="profilePicturePreview" 
+            [alt]="'New profile picture preview'"
+            class="current-avatar avatar-image"
+          >
+        </div>
+      </div>
+
+      <!-- Profile Picture Upload -->
+      <div class="form-group">
+        <label>Change Profile Picture</label>
+        <input 
+          type="file" 
+          accept="image/jpeg,image/png,image/gif,image/webp"
+          style="display: none"
+          #profilePictureInput
+          (change)="onProfilePictureSelected($event)"
+        >
+        <button class="file-btn" (click)="profilePictureInput.click()">
+          🖼️ {{ selectedProfilePicture ? selectedProfilePicture.name : 'Choose Profile Picture' }}
+        </button>
+        <small class="file-hint">Max 5MB. JPEG, PNG, GIF, or WebP.</small>
+      </div>
+
+      <!-- Error Message -->
+      <div class="error-message" *ngIf="updateError">
+        <span class="error-icon">⚠️</span>
+        {{ updateError }}
+      </div>
+
+      <!-- Success Message -->
+      <div class="success-message" *ngIf="updateSuccess">
+        <span class="success-icon">✅</span>
+        Profile picture updated successfully!
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-cancel" (click)="closeEditModal()">Cancel</button>
+      <button 
+        class="btn-submit" 
+        [disabled]="!selectedProfilePicture || updatingProfilePicture"
+        (click)="updateProfilePicture()"
+      >
+        <span *ngIf="updatingProfilePicture">Updating...</span>
+        <span *ngIf="!updatingProfilePicture">Save Changes</span>
+      </button>
+    </div>
+  </div>
 </div>

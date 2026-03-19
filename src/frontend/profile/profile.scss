@@ -181,6 +181,12 @@ $text-muted: #555555;
       animation: pulse 2s infinite;
       z-index: 2;
     }
+
+    .avatar-image {
+      object-fit: cover;
+      width: 100%;
+      height: 100%;
+    }
   }
 
   .username {
@@ -511,6 +517,248 @@ $text-muted: #555555;
   }
 }
 
+// Modal styles
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba($black-primary, 0.85);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease;
+}
+
+.modal {
+  background: linear-gradient(135deg, $black-secondary 0%, $black-tertiary 100%);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  border-radius: 20px;
+  width: 90%;
+  max-width: 450px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 40px $yellow-glow;
+  animation: slideUp 0.3s ease;
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem 2rem;
+  border-bottom: 1px solid rgba(255, 215, 0, 0.1);
+  background: rgba(255, 215, 0, 0.05);
+
+  h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: $text-primary;
+    background: linear-gradient(90deg, $yellow-primary, $yellow-bright);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .modal-close {
+    background: none;
+    border: none;
+    color: $text-secondary;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0.25rem;
+    line-height: 1;
+    transition: all 0.3s ease;
+
+    &:hover {
+      color: $yellow-primary;
+      transform: rotate(90deg);
+    }
+  }
+}
+
+.modal-body {
+  padding: 2rem;
+
+  .current-picture-section {
+    text-align: center;
+    margin-bottom: 1.5rem;
+
+    label {
+      display: block;
+      color: $text-secondary;
+      font-size: 0.875rem;
+      margin-bottom: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .current-avatar-wrapper {
+      display: flex;
+      justify-content: center;
+
+      .current-avatar {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, $yellow-primary, $yellow-bright);
+        color: $black-primary;
+        font-size: 2.5rem;
+        font-weight: 800;
+        @include flex-center;
+        border: 3px solid rgba(255, 215, 0, 0.5);
+        box-shadow: 0 0 30px $yellow-glow;
+      }
+
+      .avatar-image {
+        object-fit: cover;
+      }
+    }
+  }
+
+  .form-group {
+    margin-bottom: 1.5rem;
+
+    label {
+      display: block;
+      color: $text-secondary;
+      font-size: 0.875rem;
+      margin-bottom: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .file-btn {
+      width: 100%;
+      padding: 1rem 1.5rem;
+      background: rgba(255, 255, 255, 0.05);
+      border: 2px dashed rgba(255, 215, 0, 0.3);
+      border-radius: 12px;
+      color: $text-primary;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-align: center;
+
+      &:hover {
+        border-color: $yellow-primary;
+        background: rgba(255, 215, 0, 0.1);
+      }
+    }
+
+    .file-hint {
+      display: block;
+      margin-top: 0.5rem;
+      color: $text-muted;
+      font-size: 0.75rem;
+    }
+  }
+
+  .error-message {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    background: rgba(255, 0, 0, 0.1);
+    border: 1px solid rgba(255, 0, 0, 0.3);
+    border-radius: 8px;
+    color: #ff6b6b;
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+
+    .error-icon {
+      font-size: 1rem;
+    }
+  }
+
+  .success-message {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    background: rgba(0, 255, 136, 0.1);
+    border: 1px solid rgba(0, 255, 136, 0.3);
+    border-radius: 8px;
+    color: #00ff88;
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+
+    .success-icon {
+      font-size: 1rem;
+    }
+  }
+}
+
+.modal-footer {
+  display: flex;
+  gap: 1rem;
+  padding: 1.5rem 2rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.2);
+
+  .btn-cancel,
+  .btn-submit {
+    flex: 1;
+    padding: 0.875rem 1.5rem;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: none;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .btn-cancel {
+    background: transparent;
+    color: $text-secondary;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+
+    &:hover {
+      border-color: rgba(255, 215, 0, 0.4);
+      color: $text-primary;
+      background: rgba(255, 215, 0, 0.05);
+    }
+  }
+
+  .btn-submit {
+    background: linear-gradient(135deg, $yellow-primary, $yellow-bright);
+    color: $black-primary;
+    box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+
+    &:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(255, 215, 0, 0.4);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+}
+
+// Animations for modal
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 // Responsive
 @media (max-width: 768px) {
   .profile-container {
@@ -535,5 +783,17 @@ $text-muted: #555555;
 
   .profile-header h1 {
     font-size: 1.75rem;
+  }
+
+  .modal {
+    width: 95%;
+    margin: 1rem;
+  }
+
+  .modal-header,
+  .modal-body,
+  .modal-footer {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
   }
 }
