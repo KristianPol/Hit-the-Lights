@@ -123,6 +123,7 @@ class DB {
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 username TEXT NOT NULL,
                 password TEXT NOT NULL,
+                profilePicture BLOB,
                 CONSTRAINT uq_username UNIQUE (username)
             ) STRICT
         `);
