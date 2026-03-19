@@ -4,3 +4,9 @@ export { AuthenticationService } from './AuthenticationService';
 export type { LoginRequest, LoginResponse } from './AuthenticationService';
 export { SongService } from './SongService';
 export type { AddSongRequest, AddSongResponse } from './SongService';
+export { UserService } from './UserService';
+export type {
+  UpdateProfilePictureRequest,
+  UpdateProfilePictureResponse,
+  GetUserResponse
+} from './UserService';
