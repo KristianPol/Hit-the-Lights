@@ -1,9 +1,10 @@
-import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService, User } from '../../app/services/auth.service';
 import { SongService } from '../../app/services/song.service';
+import { tap } from 'rxjs/operators';
 
 interface MenuItem {
   label: string;
@@ -60,12 +61,14 @@ export class MenuComponent implements OnInit, OnDestroy {
 
   showAddTrackForm = false;
   pendingSong: AddSongFormData = {};
+  menuImageError = false;
 
   constructor(
     private authService: AuthService,
     private songService: SongService,
     private router: Router,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private ngZone: NgZone
   ) {
     this.currentUser = this.authService.currentUser;
     this.audio = new Audio();
@@ -73,6 +76,17 @@ export class MenuComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
+    // Subscribe to user changes to update profile picture
+    this.authService.currentUser$.pipe(
+      tap(user => {
+        this.ngZone.run(() => {
+          this.currentUser = user;
+          this.menuImageError = false; // Reset image error on user update
+          this.cdr.detectChanges();
+        });
+      })
+    ).subscribe();
+    
     setTimeout(() => {
       this.loadSongsFromDatabase();
     }, 0);
@@ -167,6 +181,11 @@ export class MenuComponent implements OnInit, OnDestroy {
   navigateToProfile() {
     this.router.navigate(['/profile']);
     this.activeItem = 'Profile';
+  }
+
+  onMenuImageError(): void {
+    console.error('Failed to load profile picture in menu');
+    this.menuImageError = true;
   }
 
   openAddTrackForm(): void {

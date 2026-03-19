@@ -32,7 +32,16 @@
 
     <div class="menu-footer" (click)="navigateToProfile()" style="cursor: pointer;">
       <div class="user-mini">
-        <div class="user-avatar">{{ currentUser?.username?.charAt(0)?.toUpperCase() || '?' }}</div>
+        <div class="user-avatar" *ngIf="!currentUser?.profilePictureUrl || menuImageError">
+          {{ currentUser?.username?.charAt(0)?.toUpperCase() || '?' }}
+        </div>
+        <img 
+          *ngIf="currentUser?.profilePictureUrl && !menuImageError" 
+          [src]="currentUser?.profilePictureUrl" 
+          [alt]="'Profile picture'"
+          class="user-avatar user-avatar-image"
+          (error)="onMenuImageError()"
+        >
         <div class="user-info">
           <span class="user-name">{{ currentUser?.username || 'Guest' }}</span>
           <span class="user-status">Online</span>
