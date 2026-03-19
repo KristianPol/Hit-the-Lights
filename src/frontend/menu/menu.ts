@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -27,8 +27,8 @@ interface AddSongFormData {
   name?: string;
   author?: string;
   bpm?: number;
-  audioUrl?: string;
-  cover?: string;
+  audioFile?: File;
+  coverFile?: File;
 }
 
 @Component({
@@ -54,17 +54,18 @@ export class MenuComponent implements OnInit, OnDestroy {
 
   songs: Song[] = [];
   loadingError: string | null = null;
+  isLoading = true;
 
   selectedSong: Song | null = null;
 
-  // Add Track Form
   showAddTrackForm = false;
   pendingSong: AddSongFormData = {};
 
   constructor(
     private authService: AuthService,
     private songService: SongService,
-    private router: Router
+    private router: Router,
+    private cdr: ChangeDetectorRef
   ) {
     this.currentUser = this.authService.currentUser;
     this.audio = new Audio();
@@ -72,24 +73,38 @@ export class MenuComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
-    this.loadSongsFromDatabase();
+    setTimeout(() => {
+      this.loadSongsFromDatabase();
+    }, 0);
   }
 
-  private loadSongsFromDatabase() {
+  loadSongsFromDatabase() {
+    console.log('🎵 MenuComponent: Starting to load songs from database');
+    this.isLoading = true;
+    this.loadingError = null;
+
     this.songService.getAllSongs().subscribe({
       next: response => {
+        console.log('✅ MenuComponent: Received response from getAllSongs()', response);
         if (response.success) {
+          console.log(`📦 MenuComponent: Successfully loaded ${response.songs.length} songs`);
           this.songs = response.songs;
           this.loadingError = null;
+          this.isLoading = false;
+          console.log('🎶 MenuComponent: Songs array updated', this.songs);
+          this.cdr.detectChanges();
         } else {
+          console.error('❌ MenuComponent: API returned success=false', response.error);
           this.loadingError = response.error || 'Failed to load songs';
           this.songs = [];
+          this.isLoading = false;
         }
       },
       error: error => {
+        console.error('❌ MenuComponent: Error loading songs', error);
         this.loadingError = `Error loading songs: ${error.message}`;
         this.songs = [];
-        console.error('Failed to load songs from database:', error);
+        this.isLoading = false;
       }
     });
   }
@@ -154,7 +169,6 @@ export class MenuComponent implements OnInit, OnDestroy {
     this.activeItem = 'Profile';
   }
 
-  // Add Track Methods
   openAddTrackForm(): void {
     this.showAddTrackForm = true;
   }
@@ -167,84 +181,96 @@ export class MenuComponent implements OnInit, OnDestroy {
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     if (input.files?.length) {
-      this.pendingSong.audioUrl = URL.createObjectURL(input.files[0]);
+      this.pendingSong.audioFile = input.files[0];
     }
   }
 
   onCoverSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     if (input.files?.length) {
-      this.pendingSong.cover = URL.createObjectURL(input.files[0]);
+      this.pendingSong.coverFile = input.files[0];
     }
   }
 
   submitTrack(): void {
-    const { name, author, bpm, audioUrl, cover } = this.pendingSong;
+    const { name, author, bpm, audioFile, coverFile } = this.pendingSong;
 
-    if (!name || !author || !bpm || !audioUrl || !cover) {
+    if (!name || !author || !bpm || !audioFile || !coverFile) {
       alert('Please fill in all fields.');
       return;
     }
 
-    // Calculate song length from audio metadata
-    this.getAudioDuration(audioUrl)
-      .then(length => {
-        // Call backend API to save song to database
-        this.songService
-          .addSong({
-            name,
-            author,
-            bpm: parseInt(bpm.toString(), 10),
-            length,
-            songUrl: audioUrl,
-            coverUrl: cover
-          })
-          .subscribe({
-            next: response => {
-              if (response.success) {
-                // Add to local array after successful database insert
-                this.songs.push({
-                  id: response.songId || this.songs.length + 1,
-                  name,
-                  author,
-                  bpm: parseInt(bpm.toString(), 10),
-                  length,
-                  songUrl: audioUrl,
-                  coverUrl: cover
-                });
-                this.closeAddTrackForm();
-                alert('Song added successfully!');
-              } else {
-                alert(`Failed to add song: ${response.error}`);
-              }
-            },
-            error: error => {
-              alert(`Error adding song: ${error.message}`);
+    Promise.all([
+      this.getAudioDuration(audioFile),
+      this.fileToBase64(audioFile),
+      this.fileToBase64(coverFile)
+    ])
+      .then(([length, audioBase64, coverBase64]) => {
+        this.songService.addSong({
+          name,
+          author,
+          bpm: parseInt(bpm.toString(), 10),
+          length,
+          audioBase64,
+          audioMimeType: audioFile.type,
+          coverBase64,
+          coverMimeType: coverFile.type
+        }).subscribe({
+          next: response => {
+            if (response.success) {
+              this.songs.push({
+                id: response.songId || this.songs.length + 1,
+                name,
+                author,
+                bpm: parseInt(bpm.toString(), 10),
+                length,
+                songUrl: response.songUrl ?? '',
+                coverUrl: response.coverUrl ?? ''
+              });
+              this.loadSongsFromDatabase();
+              this.closeAddTrackForm();
+            } else {
+              alert(`Failed to add song: ${response.error}`);
             }
-          });
+          },
+          error: err => alert(`Error adding song: ${err.message}`)
+        });
       })
-      .catch(error => {
-        alert(`Failed to load audio file: ${error}`);
-      });
+      .catch(err => alert(`Failed to process files: ${err}`));
   }
 
-  private getAudioDuration(audioUrl: string): Promise<string> {
+  private fileToBase64(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
-      const audio = new Audio();
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        resolve(result.split(',')[1]);
+      };
+      reader.onerror = () => reject('Failed to read file');
+      reader.readAsDataURL(file);
+    });
+  }
+
+  private getAudioDuration(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const audio = new Audio(url);
       let durationSet = false;
+
       const timeout = setTimeout(() => {
         if (!durationSet) {
           audio.pause();
+          URL.revokeObjectURL(url);
           reject('Timeout: Could not load audio duration');
         }
-      }, 5000); // 5 second timeout
+      }, 5000);
 
       audio.onloadedmetadata = () => {
         if (audio.duration && audio.duration !== Infinity) {
           durationSet = true;
           clearTimeout(timeout);
-          const length = this.formatDuration(audio.duration);
-          resolve(length);
+          URL.revokeObjectURL(url);
+          resolve(this.formatDuration(audio.duration));
         }
       };
 
@@ -252,17 +278,18 @@ export class MenuComponent implements OnInit, OnDestroy {
         if (!durationSet && audio.duration && audio.duration !== Infinity) {
           durationSet = true;
           clearTimeout(timeout);
-          const length = this.formatDuration(audio.duration);
-          resolve(length);
+          URL.revokeObjectURL(url);
+          resolve(this.formatDuration(audio.duration));
         }
       };
 
       audio.onerror = () => {
         clearTimeout(timeout);
+        URL.revokeObjectURL(url);
         reject('Failed to load audio file');
       };
 
-      audio.src = audioUrl;
+      audio.src = url;
       audio.load();
     });
   }

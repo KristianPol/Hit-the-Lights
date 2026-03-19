@@ -17,13 +17,17 @@ export interface AddSongRequest {
   author: string;
   bpm: number;
   length: string;
-  songUrl: string;
-  coverUrl: string;
+  audioBase64: string;
+  audioMimeType: string;
+  coverBase64: string;
+  coverMimeType: string;
 }
 
 export interface AddSongResponse {
   success: boolean;
   songId?: number;
+  songUrl?: string;
+  coverUrl?: string;
   error?: string;
   message?: string;
 }
@@ -42,10 +46,6 @@ export class SongService {
 
   constructor(private http: HttpClient) {}
 
-  /**
-   * Add a new song to the database
-   */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   addSong(song: AddSongRequest): Observable<AddSongResponse> {
     return this.http.post<AddSongResponse>(`${this.apiUrl}/add`, song).pipe(
       catchError(error => {
@@ -56,13 +56,12 @@ export class SongService {
     );
   }
 
-  /**
-   * Get all songs from the database
-   */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   getAllSongs(): Observable<GetSongsResponse> {
-    return this.http.get<GetSongsResponse>(`${this.apiUrl}/all`).pipe(
+    const endpoint = `${this.apiUrl}/all`;
+    console.log(`🌐 SongService: Fetching songs from ${endpoint}`);
+    return this.http.get<GetSongsResponse>(endpoint).pipe(
       catchError(error => {
+        console.error(`❌ SongService: Failed to fetch songs from ${endpoint}`, error);
         return throwError(
           () => new Error(error.error?.error || 'Failed to fetch songs')
         );
@@ -70,10 +69,6 @@ export class SongService {
     );
   }
 
-  /**
-   * Get a specific song by ID
-   */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   getSongById(id: number): Observable<{ success: boolean; song?: Song; error?: string }> {
     return this.http
       .get<{ success: boolean; song?: Song; error?: string }>(`${this.apiUrl}/${id}`)
@@ -86,4 +81,3 @@ export class SongService {
       );
   }
 }
-

@@ -1,19 +1,19 @@
 import express, { Request, Response } from "express";
 import cors from "cors";
+import path from "path";
 import { authRouter, songRouter } from "../routers";
+import { Unit } from './unit';
 
 const app = express();
 const PORT = 3000;
 
-// Middleware
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use('/uploads', express.static(path.resolve(process.cwd(), 'uploads')));
 
-// API Routes
 app.use('/api/auth', authRouter);
 app.use('/api/songs', songRouter);
 
-// Health check
 app.get('/api/health', (_req: Request, res: Response) => {
   res.json({
     status: 'OK',
@@ -21,7 +21,6 @@ app.get('/api/health', (_req: Request, res: Response) => {
   });
 });
 
-// 404 handler
 app.use((_req: Request, res: Response) => {
   res.status(404).json({
     error: 'Not Found',
@@ -29,7 +28,6 @@ app.use((_req: Request, res: Response) => {
   });
 });
 
-// Error handler
 app.use((err: any, _req: Request, res: Response, _next: any) => {
   console.error('Server error:', err);
   res.status(500).json({

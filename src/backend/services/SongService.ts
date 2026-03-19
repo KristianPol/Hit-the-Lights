@@ -13,6 +13,8 @@ export interface AddSongRequest {
 export interface AddSongResponse {
   success: boolean;
   songId?: number;
+  songUrl?: string;
+  coverUrl?: string;
   error?: string;
 }
 
@@ -23,57 +25,32 @@ export class SongService {
     this.htlService = new HTLService(unit);
   }
 
-  /**
-   * Adds a new song to the database
-   * @param request Add song request with song metadata
-   * @returns Add song response with success status and songId or error
-   */
   public addSong(request: AddSongRequest): AddSongResponse {
     try {
-      // Validate input
       if (!request.name || request.name.trim().length === 0) {
-        return {
-          success: false,
-          error: 'Song name is required'
-        };
+        return { success: false, error: 'Song name is required' };
       }
 
       if (!request.author || request.author.trim().length === 0) {
-        return {
-          success: false,
-          error: 'Song author is required'
-        };
+        return { success: false, error: 'Song author is required' };
       }
 
       if (request.bpm <= 0) {
-        return {
-          success: false,
-          error: 'BPM must be a positive number'
-        };
+        return { success: false, error: 'BPM must be a positive number' };
       }
 
       if (!request.length) {
-        return {
-          success: false,
-          error: 'Song length is required'
-        };
+        return { success: false, error: 'Song length is required' };
       }
 
       if (!request.songUrl) {
-        return {
-          success: false,
-          error: 'Song URL is required'
-        };
+        return { success: false, error: 'Song URL is required' };
       }
 
       if (!request.coverUrl) {
-        return {
-          success: false,
-          error: 'Cover URL is required'
-        };
+        return { success: false, error: 'Cover URL is required' };
       }
 
-      // Insert new song
       const stmt = this.unit.prepare<
         { id: number },
         {
@@ -101,27 +78,20 @@ export class SongService {
       const result = stmt.get();
 
       if (!result) {
-        return {
-          success: false,
-          error: 'Failed to insert song'
-        };
+        return { success: false, error: 'Failed to insert song' };
       }
 
       return {
         success: true,
-        songId: result.id
+        songId: result.id,
+        songUrl: request.songUrl,
+        coverUrl: request.coverUrl
       };
     } catch (error: any) {
-      return {
-        success: false,
-        error: error.message || 'Failed to add song'
-      };
+      return { success: false, error: error.message || 'Failed to add song' };
     }
   }
 
-  /**
-   * Retrieves all songs from the database
-   */
   public getAllSongs(): {
     id: number;
     name: string;
@@ -145,9 +115,6 @@ export class SongService {
     return stmt.all();
   }
 
-  /**
-   * Retrieves a song by ID
-   */
   public getSongById(
     songId: number
   ): {
@@ -177,4 +144,3 @@ export class SongService {
     return stmt.get();
   }
 }
-
