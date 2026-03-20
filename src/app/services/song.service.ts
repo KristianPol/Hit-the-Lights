@@ -80,4 +80,16 @@ export class SongService {
         })
       );
   }
+
+  deleteSong(id: number): Observable<{ success: boolean; message?: string; error?: string }> {
+    return this.http
+      .delete<{ success: boolean; message?: string; error?: string }>(`${this.apiUrl}/${id}`)
+      .pipe(
+        catchError(error => {
+          return throwError(
+            () => new Error(error.error?.error || 'Failed to delete song')
+          );
+        })
+      );
+  }
 }

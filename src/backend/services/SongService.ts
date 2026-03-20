@@ -143,4 +143,27 @@ export class SongService {
     );
     return stmt.get();
   }
+
+  public deleteSong(songId: number): { success: boolean; error?: string } {
+    try {
+      const song = this.getSongById(songId);
+      if (!song) {
+        return { success: false, error: 'Song not found' };
+      }
+
+      const stmt = this.unit.prepare<{ changes: number }, { id: number }>(
+        'DELETE FROM Song WHERE id = $id',
+        { id: songId }
+      );
+      const result = stmt.run();
+
+      if (result.changes === 0) {
+        return { success: false, error: 'Failed to delete song' };
+      }
+
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error.message || 'Failed to delete song' };
+    }
+  }
 }

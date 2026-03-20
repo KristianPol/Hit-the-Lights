@@ -135,3 +135,50 @@ songRouter.get('/:id', (req: Request, res: Response) => {
     });
   }
 });
+
+songRouter.delete('/:id', (req: Request, res: Response) => {
+  const unit = new Unit(false);
+
+  try {
+    const songId = parseInt(req.params['id'] as string, 10);
+
+    if (isNaN(songId)) {
+      unit.complete(false);
+      res.status(400).json({ success: false, error: 'Invalid song ID' });
+      return;
+    }
+
+    const songService = new SongService(unit);
+    const song = songService.getSongById(songId);
+
+    if (!song) {
+      unit.complete(false);
+      res.status(404).json({ success: false, error: 'Song not found' });
+      return;
+    }
+
+    // Extract filenames for deletion
+    const audioFilename = song.songUrl.split('/').pop();
+    const coverFilename = song.coverUrl.split('/').pop();
+
+    const audioPath = path.join(AUDIO_DIR, audioFilename!);
+    const coverPath = path.join(COVER_DIR, coverFilename!);
+
+    // Delete files if exist
+    if (fs.existsSync(audioPath)) fs.unlinkSync(audioPath);
+    if (fs.existsSync(coverPath)) fs.unlinkSync(coverPath);
+
+    const result = songService.deleteSong(songId);
+
+    if (result.success) {
+      unit.complete(true);
+      res.json({ success: true, message: 'Song deleted successfully' });
+    } else {
+      unit.complete(false);
+      res.status(400).json({ success: false, error: result.error });
+    }
+  } catch (error: any) {
+    unit.complete(false);
+    res.status(500).json({ success: false, error: error.message || 'Internal server error' });
+  }
+});

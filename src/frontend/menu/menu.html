@@ -102,6 +102,10 @@
               <div class="indicator-bar"></div>
             </div>
 
+            <button class="delete-btn" (click)="requestDeleteSong(song); $event.stopPropagation()" title="Delete song">
+              🗑️
+            </button>
+
             <div class="card-glow"></div>
           </div>
         }
@@ -152,10 +156,34 @@
       }
     </div>
   </div>
-</div>
 
-<!-- Add Track Modal -->
-@if (showAddTrackForm) {
+  <!-- Delete Confirm Modal -->
+  @if (showDeleteConfirm && pendingDeleteSong) {
+    <div class="modal-overlay" (click)="cancelDelete()">
+      <div class="modal delete-confirm-modal" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h2>Delete Track</h2>
+          <button class="modal-close" (click)="cancelDelete()">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="delete-song-preview">
+            <img [src]="pendingDeleteSong.coverUrl" [alt]="pendingDeleteSong.name + ' cover'" class="delete-cover">
+          </div>
+          <p>Delete this track?</p>
+          <h3>"{{ pendingDeleteSong.name }}"</h3>
+          <p class="delete-author">by {{ pendingDeleteSong.author }}</p>
+          <p class="delete-warning">This action cannot be undone.</p>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-cancel" (click)="cancelDelete()">Cancel</button>
+          <button class="btn-delete" (click)="confirmDelete()">Delete Track</button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Add Track Modal -->
+  @if (showAddTrackForm) {
   <div class="modal-overlay" (click)="closeAddTrackForm()">
     <div class="modal" (click)="$event.stopPropagation()">
 

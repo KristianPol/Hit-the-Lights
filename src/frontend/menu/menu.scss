@@ -418,8 +418,38 @@ $text-muted: #555555;
   border-radius: 16px;
   cursor: pointer;
   position: relative;
-  overflow: hidden;
+  overflow: visible;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  .delete-btn {
+    background: rgba(255, 107, 107, 0.2);
+    border: 1px solid rgba(255, 107, 107, 0.4);
+    color: #ff6b6b;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transform: translateY(4px);
+    transition: all 0.25s ease;
+    flex-shrink: 0;
+
+    &:hover {
+      background: rgba(255, 107, 107, 0.3);
+      border-color: #ff6b6b;
+      color: #ffffff;
+      box-shadow: 0 0 12px rgba(255, 107, 107, 0.4);
+      transform: translateY(0) scale(1.05);
+    }
+  }
+
+  &:hover .delete-btn {
+    opacity: 1;
+  }
 
   .song-cover {
     width: 60px;
@@ -942,6 +972,79 @@ $text-muted: #555555;
   &:active {
     transform: translateY(0);
     box-shadow: 0 0 10px $yellow-glow;
+  }
+}
+
+.delete-confirm-modal {
+  max-width: 420px;
+
+  .modal-body {
+    text-align: center;
+    padding: 2.5rem 2rem !important;
+
+    .delete-song-preview {
+      margin-bottom: 1.5rem;
+
+      .delete-cover {
+        width: 120px;
+        height: 120px;
+        border-radius: 16px;
+        object-fit: cover;
+        border: 3px solid rgba(255, 107, 107, 0.4);
+        box-shadow: 0 0 30px rgba(255, 107, 107, 0.3);
+      }
+    }
+
+    .delete-icon {
+      font-size: 4rem;
+      color: #ff6b6b;
+      filter: drop-shadow(0 0 20px rgba(255, 107, 107, 0.4));
+      margin-bottom: 1rem;
+    }
+
+    p {
+      color: $text-primary;
+      margin: 0 0 0.5rem 0;
+      font-size: 1rem;
+    }
+
+    h3 {
+      color: $yellow-primary;
+      margin: 0.5rem 0 0.25rem;
+      font-size: 1.3rem;
+      font-weight: 700;
+      text-shadow: 0 0 10px $yellow-glow;
+    }
+
+    .delete-author {
+      color: $text-secondary;
+      font-size: 0.95rem;
+      margin-bottom: 1rem;
+    }
+
+    .delete-warning {
+      color: #ff6b6b;
+      font-weight: 600;
+      font-size: 0.95rem;
+      margin-top: 1rem;
+      text-shadow: 0 0 5px rgba(255, 107, 107, 0.3);
+    }
+  }
+
+  .modal-footer {
+    .btn-delete {
+      background: linear-gradient(135deg, #ff6b6b, #ff5252);
+      color: white;
+      border: none;
+      font-weight: 700;
+      box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
+
+      &:hover {
+        background: linear-gradient(135deg, #ff5252, #ff4040);
+        box-shadow: 0 6px 20px rgba(255, 107, 107, 0.6);
+        transform: translateY(-1px);
+      }
+    }
   }
 }
 

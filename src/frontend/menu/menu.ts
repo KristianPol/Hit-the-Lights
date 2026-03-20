@@ -147,6 +147,41 @@ export class MenuComponent implements OnInit, OnDestroy {
     this.playSong(this.selectedSong.songUrl).then(() => "Audio played");
   }
 
+  showDeleteConfirm = false;
+  pendingDeleteSong: Song | null = null;
+
+  requestDeleteSong(song: Song) {
+    this.pendingDeleteSong = song;
+    this.showDeleteConfirm = true;
+  }
+
+  confirmDelete() {
+    if (this.pendingDeleteSong) {
+      this.songService.deleteSong(this.pendingDeleteSong.id).subscribe({
+        next: response => {
+          if (response.success) {
+            console.log('✅ Song deleted successfully');
+            this.loadSongsFromDatabase(); // Reload list
+            this.selectedSong = null;
+            this.stopAudio();
+          } else {
+            alert(`Failed to delete song: ${response.error}`);
+          }
+        },
+        error: error => {
+          console.error('❌ Delete error:', error);
+          alert(`Error deleting song: ${error.message}`);
+        }
+      });
+    }
+    this.cancelDelete();
+  }
+
+  cancelDelete() {
+    this.showDeleteConfirm = false;
+    this.pendingDeleteSong = null;
+  }
+
   logout() {
     this.authService.logout();
     this.router.navigate(['/login']);
