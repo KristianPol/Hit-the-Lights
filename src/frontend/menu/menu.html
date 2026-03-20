@@ -32,16 +32,19 @@
 
     <div class="menu-footer" (click)="navigateToProfile()" style="cursor: pointer;">
       <div class="user-mini">
-        <div class="user-avatar" *ngIf="!currentUser?.profilePictureUrl || menuImageError">
-          {{ currentUser?.username?.charAt(0)?.toUpperCase() || '?' }}
-        </div>
-        <img 
-          *ngIf="currentUser?.profilePictureUrl && !menuImageError" 
-          [src]="currentUser?.profilePictureUrl" 
-          [alt]="'Profile picture'"
-          class="user-avatar user-avatar-image"
-          (error)="onMenuImageError()"
-        >
+        @if (!currentUser?.profilePictureUrl || menuImageError) {
+          <div class="user-avatar">
+            {{ currentUser?.username?.charAt(0)?.toUpperCase() || '?' }}
+          </div>
+        }
+        @if (currentUser?.profilePictureUrl && !menuImageError) {
+          <img
+            [src]="currentUser?.profilePictureUrl"
+            [alt]="'Profile picture'"
+            class="user-avatar user-avatar-image"
+            (error)="onMenuImageError()"
+          >
+        }
         <div class="user-info">
           <span class="user-name">{{ currentUser?.username || 'Guest' }}</span>
           <span class="user-status">Online</span>
@@ -102,10 +105,6 @@
               <div class="indicator-bar"></div>
             </div>
 
-            <button class="delete-btn" (click)="requestDeleteSong(song); $event.stopPropagation()" title="Delete song">
-              🗑️
-            </button>
-
             <div class="card-glow"></div>
           </div>
         }
@@ -156,34 +155,10 @@
       }
     </div>
   </div>
+</div>
 
-  <!-- Delete Confirm Modal -->
-  @if (showDeleteConfirm && pendingDeleteSong) {
-    <div class="modal-overlay" (click)="cancelDelete()">
-      <div class="modal delete-confirm-modal" (click)="$event.stopPropagation()">
-        <div class="modal-header">
-          <h2>Delete Track</h2>
-          <button class="modal-close" (click)="cancelDelete()">✕</button>
-        </div>
-        <div class="modal-body">
-          <div class="delete-song-preview">
-            <img [src]="pendingDeleteSong.coverUrl" [alt]="pendingDeleteSong.name + ' cover'" class="delete-cover">
-          </div>
-          <p>Delete this track?</p>
-          <h3>"{{ pendingDeleteSong.name }}"</h3>
-          <p class="delete-author">by {{ pendingDeleteSong.author }}</p>
-          <p class="delete-warning">This action cannot be undone.</p>
-        </div>
-        <div class="modal-footer">
-          <button class="btn-cancel" (click)="cancelDelete()">Cancel</button>
-          <button class="btn-delete" (click)="confirmDelete()">Delete Track</button>
-        </div>
-      </div>
-    </div>
-  }
-
-  <!-- Add Track Modal -->
-  @if (showAddTrackForm) {
+<!-- Add Track Modal -->
+@if (showAddTrackForm) {
   <div class="modal-overlay" (click)="closeAddTrackForm()">
     <div class="modal" (click)="$event.stopPropagation()">
 
