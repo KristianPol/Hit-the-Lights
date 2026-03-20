@@ -115,53 +115,49 @@ export class ProfileComponent implements OnInit {
     }
   }
 
-  updateProfilePicture(): void {
-    if (!this.selectedProfilePicture || !this.user) {
-      return;
+    updateProfilePicture(): void {
+      if (!this.selectedProfilePicture || !this.user) {
+        return;
+      }
+
+      this.updatingProfilePicture = true;
+      this.updateError = null;
+      this.updateSuccess = false;
+
+      // Convert file to base64
+      this.fileToBase64(this.selectedProfilePicture)
+        .then(base64 => {
+          this.authService.updateProfilePicture(this.user!.id, base64).subscribe({
+            next: response => {
+              console.log('Profile picture update response:', response);
+              this.ngZone.run(() => {
+                this.updatingProfilePicture = false;
+                if (response.success) {
+                  this.updateSuccess = true;
+                  console.log('Current user after update:', this.authService.currentUser);
+                  // Close modal immediately when PFP added successfully
+                  this.closeEditModal();
+                } else {
+                  this.updateError = response.error || 'Failed to update profile picture';
+                }
+              });
+            },
+            error: err => {
+              console.error('Profile picture update error:', err);
+              this.ngZone.run(() => {
+                this.updatingProfilePicture = false;
+                this.updateError = err.message || 'Failed to update profile picture';
+              });
+            }
+          });
+        })
+        .catch(err => {
+          this.ngZone.run(() => {
+            this.updatingProfilePicture = false;
+            this.updateError = 'Failed to read image file';
+          });
+        });
     }
-
-    this.updatingProfilePicture = true;
-    this.updateError = null;
-    this.updateSuccess = false;
-
-    // Convert file to base64
-    this.fileToBase64(this.selectedProfilePicture)
-      .then(base64 => {
-        this.authService.updateProfilePicture(this.user!.id, base64).subscribe({
-          next: response => {
-            console.log('Profile picture update response:', response);
-            this.ngZone.run(() => {
-              this.updatingProfilePicture = false;
-              if (response.success) {
-                this.updateSuccess = true;
-                console.log('Current user after update:', this.authService.currentUser);
-                // Close modal after a short delay
-                setTimeout(() => {
-                  this.ngZone.run(() => {
-                    this.closeEditModal();
-                  });
-                }, 1500);
-              } else {
-                this.updateError = response.error || 'Failed to update profile picture';
-              }
-            });
-          },
-          error: err => {
-            console.error('Profile picture update error:', err);
-            this.ngZone.run(() => {
-              this.updatingProfilePicture = false;
-              this.updateError = err.message || 'Failed to update profile picture';
-            });
-          }
-        });
-      })
-      .catch(err => {
-        this.ngZone.run(() => {
-          this.updatingProfilePicture = false;
-          this.updateError = 'Failed to read image file';
-        });
-      });
-  }
 
   private fileToBase64(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
