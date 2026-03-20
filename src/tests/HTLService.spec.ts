@@ -42,8 +42,8 @@ describe('HTLService', () => {
     });
 
     it('should include difficulties when requested', () => {
-      unit.prepare('INSERT INTO Song (id, name, author, bpm) VALUES ($id, $name, $author, $bpm)', {
-        id: 1, name: 'Test Song', author: 'Artist', bpm: 120
+      unit.prepare('INSERT INTO Song (id, name, author, bpm, length, songUrl, coverUrl) VALUES ($id, $name, $author, $bpm, $length, $songUrl, $coverUrl)', {
+        id: 1, name: 'Test Song', author: 'Artist', bpm: 120, length: '3:45', songUrl: 'http://test/song.mp3', coverUrl: 'http://test/cover.jpg'
       }).run();
 
       unit.prepare('INSERT INTO Difficulty (song_id, difficulty, note_count) VALUES ($songId, $diff, $count)', {
@@ -72,7 +72,7 @@ describe('HTLService', () => {
     });
 
     it('should include notes when requested', () => {
-      unit.prepare("INSERT INTO Song (id, name, author, bpm) VALUES ($id, $name, $author, $bpm)", { id: 1, name: 'Song', author: 'Artist', bpm: 120 }).run();
+      unit.prepare("INSERT INTO Song (id, name, author, bpm, length, songUrl, coverUrl) VALUES ($id, $name, $author, $bpm, $length, $songUrl, $coverUrl)", { id: 1, name: 'Song', author: 'Artist', bpm: 120, length: '3:30', songUrl: 'http://test/song.mp3', coverUrl: 'http://test/cover.jpg' }).run();
       unit.prepare("INSERT INTO Difficulty (id, song_id, difficulty, note_count) VALUES ($id, $songId, $diff, $count)", { id: 1, songId: 1, diff: 3, count: 2 }).run();
       unit.prepare("INSERT INTO Note (difficulty_id, time_ms, lane, type, duration_ms) VALUES ($diffId, $time, $lane, $type, $duration)", { diffId: 1, time: 1000, lane: 1, type: 1, duration: null }).run();
       unit.prepare("INSERT INTO Note (difficulty_id, time_ms, lane, type, duration_ms) VALUES ($diffId, $time, $lane, $type, $duration)", { diffId: 1, time: 2000, lane: 2, type: 1, duration: null }).run();
@@ -103,7 +103,7 @@ describe('HTLService', () => {
   describe('highscoreToJSON', () => {
     it('should convert highscore to JSON with user and song info', () => {
       unit.prepare("INSERT INTO User (id, username, password) VALUES ($id, $username, $password)", { id: 1, username: 'player1', password: 'pass' }).run();
-      unit.prepare("INSERT INTO Song (id, name, author, bpm) VALUES ($id, $name, $author, $bpm)", { id: 1, name: 'My Song', author: 'Artist', bpm: 128 }).run();
+      unit.prepare("INSERT INTO Song (id, name, author, bpm, length, songUrl, coverUrl) VALUES ($id, $name, $author, $bpm, $length, $songUrl, $coverUrl)", { id: 1, name: 'My Song', author: 'Artist', bpm: 128, length: '4:00', songUrl: 'http://test/song.mp3', coverUrl: 'http://test/cover.jpg' }).run();
       unit.prepare("INSERT INTO Difficulty (id, song_id, difficulty, note_count) VALUES ($id, $songId, $diff, $count)", { id: 1, songId: 1, diff: 3, count: 100 }).run();
 
       const highscore = {
