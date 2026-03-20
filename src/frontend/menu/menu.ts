@@ -156,20 +156,27 @@ export class MenuComponent implements OnInit, OnDestroy {
 
   confirmDelete() {
     if (this.pendingDeleteSong) {
-      this.songService.deleteSong(this.pendingDeleteSong.id).subscribe({
+      // Optimistic delete - remove immediately
+      const songId = this.pendingDeleteSong.id;
+      this.songs = this.songs.filter(s => s.id !== songId);
+      if (this.selectedSong?.id === songId) {
+        this.selectedSong = null;
+        this.stopAudio();
+      }
+
+      this.songService.deleteSong(songId).subscribe({
         next: response => {
-          if (response.success) {
-            console.log('✅ Song deleted successfully');
-            this.loadSongsFromDatabase(); // Reload list
-            this.selectedSong = null;
-            this.stopAudio();
+          if (!response.success) {
+            console.error('Delete failed, restoring:', response.error);
+            this.loadSongsFromDatabase(); // Restore on failure
           } else {
-            alert(`Failed to delete song: ${response.error}`);
+            console.log('✅ Song deleted successfully');
+            // Already removed optimistically
           }
         },
         error: error => {
-          console.error('❌ Delete error:', error);
-          alert(`Error deleting song: ${error.message}`);
+          console.error('❌ Delete error, restoring:', error);
+          this.loadSongsFromDatabase();
         }
       });
     }

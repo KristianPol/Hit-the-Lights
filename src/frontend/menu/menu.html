@@ -89,17 +89,23 @@
                 <span class="song-author">{{ song.author }}</span>
               </div>
 
-              <div class="song-meta">
-                <div class="meta-item">
-                  <span class="meta-icon">⏱</span>
-                  <span class="meta-value">{{ song.length }}</span>
-                </div>
-                <div class="meta-item">
-                  <span class="meta-icon">🥁</span>
-                  <span class="meta-value">{{ song.bpm }} BPM</span>
-                </div>
+            <div class="song-meta">
+              <div class="meta-item">
+                <span class="meta-icon">⏱</span>
+                <span class="meta-value">{{ song.length }}</span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-icon">🥁</span>
+                <span class="meta-value">{{ song.bpm }} BPM</span>
               </div>
             </div>
+
+            </div>
+
+            <!-- Delete Button - Square red on right -->
+            <button class="delete-song-btn-square-red" title="Delete Song" (click)="requestDeleteSong(song); $event.stopPropagation()">
+              <span class="delete-icon">🗑️</span>
+            </button>
 
             <div class="selection-indicator">
               <div class="indicator-bar"></div>
@@ -107,6 +113,7 @@
 
             <div class="card-glow"></div>
           </div>
+
         }
       </div>
     </div>
@@ -208,3 +215,30 @@
     </div>
   </div>
 }
+
+<!-- Delete Confirmation Modal -->
+@if (showDeleteConfirm) {
+  <div class="modal-overlay" (click)="cancelDelete()">
+    <div class="modal delete-modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Delete Track</h2>
+        <button class="modal-close" (click)="cancelDelete()">✕</button>
+      </div>
+      <div class="modal-body">
+        <!-- Song Preview -->
+        <div class="delete-song-preview">
+          <img [src]="pendingDeleteSong?.coverUrl" [alt]="pendingDeleteSong?.name + ' cover'" class="delete-cover-preview">
+        </div>
+        <h3>{{ pendingDeleteSong?.name }}</h3>
+        <p class="delete-author">{{ pendingDeleteSong?.author }}</p>
+        <p>Are you sure you want to delete this song?</p>
+        <p class="warning-text">This will permanently delete the song files from the server. This action cannot be undone.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-cancel" (click)="cancelDelete()">Cancel</button>
+        <button class="btn-danger" (click)="confirmDelete()">Delete Song</button>
+      </div>
+    </div>
+  </div>
+}
+
