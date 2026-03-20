@@ -32,16 +32,19 @@
 
     <div class="menu-footer" (click)="navigateToProfile()" style="cursor: pointer;">
       <div class="user-mini">
-        <div class="user-avatar" *ngIf="!currentUser?.profilePictureUrl || menuImageError">
-          {{ currentUser?.username?.charAt(0)?.toUpperCase() || '?' }}
-        </div>
-        <img 
-          *ngIf="currentUser?.profilePictureUrl && !menuImageError" 
-          [src]="currentUser?.profilePictureUrl" 
-          [alt]="'Profile picture'"
-          class="user-avatar user-avatar-image"
-          (error)="onMenuImageError()"
-        >
+        @if (!currentUser?.profilePictureUrl || menuImageError) {
+          <div class="user-avatar">
+            {{ currentUser?.username?.charAt(0)?.toUpperCase() || '?' }}
+          </div>
+        }
+        @if (currentUser?.profilePictureUrl && !menuImageError) {
+          <img
+            [src]="currentUser?.profilePictureUrl"
+            [alt]="'Profile picture'"
+            class="user-avatar user-avatar-image"
+            (error)="onMenuImageError()"
+          >
+        }
         <div class="user-info">
           <span class="user-name">{{ currentUser?.username || 'Guest' }}</span>
           <span class="user-status">Online</span>
@@ -154,7 +157,7 @@
   </div>
 </div>
 
-<!-- Add Track Modal -->
+
 @if (showAddTrackForm) {
   <div class="modal-overlay" (click)="closeAddTrackForm()">
     <div class="modal" (click)="$event.stopPropagation()">

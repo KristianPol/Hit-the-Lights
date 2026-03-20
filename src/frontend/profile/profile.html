@@ -1,181 +1,201 @@
 <div class="profile-container">
   <!-- When u can't load a website in  0.5 sec -->
-  <div *ngIf="loading" class="loading-state">
-    <div class="spinner"></div>
-    <p>Loading profile...</p>
-  </div>
+  @if (loading) {
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <p>Loading profile...</p>
+    </div>
+  }
 
   <!-- Big bad-->
-  <div *ngIf="error && !loading" class="error-state">
-    <div class="error-icon">⚠</div>
-    <p>{{ error }}</p>
-    <button class="btn btn-primary" (click)="retry()">Retry</button>
-  </div>
+  @if (error && !loading) {
+    <div class="error-state">
+      <div class="error-icon">⚠</div>
+      <p>{{ error }}</p>
+      <button class="btn btn-primary" (click)="retry()">Retry</button>
+    </div>
+  }
 
   <!-- How the profile should look -->
-  <ng-container *ngIf="!loading && !error">
+  @if (!loading && !error) {
     <div class="profile-header">
       <h1>Profile</h1>
     </div>
 
-    <div class="profile-card" *ngIf="user; else noUser">
-     <!-- Avatar stuff -->
-      <div class="avatar-section">
-        <div class="avatar-wrapper">
-          <div class="avatar-glow"></div>
-          <div class="avatar" *ngIf="!user?.profilePictureUrl || imageError">
-            {{ user.username.charAt(0).toUpperCase() }}
+    @if (user) {
+      <div class="profile-card">
+        <!-- Avatar stuff -->
+        <div class="avatar-section">
+          <div class="avatar-wrapper">
+            <div class="avatar-glow"></div>
+            @if (!user?.profilePictureUrl || imageError) {
+              <div class="avatar">
+                {{ user.username.charAt(0).toUpperCase() }}
+              </div>
+            }
+            @if (user?.profilePictureUrl && !imageError) {
+              <img
+                [src]="user?.profilePictureUrl"
+                [alt]="user.username + ' profile picture'"
+                class="avatar avatar-image"
+                (error)="onImageError()"
+              >
+            }
+            <div class="status-ring"></div>
           </div>
-          <img 
-            *ngIf="user?.profilePictureUrl && !imageError" 
-            [src]="user?.profilePictureUrl" 
-            [alt]="user.username + ' profile picture'"
-            class="avatar avatar-image"
-            (error)="onImageError()"
-          >
-          <div class="status-ring"></div>
+          <h2 class="username">{{ user.username }}</h2>
+          <span class="user-id">ID: {{ user.id }}</span>
         </div>
-        <h2 class="username">{{ user.username }}</h2>
-        <span class="user-id">ID: {{ user.id }}</span>
-      </div>
 
-      <div class="info-grid">
-        <div class="info-item">
-          <span class="info-icon">👤</span>
-          <span class="info-label">Username</span>
-          <span class="info-value">{{ user.username }}</span>
-        </div>
-        <div class="info-item">
-          <span class="info-icon">🆔</span>
-          <span class="info-label">User ID</span>
-          <span class="info-value">#{{ user.id }}</span>
-        </div>
-        <div class="info-item">
-          <span class="info-icon">📅</span>
-          <span class="info-label">Member Since</span>
-          <span class="info-value">Today</span>
-        </div>
-        <div class="info-item">
-          <span class="info-icon">✉</span>
-          <span class="info-label">Messages</span>
-          <span class="info-value">0</span>
-        </div>
-      </div>
-
-      <!-- User's stats -->
-      <div class="stats-section">
-        <div class="stats-header">Activity Stats</div>
-        <div class="stats-grid">
-          <div class="stat-box">
-            <span class="stat-icon">♪</span>
-            <span class="stat-value">12</span>
-            <span class="stat-label">Tracks</span>
+        <div class="info-grid">
+          <div class="info-item">
+            <span class="info-icon">👤</span>
+            <span class="info-label">Username</span>
+            <span class="info-value">{{ user.username }}</span>
           </div>
-          <div class="stat-box">
-            <span class="stat-icon">⏱</span>
-            <span class="stat-value">48h</span>
-            <span class="stat-label">Playtime</span>
+          <div class="info-item">
+            <span class="info-icon">🆔</span>
+            <span class="info-label">User ID</span>
+            <span class="info-value">#{{ user.id }}</span>
           </div>
-          <div class="stat-box">
-            <span class="stat-icon">★</span>
-            <span class="stat-value">PRO</span>
-            <span class="stat-label">Status</span>
+          <div class="info-item">
+            <span class="info-icon">📅</span>
+            <span class="info-label">Member Since</span>
+            <span class="info-value">Today</span>
+          </div>
+          <div class="info-item">
+            <span class="info-icon">✉</span>
+            <span class="info-label">Messages</span>
+            <span class="info-value">0</span>
           </div>
         </div>
-      </div>
 
-      <!-- Edit and Logout buttons-->
-      <div class="action-buttons">
-        <button class="btn btn-primary" (click)="editProfile()">
-          Edit Profile
-        </button>
-        <button class="btn btn-secondary" (click)="logout()">
-          Logout
-        </button>
-      </div>
-    </div>
+        <!-- User's stats -->
+        <div class="stats-section">
+          <div class="stats-header">Activity Stats</div>
+          <div class="stats-grid">
+            <div class="stat-box">
+              <span class="stat-icon">♪</span>
+              <span class="stat-value">12</span>
+              <span class="stat-label">Tracks</span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-icon">⏱</span>
+              <span class="stat-value">48h</span>
+              <span class="stat-label">Playtime</span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-icon">★</span>
+              <span class="stat-value">PRO</span>
+              <span class="stat-label">Status</span>
+            </div>
+          </div>
+        </div>
 
-    <!-- If the user's a guest -->
-    <ng-template #noUser>
+        <!-- Edit and Logout buttons-->
+        <div class="action-buttons">
+          <button class="btn btn-primary" (click)="editProfile()">
+            Edit Profile
+          </button>
+          <button class="btn btn-secondary" (click)="logout()">
+            Logout
+          </button>
+        </div>
+      </div>
+    } @else {
+      <!-- If the user's a guest -->
       <div class="profile-card error-state">
         <div class="error-icon">👤</div>
         <p>No user data found</p>
         <button class="btn btn-primary" routerLink="/login">Go to Login</button>
       </div>
-    </ng-template>
-  </ng-container>
+    }
+  }
 </div>
 
 <!-- Edit Profile Modal -->
-<div class="modal-overlay" *ngIf="showEditModal" (click)="closeEditModal()">
-  <div class="modal" (click)="$event.stopPropagation()">
-    <div class="modal-header">
-      <h2>Edit Profile</h2>
-      <button class="modal-close" (click)="closeEditModal()">✕</button>
-    </div>
+@if (showEditModal) {
+  <div class="modal-overlay" (click)="closeEditModal()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Edit Profile</h2>
+        <button class="modal-close" (click)="closeEditModal()">✕</button>
+      </div>
 
-    <div class="modal-body">
-      <!-- Current Profile Picture -->
-      <div class="current-picture-section">
-        <label>Current Profile Picture</label>
-        <div class="current-avatar-wrapper">
-          <div class="current-avatar" *ngIf="!user?.profilePictureUrl && !profilePicturePreview">
-            {{ user?.username?.charAt(0)?.toUpperCase() || '?' }}
+      <div class="modal-body">
+        <!-- Current Profile Picture -->
+        <div class="current-picture-section">
+          <label>Current Profile Picture</label>
+          <div class="current-avatar-wrapper">
+            @if (!user?.profilePictureUrl && !profilePicturePreview) {
+              <div class="current-avatar">
+                {{ user?.username?.charAt(0)?.toUpperCase() || '?' }}
+              </div>
+            }
+            @if (user?.profilePictureUrl && !profilePicturePreview) {
+              <img
+                [src]="user?.profilePictureUrl"
+                [alt]="'Current profile picture'"
+                class="current-avatar avatar-image"
+              >
+            }
+            @if (profilePicturePreview) {
+              <img
+                [src]="profilePicturePreview"
+                [alt]="'New profile picture preview'"
+                class="current-avatar avatar-image"
+              >
+            }
           </div>
-          <img 
-            *ngIf="user?.profilePictureUrl && !profilePicturePreview" 
-            [src]="user?.profilePictureUrl" 
-            [alt]="'Current profile picture'"
-            class="current-avatar avatar-image"
-          >
-          <img 
-            *ngIf="profilePicturePreview" 
-            [src]="profilePicturePreview" 
-            [alt]="'New profile picture preview'"
-            class="current-avatar avatar-image"
-          >
         </div>
+
+        <!-- Profile Picture Upload -->
+        <div class="form-group">
+          <label>Change Profile Picture</label>
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/gif,image/webp"
+            style="display: none"
+            #profilePictureInput
+            (change)="onProfilePictureSelected($event)"
+          >
+          <button class="file-btn" (click)="profilePictureInput.click()">
+            🖼️ {{ selectedProfilePicture ? selectedProfilePicture.name : 'Choose Profile Picture' }}
+          </button>
+          <small class="file-hint">Max 5MB. JPEG, PNG, GIF, or WebP.</small>
+        </div>
+
+        <!-- Error Message -->
+        @if (updateError) {
+          <div class="error-message">
+            <span class="error-icon">⚠️</span>
+            {{ updateError }}
+          </div>
+        }
+
+        <!-- Success Message -->
+        @if (updateSuccess) {
+          <div class="success-message">
+            <span class="success-icon">✅</span>
+            Profile picture updated successfully!
+          </div>
+        }
       </div>
 
-      <!-- Profile Picture Upload -->
-      <div class="form-group">
-        <label>Change Profile Picture</label>
-        <input 
-          type="file" 
-          accept="image/jpeg,image/png,image/gif,image/webp"
-          style="display: none"
-          #profilePictureInput
-          (change)="onProfilePictureSelected($event)"
+      <div class="modal-footer">
+        <button class="btn-cancel" (click)="closeEditModal()">Cancel</button>
+        <button
+          class="btn-submit"
+          [disabled]="!selectedProfilePicture || updatingProfilePicture"
+          (click)="updateProfilePicture()"
         >
-        <button class="file-btn" (click)="profilePictureInput.click()">
-          🖼️ {{ selectedProfilePicture ? selectedProfilePicture.name : 'Choose Profile Picture' }}
+          @if (updatingProfilePicture) {
+            <span>Updating...</span>
+          } @else {
+            <span>Save Changes</span>
+          }
         </button>
-        <small class="file-hint">Max 5MB. JPEG, PNG, GIF, or WebP.</small>
       </div>
-
-      <!-- Error Message -->
-      <div class="error-message" *ngIf="updateError">
-        <span class="error-icon">⚠️</span>
-        {{ updateError }}
-      </div>
-
-      <!-- Success Message -->
-      <div class="success-message" *ngIf="updateSuccess">
-        <span class="success-icon">✅</span>
-        Profile picture updated successfully!
-      </div>
-    </div>
-
-    <div class="modal-footer">
-      <button class="btn-cancel" (click)="closeEditModal()">Cancel</button>
-      <button 
-        class="btn-submit" 
-        [disabled]="!selectedProfilePicture || updatingProfilePicture"
-        (click)="updateProfilePicture()"
-      >
-        <span *ngIf="updatingProfilePicture">Updating...</span>
-        <span *ngIf="!updatingProfilePicture">Save Changes</span>
-      </button>
     </div>
   </div>
-</div>
+}
