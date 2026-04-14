@@ -4,6 +4,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { Song, SongService } from '../../app/services/song.service';
 import { AuthService } from '../../app/services/auth.service';
+import { PROTOTYPE_CHART } from './prototype-chart.data';
 
 interface ChartNote {
   time: number;
@@ -46,7 +47,6 @@ export class GameplayComponent implements AfterViewInit, OnDestroy {
   @ViewChild('gameCanvas') canvasRef!: ElementRef<HTMLCanvasElement>;
 
   private readonly defaultSongUrl = '/assets/music/505.mp3';
-  private readonly chartUrl = '/assets/charts/prototype-chart.json';
   private readonly laneLabels = ['D', 'F', 'J', 'K'];
   private readonly laneColors = ['#ff6b6b', '#4ecdc4', '#4d96ff', '#ff9f43'];
   private readonly laneCount = 4;
@@ -214,24 +214,18 @@ export class GameplayComponent implements AfterViewInit, OnDestroy {
   }
 
   private async loadChart(): Promise<void> {
-    try {
-      const response = await fetch(this.chartUrl);
-      if (!response.ok) {
-        console.warn(`Failed to load chart (${response.status}); using fallback notes instead.`);
-        this.useFallbackChart();
-        return;
-      }
-
-      const chart = (await response.json()) as ChartFile;
-      this.chartMetadata.set(chart.metadata ?? {});
-      this.chartNotes = (chart.notes ?? [])
-        .map(note => ({ ...note, judged: false, missed: false }))
-        .sort((a, b) => a.time - b.time);
-      this.notes = this.cloneNotes(this.chartNotes);
-    } catch (error) {
-      console.warn('Using fallback chart because the JSON chart could not be loaded.', error);
+    const chart = PROTOTYPE_CHART as unknown as ChartFile;
+    if (!Array.isArray(chart.notes) || chart.notes.length === 0) {
+      console.warn('Bundled prototype chart is invalid; using fallback chart.');
       this.useFallbackChart();
+      return;
     }
+
+    this.chartMetadata.set(chart.metadata ?? {});
+    this.chartNotes = chart.notes
+      .map(note => ({ ...note, judged: false, missed: false }))
+      .sort((a, b) => a.time - b.time);
+    this.notes = this.cloneNotes(this.chartNotes);
   }
 
   private useFallbackChart(): void {
