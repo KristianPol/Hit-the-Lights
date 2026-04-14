@@ -167,6 +167,10 @@ export class MenuComponent implements OnInit, OnDestroy {
     return !!this.selectedSong && this.isSongOwnedByViewer(this.selectedSong, this.currentUser?.id);
   }
 
+  canManageSong(song: Song): boolean {
+    return this.isSongOwnedByViewer(song, this.currentUser?.id);
+  }
+
   get selectedSongVisibility(): string {
     if (!this.selectedSong) {
       return '';
@@ -189,6 +193,11 @@ export class MenuComponent implements OnInit, OnDestroy {
   pendingDeleteSong: Song | null = null;
 
   requestDeleteSong(song: Song) {
+    if (!this.canManageSong(song)) {
+      alert('Only the uploader can delete this song.');
+      return;
+    }
+
     this.pendingDeleteSong = song;
     this.showDeleteConfirm = true;
   }

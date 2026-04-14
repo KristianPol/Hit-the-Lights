@@ -105,11 +105,11 @@
             </div>
 
             </div>
-
-            <!-- Delete Button - Square red on right -->
-            <button class="delete-song-btn-square-red" title="Delete Song" (click)="requestDeleteSong(song); $event.stopPropagation()">
-              <span class="delete-icon">🗑️</span>
-            </button>
+            @if (canManageSong(song)) {
+              <button class="delete-song-btn-square-red" title="Delete Song" (click)="requestDeleteSong(song); $event.stopPropagation()">
+                <span class="delete-icon">🗑️</span>
+              </button>
+            }
 
             <div class="selection-indicator">
               <div class="indicator-bar"></div>

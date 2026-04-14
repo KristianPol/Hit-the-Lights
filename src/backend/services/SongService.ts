@@ -210,11 +210,19 @@ export class SongService {
     }
   }
 
-  public deleteSong(songId: number): { success: boolean; error?: string } {
+  public deleteSong(songId: number, requesterId?: number): { success: boolean; error?: string } {
     try {
       const song = this.getRawSongById(songId);
       if (!song) {
         return { success: false, error: 'Song not found' };
+      }
+
+      if (requesterId == null) {
+        return { success: false, error: 'Authentication required to delete song' };
+      }
+
+      if (song.ownerId == null || song.ownerId !== requesterId) {
+        return { success: false, error: 'Only the uploader can delete this song' };
       }
 
       const stmt = this.unit.prepare<{ changes: number }, { id: number }>(

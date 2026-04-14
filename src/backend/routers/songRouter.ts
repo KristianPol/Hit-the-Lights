@@ -233,25 +233,24 @@ songRouter.delete('/:id', (req: Request, res: Response) => {
       return;
     }
 
-    // Extract filenames for deletion
-    const audioFilename = song.songUrl.split('/').pop();
-    const coverFilename = song.coverUrl.split('/').pop();
-
-    const audioPath = path.join(AUDIO_DIR, audioFilename!);
-    const coverPath = path.join(COVER_DIR, coverFilename!);
-
-    // Delete files if exist
-    if (fs.existsSync(audioPath)) fs.unlinkSync(audioPath);
-    if (fs.existsSync(coverPath)) fs.unlinkSync(coverPath);
-
-    const result = songService.deleteSong(songId);
+    const result = songService.deleteSong(songId, viewerId);
 
     if (result.success) {
+      // Delete uploaded files only after authorized DB deletion.
+      const audioFilename = song.songUrl.split('/').pop();
+      const coverFilename = song.coverUrl.split('/').pop();
+      const audioPath = path.join(AUDIO_DIR, audioFilename!);
+      const coverPath = path.join(COVER_DIR, coverFilename!);
+
+      if (fs.existsSync(audioPath)) fs.unlinkSync(audioPath);
+      if (fs.existsSync(coverPath)) fs.unlinkSync(coverPath);
+
       unit.complete(true);
       res.json({ success: true, message: 'Song deleted successfully' });
     } else {
       unit.complete(false);
-      res.status(400).json({ success: false, error: result.error });
+      res.status(result.error === 'Only the uploader can delete this song' || result.error === 'Authentication required to delete song' ? 403 : 400)
+        .json({ success: false, error: result.error });
     }
   } catch (error: any) {
     unit.complete(false);
