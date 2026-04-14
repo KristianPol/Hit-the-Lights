@@ -12,6 +12,8 @@ export interface Song {
   bpm: number;
   cover: string;
   audioUrl: string;
-  length: string
+  length: string;
+  ownerId?: number | null;
+  isPublic?: boolean;
 }
 // TODO add more types for DB Entities

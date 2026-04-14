@@ -98,6 +98,10 @@
                 <span class="meta-icon">🥁</span>
                 <span class="meta-value">{{ song.bpm }} BPM</span>
               </div>
+              <div class="meta-item visibility-pill" [class.private-track]="!song.isPublic">
+                <span class="meta-icon">{{ song.isPublic ? '🌍' : '🔒' }}</span>
+                <span class="meta-value">{{ song.isPublic ? 'Public' : 'Private' }}</span>
+              </div>
             </div>
 
             </div>
@@ -142,6 +146,10 @@
                 <span class="stat-label">Difficulty</span>
                 <span class="stat-value">Medium</span>
               </div>
+              <div class="stat-box visibility-box">
+                <span class="stat-label">Visibility</span>
+                <span class="stat-value">{{ selectedSongVisibility || (selectedSong.isPublic ? 'Public' : 'Private') }}</span>
+              </div>
             </div>
 
             <div class="visualizer">
@@ -154,6 +162,11 @@
               <button class="play-track-btn" type="button" (click)="launchGameplay()">
                 ▶ Play Track
               </button>
+              @if (isSelectedSongOwnedByCurrentUser) {
+                <button class="visibility-toggle-btn" type="button" (click)="toggleSelectedSongVisibility()">
+                  {{ selectedSong.isPublic ? 'Make Private' : 'Make Public' }}
+                </button>
+              }
             </div>
           </div>
 
@@ -194,6 +207,14 @@
         <div class="form-group">
           <label for="trackBpm">BPM</label>
           <input id="trackBpm" type="number" [(ngModel)]="pendingSong.bpm" placeholder="e.g. 128" min="1" max="999" />
+        </div>
+
+        <div class="form-group">
+          <label for="trackVisibility">Visibility</label>
+          <select id="trackVisibility" [(ngModel)]="pendingSong.visibility" class="visibility-select">
+            <option value="public">Public - visible to everyone</option>
+            <option value="private">Private - only visible to you</option>
+          </select>
         </div>
 
         <div class="form-group">

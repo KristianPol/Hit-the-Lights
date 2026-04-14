@@ -1,5 +1,6 @@
 ﻿import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { HttpParams } from '@angular/common/http';
 import { Observable, catchError, throwError } from 'rxjs';
 
 export interface Song {
@@ -10,6 +11,8 @@ export interface Song {
   length: string;
   songUrl: string;
   coverUrl: string;
+  ownerId?: number | null;
+  isPublic?: boolean;
 }
 
 export interface AddSongRequest {
@@ -21,6 +24,8 @@ export interface AddSongRequest {
   audioMimeType: string;
   coverBase64: string;
   coverMimeType: string;
+  ownerId?: number | null;
+  isPublic?: boolean;
 }
 
 export interface AddSongResponse {
@@ -28,6 +33,8 @@ export interface AddSongResponse {
   songId?: number;
   songUrl?: string;
   coverUrl?: string;
+  ownerId?: number | null;
+  isPublic?: boolean;
   error?: string;
   message?: string;
 }
@@ -38,6 +45,18 @@ export interface GetSongsResponse {
   error?: string;
 }
 
+export interface UpdateSongVisibilityRequest {
+  ownerId: number;
+  isPublic: boolean;
+}
+
+export interface UpdateSongVisibilityResponse {
+  success: boolean;
+  song?: Song;
+  error?: string;
+  message?: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -45,6 +64,10 @@ export class SongService {
   private apiUrl = 'http://localhost:3000/api/songs';
 
   constructor(private http: HttpClient) {}
+
+  private buildViewerParams(viewerId?: number): HttpParams {
+    return viewerId == null ? new HttpParams() : new HttpParams().set('viewerId', viewerId.toString());
+  }
 
   addSong(song: AddSongRequest): Observable<AddSongResponse> {
     return this.http.post<AddSongResponse>(`${this.apiUrl}/add`, song).pipe(
@@ -56,10 +79,10 @@ export class SongService {
     );
   }
 
-  getAllSongs(): Observable<GetSongsResponse> {
+  getAllSongs(viewerId?: number): Observable<GetSongsResponse> {
     const endpoint = `${this.apiUrl}/all`;
     console.log(`🌐 SongService: Fetching songs from ${endpoint}`);
-    return this.http.get<GetSongsResponse>(endpoint).pipe(
+    return this.http.get<GetSongsResponse>(endpoint, { params: this.buildViewerParams(viewerId) }).pipe(
       catchError(error => {
         console.error(`❌ SongService: Failed to fetch songs from ${endpoint}`, error);
         return throwError(
@@ -69,9 +92,9 @@ export class SongService {
     );
   }
 
-  getSongById(id: number): Observable<{ success: boolean; song?: Song; error?: string }> {
+  getSongById(id: number, viewerId?: number): Observable<{ success: boolean; song?: Song; error?: string }> {
     return this.http
-      .get<{ success: boolean; song?: Song; error?: string }>(`${this.apiUrl}/${id}`)
+      .get<{ success: boolean; song?: Song; error?: string }>(`${this.apiUrl}/${id}`, { params: this.buildViewerParams(viewerId) })
       .pipe(
         catchError(error => {
           return throwError(
@@ -81,9 +104,9 @@ export class SongService {
       );
   }
 
-  deleteSong(id: number): Observable<{ success: boolean; message?: string; error?: string }> {
+  deleteSong(id: number, viewerId?: number): Observable<{ success: boolean; message?: string; error?: string }> {
     return this.http
-      .delete<{ success: boolean; message?: string; error?: string }>(`${this.apiUrl}/${id}`)
+      .delete<{ success: boolean; message?: string; error?: string }>(`${this.apiUrl}/${id}`, { params: this.buildViewerParams(viewerId) })
       .pipe(
         catchError(error => {
           return throwError(
@@ -91,5 +114,15 @@ export class SongService {
           );
         })
       );
+  }
+
+  updateSongVisibility(songId: number, request: UpdateSongVisibilityRequest): Observable<UpdateSongVisibilityResponse> {
+    return this.http.patch<UpdateSongVisibilityResponse>(`${this.apiUrl}/${songId}/visibility`, request).pipe(
+      catchError(error => {
+        return throwError(
+          () => new Error(error.error?.error || 'Failed to update song visibility')
+        );
+      })
+    );
   }
 }

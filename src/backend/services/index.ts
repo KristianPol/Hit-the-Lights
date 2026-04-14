@@ -3,7 +3,13 @@ export type { RegistrationRequest, RegistrationResponse } from './RegistrationSe
 export { AuthenticationService } from './AuthenticationService';
 export type { LoginRequest, LoginResponse } from './AuthenticationService';
 export { SongService } from './SongService';
-export type { AddSongRequest, AddSongResponse } from './SongService';
+export type {
+  AddSongRequest,
+  AddSongResponse,
+  SongResponse,
+  UpdateSongVisibilityRequest,
+  UpdateSongVisibilityResponse
+} from './SongService';
 export { UserService } from './UserService';
 export type {
   UpdateProfilePictureRequest,

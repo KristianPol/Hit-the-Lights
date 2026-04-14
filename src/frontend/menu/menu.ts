@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ChangeDetectorRef, NgZone } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef, NgZone, computed, signal } from '@angular/core';
 import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService, User } from '../../app/services/auth.service';
@@ -21,6 +21,8 @@ interface Song {
   bpm: number;
   coverUrl: string;
   songUrl: string;
+  ownerId?: number | string | null;
+  isPublic?: boolean | number | string;
 }
 
 interface AddSongFormData {
@@ -29,6 +31,7 @@ interface AddSongFormData {
   bpm?: number;
   audioFile?: File;
   coverFile?: File;
+  visibility?: 'public' | 'private';
 }
 
 @Component({
@@ -50,9 +53,14 @@ export class MenuComponent implements OnInit, OnDestroy {
 
   activeItem = 'Dashboard';
   currentUser: User | null = null;
+  private readonly currentUserSignal = signal<User | null>(null);
   private audio = new Audio();
 
-  songs: Song[] = [];
+  private readonly allSongsSignal = signal<Song[]>([]);
+  readonly visibleSongs = computed(() => {
+    const viewerId = this.currentUserSignal()?.id;
+    return this.allSongsSignal().filter(song => this.isSongPublic(song) || this.isSongOwnedByViewer(song, viewerId));
+  });
   loadingError: string | null = null;
   isLoading = true;
 
@@ -70,8 +78,13 @@ export class MenuComponent implements OnInit, OnDestroy {
     private ngZone: NgZone
   ) {
     this.currentUser = this.authService.currentUser;
+    this.currentUserSignal.set(this.currentUser);
     this.audio = new Audio();
     this.audio.volume = 1;
+  }
+
+  get songs(): Song[] {
+    return this.visibleSongs();
   }
 
   ngOnInit() {
@@ -80,8 +93,10 @@ export class MenuComponent implements OnInit, OnDestroy {
       tap(user => {
         this.ngZone.run(() => {
           this.currentUser = user;
+          this.currentUserSignal.set(user);
           this.menuImageError = false; // Reset image error on user update
           this.cdr.detectChanges();
+          this.loadSongsFromDatabase();
         });
       })
     ).subscribe();
@@ -95,13 +110,15 @@ export class MenuComponent implements OnInit, OnDestroy {
     console.log('🎵 MenuComponent: Starting to load songs from database');
     this.isLoading = true;
     this.loadingError = null;
+    const viewerId = this.currentUserSignal()?.id;
 
-    this.songService.getAllSongs().subscribe({
+    this.songService.getAllSongs(viewerId ?? undefined).subscribe({
       next: response => {
         console.log('✅ MenuComponent: Received response from getAllSongs()', response);
         if (response.success) {
-          console.log(`📦 MenuComponent: Successfully loaded ${response.songs.length} songs`);
-          this.songs = response.songs;
+          this.allSongsSignal.set(response.songs.map(song => this.normalizeSong(song)));
+          this.ensureSelectedSongVisible();
+          console.log(`📦 MenuComponent: Successfully loaded ${this.songs.length} visible songs`);
           this.loadingError = null;
           this.isLoading = false;
           console.log('🎶 MenuComponent: Songs array updated', this.songs);
@@ -109,14 +126,14 @@ export class MenuComponent implements OnInit, OnDestroy {
         } else {
           console.error('❌ MenuComponent: API returned success=false', response.error);
           this.loadingError = response.error || 'Failed to load songs';
-          this.songs = [];
+          this.allSongsSignal.set([]);
           this.isLoading = false;
         }
       },
       error: error => {
         console.error('❌ MenuComponent: Error loading songs', error);
         this.loadingError = `Error loading songs: ${error.message}`;
-        this.songs = [];
+        this.allSongsSignal.set([]);
         this.isLoading = false;
       }
     });
@@ -146,6 +163,18 @@ export class MenuComponent implements OnInit, OnDestroy {
     this.playSong(this.selectedSong.songUrl).then(() => "Audio played");
   }
 
+  get isSelectedSongOwnedByCurrentUser(): boolean {
+    return !!this.selectedSong && this.isSongOwnedByViewer(this.selectedSong, this.currentUser?.id);
+  }
+
+  get selectedSongVisibility(): string {
+    if (!this.selectedSong) {
+      return '';
+    }
+
+    return this.isSongPublic(this.selectedSong) ? 'Public' : 'Private';
+  }
+
   launchGameplay(song: Song | null = this.selectedSong): void {
     if (!song) {
       alert('Please select a song first.');
@@ -168,13 +197,15 @@ export class MenuComponent implements OnInit, OnDestroy {
     if (this.pendingDeleteSong) {
       // Optimistic delete - remove immediately
       const songId = this.pendingDeleteSong.id;
-      this.songs = this.songs.filter(s => s.id !== songId);
+      this.allSongsSignal.update(songs => songs.filter(song => song.id !== songId));
       if (this.selectedSong?.id === songId) {
         this.selectedSong = null;
         this.stopAudio();
       }
 
-      this.songService.deleteSong(songId).subscribe({
+      const viewerId = this.currentUser?.id;
+
+      this.songService.deleteSong(songId, viewerId ?? undefined).subscribe({
         next: response => {
           if (!response.success) {
             console.error('Delete failed, restoring:', response.error);
@@ -241,11 +272,12 @@ export class MenuComponent implements OnInit, OnDestroy {
 
   openAddTrackForm(): void {
     this.showAddTrackForm = true;
+    this.pendingSong.visibility = 'public';
   }
 
   closeAddTrackForm(): void {
     this.showAddTrackForm = false;
-    this.pendingSong = {};
+    this.pendingSong = { visibility: 'public' };
   }
 
   onFileSelected(event: Event): void {
@@ -263,12 +295,20 @@ export class MenuComponent implements OnInit, OnDestroy {
   }
 
   submitTrack(): void {
-    const { name, author, bpm, audioFile, coverFile } = this.pendingSong;
+    const { name, author, bpm, audioFile, coverFile, visibility = 'public' } = this.pendingSong;
 
     if (!name || !author || !bpm || !audioFile || !coverFile) {
       alert('Please fill in all fields.');
       return;
     }
+
+    if (visibility === 'private' && !this.currentUser?.id) {
+      alert('Please log in to create a private track.');
+      return;
+    }
+
+    const ownerId = this.currentUser?.id ?? null;
+    const isPublic = visibility === 'public';
 
     Promise.all([
       this.getAudioDuration(audioFile),
@@ -284,19 +324,23 @@ export class MenuComponent implements OnInit, OnDestroy {
           audioBase64,
           audioMimeType: audioFile.type,
           coverBase64,
-          coverMimeType: coverFile.type
+          coverMimeType: coverFile.type,
+          ownerId,
+          isPublic
         }).subscribe({
           next: response => {
             if (response.success) {
-              this.songs.push({
+              this.allSongsSignal.update(songs => [...songs, {
                 id: response.songId || this.songs.length + 1,
                 name,
                 author,
                 bpm: parseInt(bpm.toString(), 10),
                 length,
                 songUrl: response.songUrl ?? '',
-                coverUrl: response.coverUrl ?? ''
-              });
+                coverUrl: response.coverUrl ?? '',
+                ownerId: response.ownerId ?? ownerId,
+                isPublic: response.isPublic ?? isPublic
+              }]);
               this.loadSongsFromDatabase();
               this.closeAddTrackForm();
             } else {
@@ -307,6 +351,98 @@ export class MenuComponent implements OnInit, OnDestroy {
         });
       })
       .catch(err => alert(`Failed to process files: ${err}`));
+  }
+
+  toggleSelectedSongVisibility(): void {
+    if (!this.selectedSong || !this.currentUser?.id) {
+      return;
+    }
+
+    if (!this.isSongOwnedByViewer(this.selectedSong, this.currentUser.id)) {
+      alert('Only the owner can change song visibility.');
+      return;
+    }
+
+    const nextVisibility = !this.isSongPublic(this.selectedSong);
+
+    this.songService.updateSongVisibility(this.selectedSong.id, {
+      ownerId: this.currentUser.id,
+      isPublic: nextVisibility
+    }).subscribe({
+      next: response => {
+        if (response.success && response.song) {
+          this.selectedSong = response.song;
+          this.loadSongsFromDatabase();
+        } else {
+          alert(`Failed to update visibility: ${response.error}`);
+        }
+      },
+      error: err => alert(`Error updating visibility: ${err.message}`)
+    });
+  }
+
+  private ensureSelectedSongVisible(): void {
+    if (!this.selectedSong) {
+      return;
+    }
+
+    const stillVisible = this.songs.some(song => song.id === this.selectedSong?.id);
+    if (!stillVisible) {
+      this.selectedSong = null;
+      this.stopAudio();
+    }
+  }
+
+  private normalizeSong(song: Song): Song {
+    return {
+      ...song,
+      ownerId: this.toNumberOrNull(song.ownerId),
+      isPublic: this.toBoolean(song.isPublic, true)
+    };
+  }
+
+  private isSongPublic(song: Song): boolean {
+    return this.toBoolean(song.isPublic, true);
+  }
+
+  private isSongOwnedByViewer(song: Song, viewerId?: number | null): boolean {
+    if (viewerId == null) {
+      return false;
+    }
+
+    const ownerId = this.toNumberOrNull(song.ownerId);
+    return ownerId === viewerId;
+  }
+
+  private toNumberOrNull(value: unknown): number | null {
+    if (value === null || value === undefined || value === '') {
+      return null;
+    }
+
+    const numeric = Number(value);
+    return Number.isFinite(numeric) ? numeric : null;
+  }
+
+  private toBoolean(value: unknown, fallback: boolean): boolean {
+    if (typeof value === 'boolean') {
+      return value;
+    }
+
+    if (typeof value === 'number') {
+      return value !== 0;
+    }
+
+    if (typeof value === 'string') {
+      const normalized = value.trim().toLowerCase();
+      if (normalized === 'true' || normalized === '1') {
+        return true;
+      }
+      if (normalized === 'false' || normalized === '0') {
+        return false;
+      }
+    }
+
+    return fallback;
   }
 
   private fileToBase64(file: File): Promise<string> {

@@ -113,9 +113,23 @@ class DB {
              bpm INTEGER NOT NULL,
              length TEXT NOT NULL,
              songUrl TEXT NOT NULL,
-             coverUrl TEXT NOT NULL
+              coverUrl TEXT NOT NULL,
+              ownerId INTEGER,
+              isPublic INTEGER NOT NULL DEFAULT 1
              ) STRICT
            `);
+
+    const songColumns = connection.prepare("PRAGMA table_info(Song)").all() as Array<{ name: string }>;
+    const columnNames = new Set(songColumns.map(column => column.name));
+
+    if (!columnNames.has('ownerId')) {
+      connection.exec('ALTER TABLE Song ADD COLUMN ownerId INTEGER');
+    }
+
+    if (!columnNames.has('isPublic')) {
+      connection.exec('ALTER TABLE Song ADD COLUMN isPublic INTEGER NOT NULL DEFAULT 1');
+      connection.exec('UPDATE Song SET isPublic = 1 WHERE isPublic IS NULL');
+    }
 
 
     connection.exec(`

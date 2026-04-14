@@ -354,6 +354,29 @@ $text-muted: #555555;
   }
 }
 
+.visibility-select {
+  width: 100%;
+  padding: 0.85rem 1rem;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 215, 0, 0.25);
+  background: rgba(0, 0, 0, 0.45);
+  color: $text-primary;
+  outline: none;
+
+  &:focus {
+    border-color: $yellow-primary;
+    box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.12);
+  }
+}
+
+.visibility-pill {
+  white-space: nowrap;
+
+  &.private-track .meta-value {
+    color: #ffb7c0;
+  }
+}
+
 .songs-list {
   display: flex;
   flex-direction: column;
@@ -505,6 +528,7 @@ $text-muted: #555555;
 
     .song-meta {
       display: flex;
+      flex-wrap: wrap;
       gap: 1rem;
 
       .meta-item {
@@ -513,6 +537,7 @@ $text-muted: #555555;
         gap: 0.25rem;
         color: $text-muted;
         font-size: 0.75rem;
+        min-width: 0;
 
         .meta-icon {
           opacity: 0.7;
@@ -671,9 +696,9 @@ $text-muted: #555555;
   }
 
   .detail-stats {
-    display: flex;
-    justify-content: center;
-    gap: 2rem;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
     margin-bottom: 3rem;
 
     .stat-box {
@@ -681,11 +706,11 @@ $text-muted: #555555;
       flex-direction: column;
       align-items: center;
       gap: 0.5rem;
-      padding: 1.5rem 2rem;
+      padding: 1.15rem 1rem;
       background: rgba(255, 255, 255, 0.03);
       border: 1px solid rgba(255, 255, 255, 0.1);
       border-radius: 16px;
-      min-width: 100px;
+      min-width: 0;
       transition: all 0.3s ease;
 
       &:hover {
@@ -703,8 +728,12 @@ $text-muted: #555555;
 
       .stat-value {
         color: $text-primary;
-        font-size: 1.5rem;
+        font-size: 1.25rem;
         font-weight: 700;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
 
         small {
           color: $text-secondary;
@@ -742,6 +771,7 @@ $text-muted: #555555;
   .detail-actions {
     display: flex;
     justify-content: center;
+    gap: 0.75rem;
     margin-top: 1.5rem;
   }
 
@@ -772,6 +802,24 @@ $text-muted: #555555;
     &:active {
       transform: translateY(0);
     }
+  }
+
+  .visibility-toggle-btn {
+    @extend .play-track-btn;
+    color: #ffffff;
+    border-color: rgba(76, 205, 196, 0.45);
+    background: linear-gradient(135deg, rgba(76, 205, 196, 0.18), rgba(76, 205, 196, 0.08));
+
+    &:hover {
+      background: linear-gradient(135deg, rgba(76, 205, 196, 0.32), rgba(76, 205, 196, 0.14));
+      box-shadow: 0 0 28px rgba(76, 205, 196, 0.18);
+    }
+  }
+
+  .visibility-box .stat-value {
+    font-size: 0.95rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
   }
 
   .detail-glow {

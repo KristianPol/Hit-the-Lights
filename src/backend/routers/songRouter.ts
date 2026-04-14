@@ -21,11 +21,42 @@ function saveBase64File(base64: string, mimeType: string, dir: string): string {
   return filename;
 }
 
+function parseOptionalNumber(value: unknown): number | undefined {
+  if (value === undefined || value === null || value === '') {
+    return undefined;
+  }
+
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function parseVisibility(value: unknown, fallback: boolean = true): boolean {
+  if (typeof value === 'boolean') {
+    return value;
+  }
+
+  if (typeof value === 'number') {
+    return value !== 0;
+  }
+
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === 'true' || normalized === '1' || normalized === 'public') {
+      return true;
+    }
+    if (normalized === 'false' || normalized === '0' || normalized === 'private') {
+      return false;
+    }
+  }
+
+  return fallback;
+}
+
 songRouter.post('/add', (req: Request, res: Response) => {
   const unit = new Unit(false);
 
   try {
-    const { name, author, bpm, length, audioBase64, audioMimeType, coverBase64, coverMimeType } = req.body;
+    const { name, author, bpm, length, audioBase64, audioMimeType, coverBase64, coverMimeType, ownerId, isPublic } = req.body;
 
     if (!name || !author || !bpm || !length || !audioBase64 || !coverBase64) {
       unit.complete(false);
@@ -49,7 +80,9 @@ songRouter.post('/add', (req: Request, res: Response) => {
       bpm: parseInt(bpm, 10),
       length,
       songUrl,
-      coverUrl
+      coverUrl,
+      ownerId: parseOptionalNumber(ownerId) ?? null,
+      isPublic: parseVisibility(isPublic, true)
     });
 
     if (result.success) {
@@ -59,6 +92,8 @@ songRouter.post('/add', (req: Request, res: Response) => {
         songId: result.songId,
         songUrl,
         coverUrl,
+        ownerId: result.ownerId,
+        isPublic: result.isPublic,
         message: 'Song added successfully'
       });
     } else {
@@ -83,7 +118,8 @@ songRouter.get('/all', (req: Request, res: Response) => {
   try {
     console.log('📥 Backend: GET /api/songs/all - Fetching all songs');
     const songService = new SongService(unit);
-    const songs = songService.getAllSongs();
+    const viewerId = parseOptionalNumber(req.query['viewerId']);
+    const songs = songService.getAllSongs(viewerId);
 
     console.log(`✅ Backend: Found ${songs.length} songs in database`);
     unit.complete();
@@ -107,6 +143,7 @@ songRouter.get('/:id', (req: Request, res: Response) => {
 
   try {
     const songId = parseInt(req.params['id'] as string, 10);
+    const viewerId = parseOptionalNumber(req.query['viewerId']);
 
     if (isNaN(songId)) {
       unit.complete();
@@ -118,7 +155,7 @@ songRouter.get('/:id', (req: Request, res: Response) => {
     }
 
     const songService = new SongService(unit);
-    const song = songService.getSongById(songId);
+    const song = songService.getSongById(songId, viewerId);
 
     unit.complete();
 
@@ -136,11 +173,50 @@ songRouter.get('/:id', (req: Request, res: Response) => {
   }
 });
 
+songRouter.patch('/:id/visibility', (req: Request, res: Response) => {
+  const unit = new Unit(false);
+
+  try {
+    const songId = parseInt(req.params['id'] as string, 10);
+    const { ownerId, isPublic } = req.body;
+
+    if (isNaN(songId)) {
+      unit.complete(false);
+      res.status(400).json({ success: false, error: 'Invalid song ID' });
+      return;
+    }
+
+    const parsedOwnerId = parseOptionalNumber(ownerId);
+    if (parsedOwnerId === undefined) {
+      unit.complete(false);
+      res.status(400).json({ success: false, error: 'ownerId is required' });
+      return;
+    }
+
+    const parsedVisibility = parseVisibility(isPublic, true);
+
+    const songService = new SongService(unit);
+    const result = songService.updateSongVisibility(songId, parsedOwnerId, parsedVisibility);
+
+    if (result.success) {
+      unit.complete(true);
+      res.status(200).json({ success: true, song: result.song, message: 'Song visibility updated' });
+    } else {
+      unit.complete(false);
+      res.status(result.error === 'Song not found' ? 404 : 403).json({ success: false, error: result.error });
+    }
+  } catch (error: any) {
+    unit.complete(false);
+    res.status(500).json({ success: false, error: error.message || 'Internal server error' });
+  }
+});
+
 songRouter.delete('/:id', (req: Request, res: Response) => {
   const unit = new Unit(false);
 
   try {
     const songId = parseInt(req.params['id'] as string, 10);
+    const viewerId = parseOptionalNumber(req.query['viewerId']);
 
     if (isNaN(songId)) {
       unit.complete(false);
@@ -149,7 +225,7 @@ songRouter.delete('/:id', (req: Request, res: Response) => {
     }
 
     const songService = new SongService(unit);
-    const song = songService.getSongById(songId);
+    const song = songService.getSongById(songId, viewerId);
 
     if (!song) {
       unit.complete(false);

@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { Song, SongService } from '../../app/services/song.service';
+import { AuthService } from '../../app/services/auth.service';
 
 interface ChartNote {
   time: number;
@@ -103,7 +104,8 @@ export class GameplayComponent implements AfterViewInit, OnDestroy {
   constructor(
     private router: Router,
     private route: ActivatedRoute,
-    private songService: SongService
+    private songService: SongService,
+    private authService: AuthService
   ) {}
 
   async ngAfterViewInit(): Promise<void> {
@@ -188,12 +190,13 @@ export class GameplayComponent implements AfterViewInit, OnDestroy {
   private async resolveSong(): Promise<Song | null> {
     const stateSong = window.history.state?.song as Song | undefined;
     const songIdParam = this.route.snapshot.paramMap.get('songId');
+    const viewerId = this.authService.currentUser?.id ?? undefined;
 
     if (songIdParam) {
       const songId = Number(songIdParam);
       if (!Number.isNaN(songId)) {
         try {
-          const response = await firstValueFrom(this.songService.getSongById(songId));
+          const response = await firstValueFrom(this.songService.getSongById(songId, viewerId));
           if (response.success && response.song) {
             return response.song;
           }
