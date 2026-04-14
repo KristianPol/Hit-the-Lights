@@ -7,6 +7,7 @@ import { AuthService } from '../../app/services/auth.service';
 
 @Component({
   selector: 'app-register',
+  standalone: true,
   imports: [
     NgOptimizedImage,
     ReactiveFormsModule,
@@ -16,9 +17,6 @@ import { AuthService } from '../../app/services/auth.service';
   styleUrl: './register.scss',
 })
 export class Register extends LoginComponent {
-  override errorMessage = '';
-  override loading = false;
-
   constructor(
     formBuilder: FormBuilder,
     authService: AuthService,
@@ -28,14 +26,14 @@ export class Register extends LoginComponent {
   }
 
   onRegister() {
-    this.submitted = true;
-    this.errorMessage = '';
+    this.submitted.set(true);
+    this.errorMessage.set('');
 
     if (this.loginForm.invalid) {
       return;
     }
 
-    this.loading = true;
+    this.loading.set(true);
 
     const credentials = {
       username: this.f['username'].value,
@@ -44,17 +42,17 @@ export class Register extends LoginComponent {
 
     this.authService.register(credentials).subscribe({
       next: (response) => {
-        this.loading = false;
+        this.loading.set(false);
         if (response.success) {
           // Redirect to menu on successful registration
           this.router.navigate(['/menu']);
         } else {
-          this.errorMessage = response.error || 'Registration failed';
+          this.errorMessage.set(response.error || 'Registration failed');
         }
       },
       error: (error) => {
-        this.loading = false;
-        this.errorMessage = error.message || 'An error occurred during registration';
+        this.loading.set(false);
+        this.errorMessage.set(error.message || 'An error occurred during registration');
       }
     });
   }

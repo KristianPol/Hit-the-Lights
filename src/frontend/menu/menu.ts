@@ -85,7 +85,7 @@ export class MenuComponent implements OnInit, OnDestroy {
         });
       })
     ).subscribe();
-    
+
     setTimeout(() => {
       this.loadSongsFromDatabase();
     }, 0);
@@ -144,6 +144,16 @@ export class MenuComponent implements OnInit, OnDestroy {
   selectSong(song: Song) {
     this.selectedSong = song;
     this.playSong(this.selectedSong.songUrl).then(() => "Audio played");
+  }
+
+  launchGameplay(song: Song | null = this.selectedSong): void {
+    if (!song) {
+      alert('Please select a song first.');
+      return;
+    }
+
+    this.stopAudio();
+    this.router.navigate(['/gameplay', song.id], { state: { song } });
   }
 
   showDeleteConfirm = false;

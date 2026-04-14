@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { NgOptimizedImage } from '@angular/common';
 import { RouterLink, Router } from '@angular/router';
@@ -6,6 +6,7 @@ import { AuthService } from '../../app/services/auth.service';
 
 @Component({
   selector: 'app-login',
+  standalone: true,
   templateUrl: './login.component.html',
   imports: [
     ReactiveFormsModule,
@@ -16,9 +17,9 @@ import { AuthService } from '../../app/services/auth.service';
 })
 export class LoginComponent {
   loginForm: FormGroup;
-  submitted = false;
-  protected errorMessage = '';
-  protected loading = false;
+  submitted = signal(false);
+  protected errorMessage = signal('');
+  protected loading = signal(false);
 
   constructor(
     protected formBuilder: FormBuilder,
@@ -36,14 +37,14 @@ export class LoginComponent {
   }
 
   onSubmit() {
-    this.submitted = true;
-    this.errorMessage = '';
+    this.submitted.set(true);
+    this.errorMessage.set('');
 
     if (this.loginForm.invalid) {
       return;
     }
 
-    this.loading = true;
+    this.loading.set(true);
 
     const credentials = {
       username: this.f['username'].value,
@@ -52,24 +53,24 @@ export class LoginComponent {
 
     this.authService.login(credentials).subscribe({
       next: (response) => {
-        this.loading = false;
+        this.loading.set(false);
         if (response.success) {
           // Redirect to menu on successful login
           this.router.navigate(['/menu']);
         } else {
-          this.errorMessage = response.error || 'Login failed';
+          this.errorMessage.set(response.error || 'Login failed');
         }
       },
       error: (error) => {
-        this.loading = false;
-        this.errorMessage = error.message || 'An error occurred during login';
+        this.loading.set(false);
+        this.errorMessage.set(error.message || 'An error occurred during login');
       }
     });
   }
 
   resetForm() {
-    this.submitted = false;
-    this.errorMessage = '';
+    this.submitted.set(false);
+    this.errorMessage.set('');
     this.loginForm.reset();
   }
 }

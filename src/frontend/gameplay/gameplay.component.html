@@ -1,0 +1,91 @@
+﻿<div class="gameplay-page">
+  <div class="title-row">
+    <div class="track-meta">
+      <p class="eyebrow">Rhythm Game</p>
+      <h1>{{ displayTitleText() }}</h1>
+      <p class="subtitle">{{ displayArtistText() }} • {{ displayBpmText() }}</p>
+    </div>
+
+    <button type="button" class="menu-button" (click)="returnToMenu()">Back to Menu</button>
+  </div>
+
+  <div class="gameplay-layout">
+    <aside class="stats-column left-column">
+      <div class="stat-card">
+        <span class="label">Score</span>
+        <span class="value">{{ stats().score }}</span>
+      </div>
+      <div class="stat-card">
+        <span class="label">Combo</span>
+        <span class="value">{{ stats().combo }}</span>
+      </div>
+      <div class="stat-card">
+        <span class="label">Accuracy</span>
+        <span class="value">{{ accuracyLabelText() }}</span>
+      </div>
+      <div class="stat-card">
+        <span class="label">Max Combo</span>
+        <span class="value">{{ stats().maxCombo }}</span>
+      </div>
+    </aside>
+
+    <div class="gameplay-card">
+      <canvas
+        #gameCanvas
+        class="gameplay-canvas"
+        tabindex="0"
+        (click)="focusCanvas()"
+        aria-label="Rhythm game canvas"
+      ></canvas>
+    </div>
+
+    <aside class="stats-column right-column">
+      <div class="stat-card highlight">
+        <span class="label">Perfect</span>
+        <span class="value">{{ stats().perfect }}</span>
+      </div>
+      <div class="stat-card highlight">
+        <span class="label">Good</span>
+        <span class="value">{{ stats().good }}</span>
+      </div>
+      <div class="stat-card highlight miss-card">
+        <span class="label">Miss</span>
+        <span class="value">{{ stats().miss }}</span>
+      </div>
+      <div class="status-badge" *ngIf="!isLoading() && !gameFinished()">{{ statusMessageText() }}</div>
+    </aside>
+  </div>
+
+  <p class="instructions" *ngIf="!gameFinished()">
+    Press D, F, J, or K to hit the notes. The first valid key starts the song.
+  </p>
+
+  <div class="loading-overlay" *ngIf="isLoading()">
+    <div class="loading-card">
+      <h2>Loading track...</h2>
+      <p>Preparing the chart and audio from your uploaded songs.</p>
+    </div>
+  </div>
+
+
+  <div class="error-banner" *ngIf="loadingError()">
+    {{ loadingError() }}
+  </div>
+
+  <div class="results-overlay" *ngIf="gameFinished()">
+    <div class="results-card">
+      <p class="eyebrow">Song Complete</p>
+      <h2>{{ displayTitleText() }}</h2>
+      <p class="results-stat">Score: {{ stats().score }}</p>
+      <p class="results-stat">Accuracy: {{ accuracyLabelText() }}</p>
+      <p class="results-stat">Max Combo: {{ stats().maxCombo }}</p>
+      <p class="results-stat">Perfect: {{ stats().perfect }} • Good: {{ stats().good }} • Miss: {{ stats().miss }}</p>
+
+      <div class="results-actions">
+        <button type="button" class="menu-button play-again" (click)="restartSong()">Play Again</button>
+        <button type="button" class="menu-button" (click)="returnToMenu()">Back to Menu</button>
+      </div>
+    </div>
+  </div>
+</div>
+

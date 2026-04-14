@@ -16,14 +16,14 @@
           class="form-input"
           formControlName="username"
           placeholder="Enter your username"
-          [class.is-invalid]="submitted && f['username'].errors"
+          [class.is-invalid]="submitted() && f['username'].errors"
         >
-        @if (submitted && f['username'].errors) {
+        @if (submitted() && f['username'].errors) {
           <div class="error-message">
-            @if (f['username'].errors['required']) {
+            @if (f['username'].hasError('required')) {
               <span>Username is required</span>
             }
-            @if (f['username'].errors['minlength']) {
+            @if (f['username'].hasError('minlength')) {
               <span>Username must be at least 3 characters</span>
             }
           </div>
@@ -39,29 +39,29 @@
           class="form-input"
           formControlName="password"
           placeholder="Enter your password"
-          [class.is-invalid]="submitted && f['password'].errors"
+          [class.is-invalid]="submitted() && f['password'].errors"
         >
-        @if (submitted && f['password'].errors) {
+        @if (submitted() && f['password'].errors) {
           <div class="error-message">
-            @if (f['password'].errors['required']) {
+            @if (f['password'].hasError('required')) {
               <span>Password is required</span>
             }
-            @if (f['password'].errors['minlength']) {
+            @if (f['password'].hasError('minlength')) {
               <span>Password must be at least 6 characters</span>
             }
           </div>
         }
       </div>
 
-      @if (errorMessage) {
+      @if (errorMessage()) {
         <div class="error-message" style="margin-bottom: 15px; color: #ff4444; text-align: center;">
-          {{ errorMessage }}
+          {{ errorMessage() }}
         </div>
       }
 
       <!-- Submit Button -->
-      <button type="submit" class="submit-btn" [disabled]="loading">
-        @if (loading) {
+      <button type="submit" class="submit-btn" [disabled]="loading()">
+        @if (loading()) {
           <span>Loading...</span>
         } @else {
           <span>Register</span>
@@ -69,7 +69,7 @@
       </button>
 
       <!-- Reset Button -->
-      <button type="button" class="reset-btn" (click)="resetForm()" [disabled]="loading">Clear</button>
+      <button type="button" class="reset-btn" (click)="resetForm()" [disabled]="loading()">Clear</button>
     </form>
     <p class="login-link">
       <span>Already have an account? </span>

@@ -739,6 +739,41 @@ $text-muted: #555555;
     }
   }
 
+  .detail-actions {
+    display: flex;
+    justify-content: center;
+    margin-top: 1.5rem;
+  }
+
+  .play-track-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 1rem 2rem;
+    border: 1px solid rgba(255, 215, 0, 0.45);
+    border-radius: 999px;
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.18), rgba(255, 215, 0, 0.08));
+    color: $yellow-primary;
+    font-size: 1rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.08);
+
+    &:hover {
+      transform: translateY(-2px) scale(1.01);
+      background: linear-gradient(135deg, rgba(255, 215, 0, 0.3), rgba(255, 215, 0, 0.12));
+      box-shadow: 0 0 28px rgba(255, 215, 0, 0.18);
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+  }
+
   .detail-glow {
     position: absolute;
     inset: -2px;

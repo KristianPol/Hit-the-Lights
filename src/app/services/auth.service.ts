@@ -1,6 +1,8 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, BehaviorSubject, catchError, throwError, map } from 'rxjs';
+import { signal, computed } from '@angular/core';
+import { toObservable } from '@angular/core/rxjs-interop';
+import { Observable, catchError, throwError, map } from 'rxjs';
 
 export interface LoginRequest {
   username: string;
@@ -38,8 +40,9 @@ export interface AuthResponse {
 })
 export class AuthService {
   private apiUrl = 'http://localhost:3000/api/auth';
-  private currentUserSubject: BehaviorSubject<User | null>;
-  public currentUser$: Observable<User | null>;
+  private readonly currentUserSignal = signal<User | null>(null);
+  readonly currentUser$ = toObservable(this.currentUserSignal);
+  private readonly loggedInSignal = computed(() => this.currentUserSignal() !== null);
 
   constructor(private http: HttpClient) {
     // Load user from localStorage on service initialization
@@ -48,22 +51,21 @@ export class AuthService {
     if (storedUser) {
       user = JSON.parse(storedUser);
     }
-    this.currentUserSubject = new BehaviorSubject<User | null>(user);
-    this.currentUser$ = this.currentUserSubject.asObservable();
+    this.currentUserSignal.set(user);
   }
 
   /**
    * Get current user value (synchronous)
    */
   public get currentUser(): User | null {
-    return this.currentUserSubject.value;
+    return this.currentUserSignal();
   }
 
   /**
    * Check if user is logged in
    */
   public get isLoggedIn(): boolean {
-    return this.currentUserSubject.value !== null;
+    return this.loggedInSignal();
   }
 
   /**
@@ -75,7 +77,7 @@ export class AuthService {
         if (response.success && response.user) {
           // Store user in localStorage and update subject
           localStorage.setItem('currentUser', JSON.stringify(response.user));
-          this.currentUserSubject.next(response.user);
+          this.currentUserSignal.set(response.user);
         }
         return response;
       }),
@@ -100,7 +102,7 @@ export class AuthService {
           };
           // Store user in localStorage and update subject
           localStorage.setItem('currentUser', JSON.stringify(user));
-          this.currentUserSubject.next(user);
+          this.currentUserSignal.set(user);
         }
         return response;
       }),
@@ -116,7 +118,7 @@ export class AuthService {
   logout(): void {
     // Remove user from localStorage and update subject
     localStorage.removeItem('currentUser');
-    this.currentUserSubject.next(null);
+    this.currentUserSignal.set(null);
   }
 
   /**
@@ -139,7 +141,7 @@ export class AuthService {
             };
             console.log('Updating user in localStorage:', updatedUser);
             localStorage.setItem('currentUser', JSON.stringify(updatedUser));
-            this.currentUserSubject.next(updatedUser);
+            this.currentUserSignal.set(updatedUser);
           }
         }
         return response;
@@ -162,7 +164,7 @@ export class AuthService {
         console.log('refreshUser response:', response);
         if (response.success && response.user) {
           localStorage.setItem('currentUser', JSON.stringify(response.user));
-          this.currentUserSubject.next(response.user);
+          this.currentUserSignal.set(response.user);
           return { success: true, user: response.user };
         }
         return { success: false, error: response.error };
