@@ -20,6 +20,10 @@ $text-muted: #555555;
   box-shadow: 0 0 20px $yellow-glow, 0 0 40px rgba(255, 215, 0, 0.1);
 }
 
+:host {
+  font-family: var(--app-font-sans, 'Segoe UI', sans-serif);
+}
+
 // Main container
 .profile-container {
   min-height: 100vh;
@@ -53,9 +57,10 @@ $text-muted: #555555;
   z-index: 1;
 
   h1 {
-    font-size: 2.5rem;
+    font-size: clamp(2.1rem, 3vw, 2.8rem);
     font-weight: 800;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.08em;
+    line-height: 1.1;
     margin: 0;
     background: linear-gradient(90deg, $yellow-primary, $yellow-bright);
     -webkit-background-clip: text;
@@ -190,7 +195,7 @@ $text-muted: #555555;
   }
 
   .username {
-    font-size: 2rem;
+    font-size: clamp(1.75rem, 2.2vw, 2.2rem);
     font-weight: 700;
     color: $text-primary;
     margin: 0 0 0.5rem;
