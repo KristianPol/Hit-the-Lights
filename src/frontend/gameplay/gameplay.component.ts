@@ -87,6 +87,58 @@ export class GameplayComponent implements AfterViewInit, OnDestroy {
     return 'Press D, F, J, or K to start';
   });
   readonly accuracyLabelText = computed(() => `${this.stats().accuracy.toFixed(1)}%`);
+  readonly totalJudgedCount = computed(() => {
+    const currentStats = this.stats();
+    return currentStats.perfect + currentStats.good + currentStats.miss;
+  });
+  readonly radiantRateText = computed(() => {
+    const total = this.totalJudgedCount();
+    if (total === 0) {
+      return '0.0%';
+    }
+
+    return `${((this.stats().perfect / total) * 100).toFixed(1)}%`;
+  });
+  readonly shinningRateText = computed(() => {
+    const total = this.totalJudgedCount();
+    if (total === 0) {
+      return '0.0%';
+    }
+
+    return `${((this.stats().good / total) * 100).toFixed(1)}%`;
+  });
+  readonly resultRank = computed(() => {
+    const accuracy = this.stats().accuracy;
+    if (accuracy >= 99) {
+      return 'S+';
+    }
+    if (accuracy >= 96) {
+      return 'S';
+    }
+    if (accuracy >= 92) {
+      return 'A';
+    }
+    if (accuracy >= 85) {
+      return 'B';
+    }
+    if (accuracy >= 75) {
+      return 'C';
+    }
+    return 'D';
+  });
+  readonly resultFlavorText = computed(() => {
+    const accuracy = this.stats().accuracy;
+    if (accuracy >= 96) {
+      return 'Brilliant run. You lit up every lane.';
+    }
+    if (accuracy >= 88) {
+      return 'Strong performance. Keep pushing your streak.';
+    }
+    if (accuracy >= 75) {
+      return 'Good momentum. Refine your timing for higher ranks.';
+    }
+    return 'Solid attempt. Stay in rhythm and try again.';
+  });
 
   // FIX: Added key state tracking to prevent held-key spamming
   private keyStates: boolean[] = [false, false, false, false];
