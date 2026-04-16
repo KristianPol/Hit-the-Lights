@@ -40,6 +40,7 @@ export interface HighscoreJSON {
 export interface UserJSON {
   id: number;
   username: string;
+  joinDate: string;
   profilePictureUrl?: string;
   highscores?: HighscoreJSON[];
 }
@@ -52,6 +53,7 @@ export class HTLService {
     return {
       id: user.id,
       username: user.username,
+      joinDate: user.joinDate,
       profilePictureUrl: user.profilePicture
         ? `http://localhost:3000/api/auth/profile-picture/${user.id}?t=${Date.now()}`
         : undefined
@@ -197,7 +199,7 @@ export class HTLService {
   // ==================== FROM JSON METHODS ====================
 
 
-  public userFromJSON(json: Omit<UserJSON, 'id'> & { password: string; id?: number }): User {
+  public userFromJSON(json: Omit<UserJSON, 'id' | 'joinDate'> & { password: string; id?: number; joinDate?: string }): User {
     if (!json.username || json.username.length < 3) {
       throw new Error('Username must be at least 3 characters');
     }
@@ -208,7 +210,8 @@ export class HTLService {
     return {
       id: json.id ?? 0,
       username: json.username.trim(),
-      password: json.password
+      password: json.password,
+      joinDate: json.joinDate ?? new Date().toISOString()
     };
   }
 

@@ -1,14 +1,14 @@
-@import url('https://fonts.googleapis.com/css2?family=Oxanium:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&display=swap');
 
 :root {
-  --app-font-sans: 'Oxanium', 'Rajdhani', 'Orbitron', 'Inter', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --app-font-sans: 'Space Grotesk', 'Inter', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
 html,
 body {
   margin: 0;
   padding: 0;
-  font-family: var(--app-font-sans, 'Segoe UI', sans-serif);
+  font-family: var(--app-font-sans);
   background: #050505;
   color: #ffffff;
 }

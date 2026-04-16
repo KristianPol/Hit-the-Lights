@@ -19,6 +19,7 @@
   <!-- How the profile should look -->
   @if (!loading && !error) {
     <div class="profile-header">
+      <button class="btn btn-secondary back-to-menu" (click)="goToMenu()">Back to Menu</button>
       <h1>Profile</h1>
     </div>
 
@@ -28,14 +29,14 @@
         <div class="avatar-section">
           <div class="avatar-wrapper">
             <div class="avatar-glow"></div>
-            @if (!user?.profilePictureUrl || imageError) {
+            @if (!user.profilePictureUrl || imageError) {
               <div class="avatar">
                 {{ user.username.charAt(0).toUpperCase() }}
               </div>
             }
-            @if (user?.profilePictureUrl && !imageError) {
+            @if (user.profilePictureUrl && !imageError) {
               <img
-                [src]="user?.profilePictureUrl"
+                [src]="user.profilePictureUrl"
                 [alt]="user.username + ' profile picture'"
                 class="avatar avatar-image"
                 (error)="onImageError()"
@@ -61,7 +62,7 @@
           <div class="info-item">
             <span class="info-icon">📅</span>
             <span class="info-label">Member Since</span>
-            <span class="info-value">Today</span>
+            <span class="info-value">{{ formattedJoinDate }}</span>
           </div>
           <div class="info-item">
             <span class="info-icon">✉</span>
@@ -76,8 +77,8 @@
           <div class="stats-grid">
             <div class="stat-box">
               <span class="stat-icon">♪</span>
-              <span class="stat-value">12</span>
-              <span class="stat-label">Tracks</span>
+              <span class="stat-value">{{ uploadedSongCount }}</span>
+              <span class="stat-label">Uploaded Tracks</span>
             </div>
             <div class="stat-box">
               <span class="stat-icon">⏱</span>

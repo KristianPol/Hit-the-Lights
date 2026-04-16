@@ -21,7 +21,7 @@ $text-muted: #555555;
 }
 
 :host {
-  font-family: var(--app-font-sans, 'Segoe UI', sans-serif);
+  font-family: 'Oxanium', 'Rajdhani', 'Segoe UI', sans-serif;
 }
 
 // Main container
@@ -51,10 +51,38 @@ $text-muted: #555555;
 
 // Header section
 .profile-header {
+  width: 100%;
+  max-width: 600px;
   text-align: center;
   margin-bottom: 3rem;
+  padding-top: 0.25rem;
   position: relative;
   z-index: 1;
+
+  .back-to-menu {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 3;
+    border: 1px solid rgba(255, 215, 0, 0.35);
+    background: rgba(10, 10, 10, 0.72);
+    color: $yellow-primary;
+    border-radius: 999px;
+    padding: 0.65rem 1rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+      transform: translateY(-1px);
+      background: rgba(255, 215, 0, 0.12);
+      color: $yellow-bright;
+      box-shadow: 0 0 16px rgba(255, 215, 0, 0.2);
+    }
+  }
 
   h1 {
     font-size: clamp(2.1rem, 3vw, 2.8rem);
@@ -68,6 +96,7 @@ $text-muted: #555555;
     background-clip: text;
     text-shadow: 0 0 30px $yellow-glow;
     position: relative;
+    z-index: 1;
 
     &::selection{
       color: $text-primary;
@@ -788,6 +817,11 @@ $text-muted: #555555;
 
   .profile-header h1 {
     font-size: 1.75rem;
+  }
+
+  .profile-header .back-to-menu {
+    position: static;
+    margin-bottom: 1rem;
   }
 
   .modal {

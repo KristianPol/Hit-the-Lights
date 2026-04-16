@@ -57,6 +57,10 @@ export interface UpdateSongVisibilityResponse {
   error?: string;
 }
 
+export interface UploadedSongCountResult {
+  count: number;
+}
+
 export class SongService {
   private htlService: HTLService;
 
@@ -239,6 +243,19 @@ export class SongService {
     } catch (error: any) {
       return { success: false, error: error.message || 'Failed to delete song' };
     }
+  }
+
+  public getUploadedSongCount(ownerId: number, viewerId?: number): number {
+    const stmt = this.unit.prepare<UploadedSongCountResult, { ownerId: number; viewerId: number | null }>(
+      `SELECT COUNT(*) as count
+       FROM Song
+       WHERE ownerId = $ownerId
+         AND (isPublic = 1 OR ownerId = $viewerId)`,
+      { ownerId, viewerId: viewerId ?? null }
+    );
+
+    const result = stmt.get();
+    return result?.count ?? 0;
   }
 
   private getRawSongById(songId: number): SongRecord | undefined {

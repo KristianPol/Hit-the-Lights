@@ -138,6 +138,30 @@ songRouter.get('/all', (req: Request, res: Response) => {
   }
 });
 
+songRouter.get('/count/:ownerId', (req: Request, res: Response) => {
+  const unit = new Unit(true);
+
+  try {
+    const ownerId = parseInt(req.params['ownerId'] as string, 10);
+    const viewerId = parseOptionalNumber(req.query['viewerId']);
+
+    if (isNaN(ownerId) || ownerId <= 0) {
+      unit.complete();
+      res.status(400).json({ success: false, error: 'Invalid owner ID' });
+      return;
+    }
+
+    const songService = new SongService(unit);
+    const count = songService.getUploadedSongCount(ownerId, viewerId);
+    unit.complete();
+
+    res.status(200).json({ success: true, count });
+  } catch (error: any) {
+    unit.complete();
+    res.status(500).json({ success: false, error: error.message || 'Internal server error' });
+  }
+});
+
 songRouter.get('/:id', (req: Request, res: Response) => {
   const unit = new Unit(true);
 

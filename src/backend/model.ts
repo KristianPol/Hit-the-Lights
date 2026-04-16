@@ -2,7 +2,8 @@
   id : number,
   username: string,
   password: string,
-  profilePicture?: Buffer | null
+  profilePicture?: Buffer | null,
+  joinDate: string
 };
 
 export interface Song {
