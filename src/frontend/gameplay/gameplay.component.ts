@@ -2,9 +2,10 @@
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
 import { Song, SongService } from '../../app/services/song.service';
 import { AuthService } from '../../app/services/auth.service';
-import { PROTOTYPE_CHART } from './prototype-chart.data';
+
 
 interface ChartNote {
   time: number;
@@ -46,7 +47,7 @@ interface GameStats {
 export class GameplayComponent implements AfterViewInit, OnDestroy {
   @ViewChild('gameCanvas') canvasRef!: ElementRef<HTMLCanvasElement>;
 
-  private readonly defaultSongUrl = '/assets/music/505.mp3';
+  private readonly defaultSongUrl = '/assets/music/SpearOfJustice.mp3';
   private readonly laneLabels = ['D', 'F', 'J', 'K'];
   private readonly laneColors = ['#ff6b6b', '#4ecdc4', '#4d96ff', '#ff9f43'];
   private readonly laneCount = 4;
@@ -105,7 +106,8 @@ export class GameplayComponent implements AfterViewInit, OnDestroy {
     private router: Router,
     private route: ActivatedRoute,
     private songService: SongService,
-    private authService: AuthService
+    private authService: AuthService,
+    private http: HttpClient
   ) {}
 
   async ngAfterViewInit(): Promise<void> {
@@ -214,18 +216,23 @@ export class GameplayComponent implements AfterViewInit, OnDestroy {
   }
 
   private async loadChart(): Promise<void> {
-    const chart = PROTOTYPE_CHART as unknown as ChartFile;
-    if (!Array.isArray(chart.notes) || chart.notes.length === 0) {
-      console.warn('Bundled prototype chart is invalid; using fallback chart.');
-      this.useFallbackChart();
-      return;
-    }
+    try {
+      const chart = await firstValueFrom(this.http.get<ChartFile>('/assets/charts/prototype-chart.json'));
+      if (!Array.isArray(chart.notes) || chart.notes.length === 0) {
+        console.warn('Prototype chart JSON is invalid; using fallback chart.');
+        this.useFallbackChart();
+        return;
+      }
 
-    this.chartMetadata.set(chart.metadata ?? {});
-    this.chartNotes = chart.notes
-      .map(note => ({ ...note, judged: false, missed: false }))
-      .sort((a, b) => a.time - b.time);
-    this.notes = this.cloneNotes(this.chartNotes);
+      this.chartMetadata.set(chart.metadata ?? {});
+      this.chartNotes = chart.notes
+        .map(note => ({ ...note, judged: false, missed: false }))
+        .sort((a, b) => a.time - b.time);
+      this.notes = this.cloneNotes(this.chartNotes);
+    } catch (error) {
+      console.warn('Failed to load prototype chart JSON; using fallback chart.', error);
+      this.useFallbackChart();
+    }
   }
 
   private useFallbackChart(): void {
@@ -347,7 +354,7 @@ export class GameplayComponent implements AfterViewInit, OnDestroy {
   /**
    * FIX: Completely rewritten miss detection logic
    *
-   * The original code had a bug where it only checked if audioTime - note.time > hitWindow,
+   * The original code had a bug where it only checked if audioTime - note. time > hitWindow,
    * but this didn't properly handle notes that were completely missed (passed the hit zone).
    *
    * New logic:
