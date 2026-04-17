@@ -147,9 +147,11 @@ class DB {
     const userColumnNames = new Set(userColumns.map(column => column.name));
 
     if (!userColumnNames.has('joinDate')) {
-      connection.exec('ALTER TABLE User ADD COLUMN joinDate TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP');
-      connection.exec('UPDATE User SET joinDate = CURRENT_TIMESTAMP WHERE joinDate IS NULL OR TRIM(joinDate) = ""');
+      // SQLite only allows constant defaults in ALTER TABLE ADD COLUMN.
+      connection.exec('ALTER TABLE User ADD COLUMN joinDate TEXT');
     }
+
+    connection.exec("UPDATE User SET joinDate = CURRENT_TIMESTAMP WHERE joinDate IS NULL OR TRIM(joinDate) = ''");
 
     connection.exec(`
             CREATE TABLE IF NOT EXISTS Highscore (

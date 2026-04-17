@@ -49,7 +49,7 @@ export class RegistrationService {
 
       // Insert new user
       const stmt = this.unit.prepare<{ id: number }, { username: string; password: string }>(
-        'INSERT INTO User (username, password) VALUES ($username, $password) RETURNING id',
+        'INSERT INTO User (username, password, joinDate) VALUES ($username, $password, CURRENT_TIMESTAMP) RETURNING id',
         { username: user.username, password: hashedPassword }
       );
 
