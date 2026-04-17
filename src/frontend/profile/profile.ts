@@ -2,7 +2,8 @@ import { Component, OnInit, NgZone } from '@angular/core';
 import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService, User } from '../../app/services/auth.service';
-import { Observable, catchError, of, tap, finalize } from 'rxjs';
+import { SongService } from '../../app/services/song.service';
+import { catchError, of, tap, finalize } from 'rxjs';
 
 @Component({
   selector: 'app-profile',
@@ -15,6 +16,7 @@ export class ProfileComponent implements OnInit {
   user: User | null = null;
   loading = true;
   error: string | null = null;
+  uploadedSongCount = 0;
 
   // Edit profile modal state
   showEditModal = false;
@@ -28,6 +30,7 @@ export class ProfileComponent implements OnInit {
   constructor(
     private authService: AuthService,
     private router: Router,
+    private songService: SongService,
     private ngZone: NgZone
   ) {}
 
@@ -43,8 +46,16 @@ export class ProfileComponent implements OnInit {
           this.imageError = false; // Reset image error when user updates
           this.loading = false;
         });
+
+        if (user) {
+          this.loadUploadedSongCount(user.id);
+        } else {
+          this.ngZone.run(() => {
+            this.uploadedSongCount = 0;
+          });
+        }
       }),
-      catchError(err => {
+      catchError(_err => {
         this.ngZone.run(() => {
           this.error = 'Failed to load profile';
           this.loading = false;
@@ -62,6 +73,27 @@ export class ProfileComponent implements OnInit {
   logout(): void {
     this.authService.logout();
     this.router.navigate(['/login']);
+  }
+
+  goToMenu(): void {
+    this.router.navigate(['/menu']);
+  }
+
+  get formattedJoinDate(): string {
+    if (!this.user?.joinDate) {
+      return 'Unknown';
+    }
+
+    const joinDate = new Date(this.user.joinDate);
+    if (Number.isNaN(joinDate.getTime())) {
+      return 'Unknown';
+    }
+
+    return joinDate.toLocaleDateString(undefined, {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
   }
 
   editProfile(): void {
@@ -151,7 +183,7 @@ export class ProfileComponent implements OnInit {
             }
           });
         })
-        .catch(err => {
+        .catch(() => {
           this.ngZone.run(() => {
             this.updatingProfilePicture = false;
             this.updateError = 'Failed to read image file';
@@ -180,5 +212,20 @@ export class ProfileComponent implements OnInit {
 
   retry(): void {
     this.ngOnInit();
+  }
+
+  private loadUploadedSongCount(userId: number): void {
+    this.songService.getUploadedSongCount(userId, userId).subscribe({
+      next: response => {
+        this.ngZone.run(() => {
+          this.uploadedSongCount = response.success ? response.count : 0;
+        });
+      },
+      error: () => {
+        this.ngZone.run(() => {
+          this.uploadedSongCount = 0;
+        });
+      }
+    });
   }
 }

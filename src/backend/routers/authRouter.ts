@@ -23,10 +23,13 @@ authRouter.post('/register', (req: Request, res: Response) => {
     const result = registrationService.register({ username, password });
 
     if (result.success) {
+      const htlService = new HTLService(unit);
+      const userJson = result.user ? htlService.userToJSON(result.user) : undefined;
       unit.complete(true); // Commit transaction
       res.status(201).json({
         success: true,
         userId: result.userId,
+        user: userJson,
         message: 'User registered successfully'
       });
     } else {

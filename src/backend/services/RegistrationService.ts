@@ -11,6 +11,7 @@ export interface RegistrationRequest {
 export interface RegistrationResponse {
   success: boolean;
   userId?: number;
+  user?: User;
   error?: string;
 }
 
@@ -62,7 +63,8 @@ export class RegistrationService {
 
       return {
         success: true,
-        userId: result.id
+        userId: result.id,
+        user: this.findUserById(result.id)
       };
     } catch (error: any) {
       return {
@@ -79,8 +81,16 @@ export class RegistrationService {
    */
   private findUserByUsername(username: string): User | undefined {
     const stmt = this.unit.prepare<User, { username: string }>(
-      'SELECT id, username, password FROM User WHERE username = $username',
+      'SELECT id, username, password, profilePicture, joinDate FROM User WHERE username = $username',
       { username }
+    );
+    return stmt.get();
+  }
+
+  private findUserById(userId: number): User | undefined {
+    const stmt = this.unit.prepare<User, { userId: number }>(
+      'SELECT id, username, password, profilePicture, joinDate FROM User WHERE id = $userId',
+      { userId }
     );
     return stmt.get();
   }

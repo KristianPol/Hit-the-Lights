@@ -57,6 +57,12 @@ export interface UpdateSongVisibilityResponse {
   message?: string;
 }
 
+export interface UploadedSongCountResponse {
+  success: boolean;
+  count: number;
+  error?: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -124,5 +130,17 @@ export class SongService {
         );
       })
     );
+  }
+
+  getUploadedSongCount(ownerId: number, viewerId?: number): Observable<UploadedSongCountResponse> {
+    return this.http
+      .get<UploadedSongCountResponse>(`${this.apiUrl}/count/${ownerId}`, { params: this.buildViewerParams(viewerId) })
+      .pipe(
+        catchError(error => {
+          return throwError(
+            () => new Error(error.error?.error || 'Failed to fetch uploaded song count')
+          );
+        })
+      );
   }
 }

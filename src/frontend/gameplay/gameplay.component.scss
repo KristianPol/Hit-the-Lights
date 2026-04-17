@@ -180,6 +180,11 @@
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
 }
 
+.results-card {
+  width: min(94vw, 640px);
+  text-align: left;
+}
+
 .loading-card h2,
 .results-card h2 {
   margin: 0 0 12px;
@@ -194,6 +199,131 @@
 
 .results-stat {
   margin-top: 10px !important;
+}
+
+.results-subtitle {
+  margin-top: -2px !important;
+  color: rgba(255, 255, 255, 0.7) !important;
+  letter-spacing: 0.04em;
+}
+
+.results-hero {
+  margin-top: 18px;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.08), rgba(255, 215, 0, 0.02));
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+}
+
+.score-block {
+  display: grid;
+  gap: 4px;
+}
+
+.hero-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.hero-score {
+  font-size: clamp(1.9rem, 4.5vw, 2.6rem);
+  font-weight: 800;
+  color: #ffd700;
+  line-height: 1;
+}
+
+.rank-chip {
+  min-width: 92px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 215, 0, 0.35);
+  background: rgba(0, 0, 0, 0.35);
+  padding: 10px 12px;
+  text-align: center;
+}
+
+.rank-label {
+  display: block;
+  font-size: 0.66rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.rank-value {
+  display: block;
+  margin-top: 2px;
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #ffd700;
+}
+
+.results-grid {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.metric-card {
+  border-radius: 14px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.metric-label {
+  display: block;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.11em;
+  color: rgba(255, 255, 255, 0.66);
+}
+
+.metric-value {
+  display: block;
+  margin-top: 4px;
+  font-size: 1.42rem;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.metric-sub {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.radiant-card {
+  border-color: rgba(255, 215, 0, 0.28);
+}
+
+.shinning-card {
+  border-color: rgba(120, 220, 255, 0.28);
+}
+
+.shatterred-card {
+  border-color: rgba(255, 120, 148, 0.3);
+}
+
+.shatterred-card .metric-value {
+  color: #ff9ea8;
+}
+
+.neutral-card {
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.results-flavor {
+  margin-top: 14px !important;
+  color: rgba(255, 255, 255, 0.8) !important;
+  line-height: 1.4;
 }
 
 .results-actions {
@@ -243,6 +373,15 @@
   .stats-column,
   .right-column {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .results-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .results-hero {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
   .error-banner {

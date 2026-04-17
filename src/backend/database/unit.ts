@@ -138,9 +138,18 @@ class DB {
                 username TEXT NOT NULL,
                 password TEXT NOT NULL,
                 profilePicture BLOB,
+                joinDate TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 CONSTRAINT uq_username UNIQUE (username)
             ) STRICT
         `);
+
+    const userColumns = connection.prepare("PRAGMA table_info(User)").all() as Array<{ name: string }>;
+    const userColumnNames = new Set(userColumns.map(column => column.name));
+
+    if (!userColumnNames.has('joinDate')) {
+      connection.exec('ALTER TABLE User ADD COLUMN joinDate TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP');
+      connection.exec('UPDATE User SET joinDate = CURRENT_TIMESTAMP WHERE joinDate IS NULL OR TRIM(joinDate) = ""');
+    }
 
     connection.exec(`
             CREATE TABLE IF NOT EXISTS Highscore (

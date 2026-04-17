@@ -20,6 +20,10 @@ $text-muted: #555555;
   box-shadow: 0 0 20px $yellow-glow, 0 0 40px rgba(255, 215, 0, 0.1);
 }
 
+:host {
+  font-family: var(--app-font-sans, 'Segoe UI', sans-serif);
+}
+
 .dashboard-layout {
   display: flex;
   height: 100vh;
@@ -65,9 +69,10 @@ $text-muted: #555555;
     }
 
     .logo-text {
-      font-size: 1.25rem;
-      font-weight: 800;
-      letter-spacing: 0.2em;
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
       color: $text-primary;
     }
   }
@@ -292,9 +297,9 @@ $text-muted: #555555;
 
     h2 {
       color: $text-primary;
-      font-size: 1.5rem;
+      font-size: clamp(1.35rem, 1.6vw, 1.65rem);
       font-weight: 700;
-      letter-spacing: 0.05em;
+      letter-spacing: 0.04em;
       margin: 0;
     }
 
@@ -679,8 +684,9 @@ $text-muted: #555555;
 
   .detail-title {
     color: $text-primary;
-    font-size: 2.5rem;
+    font-size: clamp(2.1rem, 3vw, 2.7rem);
     font-weight: 800;
+    line-height: 1.05;
     margin: 0 0 0.5rem;
     letter-spacing: -0.02em;
     text-shadow: 0 0 30px rgba(255, 255, 255, 0.1);

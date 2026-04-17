@@ -14,6 +14,7 @@ export interface UpdateProfilePictureResponse {
 export interface GetUserResponse {
   id: number;
   username: string;
+  joinDate: string;
   profilePictureUrl?: string;
 }
 
@@ -139,10 +140,10 @@ export class UserService {
    */
   public getUserById(userId: number): GetUserResponse | undefined {
     const stmt = this.unit.prepare<
-      { id: number; username: string; profilePicture: Buffer | null },
+      { id: number; username: string; joinDate: string; profilePicture: Buffer | null },
       { userId: number }
     >(
-      'SELECT id, username, profilePicture FROM User WHERE id = $userId',
+      'SELECT id, username, joinDate, profilePicture FROM User WHERE id = $userId',
       { userId }
     );
     const result = stmt.get();
@@ -154,6 +155,7 @@ export class UserService {
     return {
       id: result.id,
       username: result.username,
+      joinDate: result.joinDate,
       profilePictureUrl: result.profilePicture
         ? `http://localhost:3000/api/auth/profile-picture/${result.id}?t=${Date.now()}`
         : undefined

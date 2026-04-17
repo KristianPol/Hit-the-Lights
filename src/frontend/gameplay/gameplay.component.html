@@ -1,7 +1,7 @@
 ﻿<div class="gameplay-page">
   <div class="title-row">
     <div class="track-meta">
-      <p class="eyebrow">Rhythm Game</p>
+      <p class="eyebrow">Hit The Lights</p>
       <h1>{{ displayTitleText() }}</h1>
       <p class="subtitle">{{ displayArtistText() }} • {{ displayBpmText() }}</p>
     </div>
@@ -35,57 +35,104 @@
         class="gameplay-canvas"
         tabindex="0"
         (click)="focusCanvas()"
-        aria-label="Rhythm game canvas"
+        aria-label="Hit The Lights gameplay canvas"
       ></canvas>
     </div>
 
     <aside class="stats-column right-column">
       <div class="stat-card highlight">
-        <span class="label">Perfect</span>
+        <span class="label">Radiant</span>
         <span class="value">{{ stats().perfect }}</span>
       </div>
       <div class="stat-card highlight">
-        <span class="label">Good</span>
+        <span class="label">Shinning</span>
         <span class="value">{{ stats().good }}</span>
       </div>
       <div class="stat-card highlight miss-card">
-        <span class="label">Miss</span>
+        <span class="label">Shatterred</span>
         <span class="value">{{ stats().miss }}</span>
       </div>
-      <div class="status-badge" *ngIf="!isLoading() && !gameFinished()">{{ statusMessageText() }}</div>
+      @if (!isLoading() && !gameFinished()) {
+        <div class="status-badge">{{ statusMessageText() }}</div>
+      }
     </aside>
   </div>
 
-  <p class="instructions" *ngIf="!gameFinished()">
-    Press D, F, J, or K to hit the notes. The first valid key starts the song.
-  </p>
+  @if (!gameFinished()) {
+    <p class="instructions">
+      Press D, F, J, or K to hit the notes. The first valid key starts the song.
+    </p>
+  }
 
-  <div class="loading-overlay" *ngIf="isLoading()">
-    <div class="loading-card">
-      <h2>Loading track...</h2>
-      <p>Preparing the chart and audio from your uploaded songs.</p>
-    </div>
-  </div>
-
-
-  <div class="error-banner" *ngIf="loadingError()">
-    {{ loadingError() }}
-  </div>
-
-  <div class="results-overlay" *ngIf="gameFinished()">
-    <div class="results-card">
-      <p class="eyebrow">Song Complete</p>
-      <h2>{{ displayTitleText() }}</h2>
-      <p class="results-stat">Score: {{ stats().score }}</p>
-      <p class="results-stat">Accuracy: {{ accuracyLabelText() }}</p>
-      <p class="results-stat">Max Combo: {{ stats().maxCombo }}</p>
-      <p class="results-stat">Perfect: {{ stats().perfect }} • Good: {{ stats().good }} • Miss: {{ stats().miss }}</p>
-
-      <div class="results-actions">
-        <button type="button" class="menu-button play-again" (click)="restartSong()">Play Again</button>
-        <button type="button" class="menu-button" (click)="returnToMenu()">Back to Menu</button>
+  @if (isLoading()) {
+    <div class="loading-overlay">
+      <div class="loading-card">
+        <h2>Loading track...</h2>
+        <p>Preparing the chart and audio from your uploaded songs.</p>
       </div>
     </div>
-  </div>
+  }
+
+
+  @if (loadingError()) {
+    <div class="error-banner">
+      {{ loadingError() }}
+    </div>
+  }
+
+  @if (gameFinished()) {
+    <div class="results-overlay">
+      <div class="results-card">
+      <p class="eyebrow">Set Complete</p>
+      <h2>{{ displayTitleText() }}</h2>
+      <p class="results-subtitle">{{ displayArtistText() }} • {{ displayBpmText() }}</p>
+
+      <div class="results-hero">
+        <div class="score-block">
+          <span class="hero-label">Final Score</span>
+          <span class="hero-score">{{ stats().score }}</span>
+        </div>
+
+        <div class="rank-chip">
+          <span class="rank-label">Rank</span>
+          <span class="rank-value">{{ resultRank() }}</span>
+        </div>
+      </div>
+
+      <div class="results-grid">
+        <div class="metric-card radiant-card">
+          <span class="metric-label">Radiant</span>
+          <span class="metric-value">{{ stats().perfect }}</span>
+          <span class="metric-sub">{{ radiantRateText() }}</span>
+        </div>
+
+        <div class="metric-card shinning-card">
+          <span class="metric-label">Shinning</span>
+          <span class="metric-value">{{ stats().good }}</span>
+          <span class="metric-sub">{{ shinningRateText() }}</span>
+        </div>
+
+        <div class="metric-card shatterred-card">
+          <span class="metric-label">Shatterred</span>
+          <span class="metric-value">{{ stats().miss }}</span>
+          <span class="metric-sub">Avoid late drops</span>
+        </div>
+
+        <div class="metric-card neutral-card">
+          <span class="metric-label">Max Combo</span>
+          <span class="metric-value">{{ stats().maxCombo }}</span>
+          <span class="metric-sub">Accuracy: {{ accuracyLabelText() }}</span>
+        </div>
+      </div>
+
+      <p class="results-flavor">{{ resultFlavorText() }}</p>
+
+        <div class="results-actions">
+          <button type="button" class="menu-button play-again" (click)="restartSong()">Play Again</button>
+          <button type="button" class="menu-button" (click)="returnToMenu()">Back to Menu</button>
+        </div>
+      </div>
+    </div>
+  }
 </div>
 

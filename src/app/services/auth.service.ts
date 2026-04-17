@@ -17,6 +17,7 @@ export interface RegisterRequest {
 export interface User {
   id: number;
   username: string;
+  joinDate?: string;
   profilePictureUrl?: string;
 }
 
@@ -93,12 +94,12 @@ export class AuthService {
   register(request: RegisterRequest): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${this.apiUrl}/register`, request).pipe(
       map(response => {
-        if (response.success && response.userId) {
-          // Create user object from registration data
-          const user: User = {
-            id: response.userId,
+        if (response.success && (response.user || response.userId)) {
+          const user: User = response.user ?? {
+            id: response.userId!,
             username: request.username,
-            profilePictureUrl: undefined
+            profilePictureUrl: undefined,
+            joinDate: new Date().toISOString()
           };
           // Store user in localStorage and update subject
           localStorage.setItem('currentUser', JSON.stringify(user));
