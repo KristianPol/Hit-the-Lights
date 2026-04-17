@@ -1,5 +1,6 @@
 import { Unit } from '../database/unit';
 import { User } from '../model';
+import { PasswordHasher } from '../utils/PasswordHasher';
 
 export interface LoginRequest {
   username: string;
@@ -46,8 +47,24 @@ export class AuthenticationService {
         };
       }
 
-      // Check password (plain text comparison for now)
-      if (user.password !== request.password) {
+      // Check password against hash
+      let passwordValid = PasswordHasher.compare(request.password, user.password);
+
+      // Migration fallback: if password is not a hash and matches plain text, re-hash it
+      if (!passwordValid && !PasswordHasher.isHashed(user.password) && user.password === request.password) {
+        passwordValid = true;
+        const hashedPassword = PasswordHasher.hash(user.password);
+        const updateStmt = this.unit.prepare<
+          unknown,
+          { userId: number; password: string }
+        >(
+          'UPDATE User SET password = $password WHERE id = $userId',
+          { userId: user.id, password: hashedPassword }
+        );
+        updateStmt.run();
+      }
+
+      if (!passwordValid) {
         return {
           success: false,
           error: 'Invalid username or password'
