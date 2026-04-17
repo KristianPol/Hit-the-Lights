@@ -1,6 +1,7 @@
 import { Unit } from '../database/unit';
 import { HTLService } from './HTLService';
 import { User } from '../model';
+import { PasswordHasher } from '../utils/PasswordHasher';
 
 export interface RegistrationRequest {
   username: string;
@@ -42,10 +43,13 @@ export class RegistrationService {
         };
       }
 
+      // Hash password before storing
+      const hashedPassword = PasswordHasher.hash(user.password);
+
       // Insert new user
       const stmt = this.unit.prepare<{ id: number }, { username: string; password: string }>(
         'INSERT INTO User (username, password) VALUES ($username, $password) RETURNING id',
-        { username: user.username, password: user.password }
+        { username: user.username, password: hashedPassword }
       );
 
       const result = stmt.get();
