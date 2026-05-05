@@ -37,6 +37,20 @@ interface GameStats {
   accuracy: number;
 }
 
+interface ShatterShard {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  angle: number;
+  angularVelocity: number;
+  life: number;
+  maxLife: number;
+  color: string;
+  size: number;
+  points: number[]; // relative polygon points [x1,y1, x2,y2, ...]
+}
+
 @Component({
   selector: 'app-gameplay',
   standalone: true,
@@ -52,11 +66,14 @@ export class GameplayComponent implements AfterViewInit, OnDestroy {
   private readonly laneColors = ['#ff6b6b', '#4ecdc4', '#4d96ff', '#ff9f43'];
   private readonly laneCount = 4;
 
+  private shatterShards: ShatterShard[] = [];
+  private readonly shardGravity = 0.15;
   private canvas!: HTMLCanvasElement;
   private ctx!: CanvasRenderingContext2D;
   private animationFrameId: number | null = null;
   private readonly onResize = () => this.handleResize();
   private readonly onAudioEnded = () => this.finishGame();
+  private activeFlashes: Map<number, number> = new Map();
 
   private chartNotes: ChartNote[] = [];
   notes: ChartNote[] = [];
@@ -468,9 +485,16 @@ export class GameplayComponent implements AfterViewInit, OnDestroy {
 
     const { note, delta } = hittableNote;
 
+    this.triggerBulbFlash(lane);
     // Mark as judged first to prevent double-hits
     note.judged = true;
     note.missed = false;
+
+    const geometry = this.getLaneGeometry(this.canvas.width);
+    const hitZoneY = this.getHitZoneY(this.canvas.height);
+    const laneCenterX = this.getLaneCenterX(lane, geometry);
+    const color = this.laneColors[lane];
+    this.spawnShatter(laneCenterX, hitZoneY, color);
 
     // Score based on accuracy
     if (delta <= this.perfectWindow) {
@@ -564,7 +588,11 @@ export class GameplayComponent implements AfterViewInit, OnDestroy {
     this.drawBackground(width, height);
     this.drawLaneGuides(height);
     this.drawHitZone(width, height);
+    const geometry = this.getLaneGeometry(width);
+    const hitZoneY = this.getHitZoneY(height);
+    this.drawFlashes(hitZoneY, geometry);
     this.drawNotes(audioTime, width, height);
+    this.updateAndDrawShatters();
     this.drawLaneLabels(height);
   }
 
@@ -592,7 +620,7 @@ export class GameplayComponent implements AfterViewInit, OnDestroy {
   }
 
   private drawHitZone(width: number, height: number): void {
-    void width;
+    /*void width;
     const hitZoneY = this.getHitZoneY(height);
     const geometry = this.getLaneGeometry();
 
@@ -616,11 +644,21 @@ export class GameplayComponent implements AfterViewInit, OnDestroy {
       this.ctx.lineWidth = 1.5;
       this.ctx.arc(laneCenterX, hitZoneY, this.hitAreaRadius - 8, 0, Math.PI * 2);
       this.ctx.stroke();
+    }*/
+    void width;
+    const hitZoneY = this.getHitZoneY(height);
+    const geometry = this.getLaneGeometry();
+
+    for (let lane = 0; lane < this.laneCount; lane++) {
+      const laneCenterX = this.getLaneCenterX(lane, geometry);
+      const color = this.laneColors[lane] ?? '#ffd700';
+
+      this.drawLightbulb(laneCenterX, hitZoneY, this.hitAreaRadius, color, false);
     }
   }
 
   private drawNotes(audioTime: number, width: number, height: number): void {
-    const geometry = this.getLaneGeometry(width);
+    /*const geometry = this.getLaneGeometry(width);
     const hitZoneY = this.getHitZoneY(height);
     const noteRadius = this.noteSize / 2;
 
@@ -657,11 +695,29 @@ export class GameplayComponent implements AfterViewInit, OnDestroy {
       this.ctx.lineWidth = 2;
       this.ctx.arc(xCenter, yCenter, noteRadius - 8, 0, Math.PI * 2);
       this.ctx.stroke();
+    }*/
+    const geometry = this.getLaneGeometry(width);
+    const hitZoneY = this.getHitZoneY(height);
+    const noteRadius = this.noteSize / 2;
+
+    for (const note of this.notes) {
+      if (note.judged) continue;
+
+      const timeDiff = note.time - audioTime;
+      const yCenter = hitZoneY - timeDiff * this.fallingSpeed;
+
+      if (yCenter < -noteRadius * 2 || yCenter > height + noteRadius * 2) continue;
+
+      const xCenter = this.getLaneCenterX(note.lane, geometry);
+      const color = this.laneColors[note.lane] ?? '#ffffff';
+
+      // Glowing falling bulb
+      this.drawLightbulb(xCenter, yCenter, noteRadius, color, true);
     }
   }
 
   private drawLaneLabels(height: number): void {
-    const geometry = this.getLaneGeometry();
+    /*const geometry = this.getLaneGeometry();
     const hitZoneY = this.getHitZoneY(height);
 
     this.ctx.font = '700 28px Arial, sans-serif';
@@ -672,6 +728,20 @@ export class GameplayComponent implements AfterViewInit, OnDestroy {
       const xPos = this.getLaneCenterX(lane, geometry);
       this.ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
       this.ctx.fillText(this.laneLabels[lane], xPos, hitZoneY + this.hitAreaRadius + 26);
+    }*/
+    const geometry = this.getLaneGeometry();
+    const hitZoneY = this.getHitZoneY(height);
+    const bulbTotalHeight = this.hitAreaRadius * 2.6;
+    const labelY = hitZoneY + bulbTotalHeight / 2 + 18;
+
+    this.ctx.font = '700 22px Arial, sans-serif';
+    this.ctx.textAlign = 'center';
+    this.ctx.textBaseline = 'middle';
+    this.ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
+
+    for (let lane = 0; lane < this.laneCount; lane++) {
+      const xPos = this.getLaneCenterX(lane, geometry);
+      this.ctx.fillText(this.laneLabels[lane], xPos, labelY);
     }
   }
 
@@ -776,6 +846,244 @@ export class GameplayComponent implements AfterViewInit, OnDestroy {
     if(this.canvas.width !== displayWidth || this.canvas.height !== displayHeight){
       this.canvas.width = displayWidth;
       this.canvas.height = displayHeight;
+    }
+  }
+
+  private drawLightbulb(x: number, y: number, radius: number, color: string, isGlowing: boolean) {
+    const ctx = this.ctx;
+    const w = radius * 1.35;      // bulb width
+    const h = radius * 2.6;       // total bulb height
+    const glassH = h * 0.72;      // glass portion
+    const baseH = h * 0.28;       // metal base portion
+    const baseW = w * 0.42;       // base width
+    const glassBottom = y - h / 2 + glassH;
+
+    ctx.save();
+
+    // ─── Glow for falling notes ───
+    if (isGlowing) {
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 28;
+    }
+
+    // ─── Glass Bulb Body ───
+    ctx.beginPath();
+    // Top center
+    ctx.moveTo(x, y - h / 2);
+    // Right dome (bulbous top)
+    ctx.bezierCurveTo(
+      x + w * 0.55, y - h / 2,
+      x + w * 0.6, y - h * 0.15,
+      x + w * 0.38, y + glassH * 0.45 - h / 2
+    );
+    // Right taper to neck
+    ctx.bezierCurveTo(
+      x + w * 0.32, y + glassH * 0.75 - h / 2,
+      x + baseW * 0.55, glassBottom - baseH * 0.15,
+      x + baseW * 0.5, glassBottom
+    );
+    // Bottom glass curve
+    ctx.quadraticCurveTo(x, glassBottom + baseH * 0.08, x - baseW * 0.5, glassBottom);
+    // Left taper up
+    ctx.bezierCurveTo(
+      x - baseW * 0.55, glassBottom - baseH * 0.15,
+      x - w * 0.32, y + glassH * 0.75 - h / 2,
+      x - w * 0.38, y + glassH * 0.45 - h / 2
+    );
+    // Left dome
+    ctx.bezierCurveTo(
+      x - w * 0.6, y - h * 0.15,
+      x - w * 0.55, y - h / 2,
+      x, y - h / 2
+    );
+    ctx.closePath();
+
+    // Fill
+    ctx.fillStyle = isGlowing ? color : color;
+    ctx.globalAlpha = isGlowing ? 0.85 : 0.18;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+    // Glass highlight (subtle reflection on left side)
+    ctx.beginPath();
+    ctx.ellipse(
+      x - w * 0.18, y - h * 0.15,
+      w * 0.1, h * 0.18,
+      -0.2, 0, Math.PI * 2
+    );
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
+    ctx.fill();
+
+    // ─── Outline ───
+    ctx.beginPath();
+    ctx.moveTo(x, y - h / 2);
+    ctx.bezierCurveTo(x + w * 0.55, y - h / 2, x + w * 0.6, y - h * 0.15, x + w * 0.38, y + glassH * 0.45 - h / 2);
+    ctx.bezierCurveTo(x + w * 0.32, y + glassH * 0.75 - h / 2, x + baseW * 0.55, glassBottom - baseH * 0.15, x + baseW * 0.5, glassBottom);
+    ctx.quadraticCurveTo(x, glassBottom + baseH * 0.08, x - baseW * 0.5, glassBottom);
+    ctx.bezierCurveTo(x - baseW * 0.55, glassBottom - baseH * 0.15, x - w * 0.32, y + glassH * 0.75 - h / 2, x - w * 0.38, y + glassH * 0.45 - h / 2);
+    ctx.bezierCurveTo(x - w * 0.6, y - h * 0.15, x - w * 0.55, y - h / 2, x, y - h / 2);
+    ctx.closePath();
+    ctx.strokeStyle = isGlowing ? 'rgba(255, 255, 255, 0.9)' : color;
+    ctx.lineWidth = isGlowing ? 2.5 : 3;
+    ctx.stroke();
+
+    // ─── Filament (inside the glass) ───
+    if (isGlowing) {
+      ctx.beginPath();
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+      ctx.lineWidth = 1.5;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      const fy = y - h * 0.12;
+      const fh = h * 0.22;
+      ctx.moveTo(x - w * 0.08, fy + fh / 2);
+      ctx.lineTo(x - w * 0.04, fy - fh / 2);
+      ctx.lineTo(x, fy + fh / 2);
+      ctx.lineTo(x + w * 0.04, fy - fh / 2);
+      ctx.lineTo(x + w * 0.08, fy + fh / 2);
+      ctx.stroke();
+    }
+
+    // ─── Metal Screw Base ───
+    const baseTop = glassBottom;
+    const baseBottom = baseTop + baseH;
+
+    // Base body
+    ctx.fillStyle = isGlowing ? 'rgba(90, 90, 90, 0.9)' : 'rgba(55, 55, 55, 0.7)';
+    ctx.beginPath();
+    ctx.moveTo(x + baseW * 0.5, baseTop);
+    ctx.lineTo(x + baseW * 0.45, baseBottom);
+    ctx.quadraticCurveTo(x, baseBottom + 3, x - baseW * 0.45, baseBottom);
+    ctx.lineTo(x - baseW * 0.5, baseTop);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = isGlowing ? 'rgba(255, 255, 255, 0.5)' : 'rgba(255, 255, 255, 0.25)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // Screw threads (horizontal lines)
+    ctx.strokeStyle = isGlowing ? 'rgba(255, 255, 255, 0.35)' : 'rgba(255, 255, 255, 0.15)';
+    ctx.lineWidth = 1;
+    for (let i = 1; i <= 3; i++) {
+      const ty = baseTop + (baseH * i / 4);
+      const tw = baseW * (0.5 - i * 0.03); // slightly narrower as we go down
+      ctx.beginPath();
+      ctx.moveTo(x - tw, ty);
+      ctx.lineTo(x + tw, ty);
+      ctx.stroke();
+    }
+
+    // ─── Bottom contact ───
+    ctx.beginPath();
+    ctx.fillStyle = isGlowing ? 'rgba(120, 120, 120, 0.95)' : 'rgba(80, 80, 80, 0.8)';
+    ctx.arc(x, baseBottom + 2, baseW * 0.18, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  private triggerBulbFlash(lane: number): void {
+    this.activeFlashes.set(lane, performance.now() + 150); // 150ms flash
+  }
+
+
+  private drawFlashes(hitZoneY: number, geometry: { leftMargin: number; laneWidth: number; gap: number }) {
+    const now = performance.now();
+
+    for (const [lane, endTime] of this.activeFlashes.entries()) {
+      if (now > endTime) {
+        this.activeFlashes.delete(lane);
+        continue;
+      }
+
+      const progress = 1 - (endTime - now) / 150;
+      const intensity = Math.sin(progress * Math.PI); // Fade in then out
+      const laneCenterX = this.getLaneCenterX(lane, geometry);
+      const color = this.laneColors[lane];
+
+      // Bright flash overlay
+      this.ctx.save();
+      this.ctx.globalAlpha = intensity * 0.6;
+      this.ctx.shadowColor = color;
+      this.ctx.shadowBlur = 30;
+      this.drawLightbulb(laneCenterX, hitZoneY, this.hitAreaRadius * 1.1, color, true);
+      this.ctx.restore();
+    }
+  }
+
+  private spawnShatter(x: number, y: number, color: string): void {
+    const shardCount = 16 + Math.floor(Math.random() * 8); // 16-24 shards
+
+    for (let i = 0; i < shardCount; i++) {
+      const angle = (Math.PI * 2 * i) / shardCount + (Math.random() - 0.5) * 0.8;
+      const speed = 2 + Math.random() * 5;
+
+      // Random triangular shard shape
+      const s = 3 + Math.random() * 6;
+      const points = [
+        0, -s,
+        s * 0.8, s * 0.6,
+        -s * 0.6, s * 0.4
+      ];
+
+      this.shatterShards.push({
+        x,
+        y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 2, // slight upward initial burst
+        angle: Math.random() * Math.PI * 2,
+        angularVelocity: (Math.random() - 0.5) * 0.3,
+        life: 1,
+        maxLife: 0.6 + Math.random() * 0.5, // 0.6-1.1 seconds
+        color,
+        size: s,
+        points
+      });
+    }
+  }
+
+  private updateAndDrawShatters(): void {
+    const ctx = this.ctx;
+
+    for (let i = this.shatterShards.length - 1; i >= 0; i--) {
+      const shard = this.shatterShards[i];
+
+      // Physics
+      shard.x += shard.vx;
+      shard.y += shard.vy;
+      shard.vy += this.shardGravity;
+      shard.angle += shard.angularVelocity;
+      shard.life -= 1 / (shard.maxLife * 60); // assume ~60fps
+
+      if (shard.life <= 0) {
+        this.shatterShards.splice(i, 1);
+        continue;
+      }
+
+      // Draw shard
+      ctx.save();
+      ctx.translate(shard.x, shard.y);
+      ctx.rotate(shard.angle);
+      ctx.globalAlpha = shard.life;
+      ctx.fillStyle = shard.color;
+      ctx.shadowColor = shard.color;
+      ctx.shadowBlur = 8 * shard.life;
+
+      ctx.beginPath();
+      ctx.moveTo(shard.points[0], shard.points[1]);
+      for (let p = 2; p < shard.points.length; p += 2) {
+        ctx.lineTo(shard.points[p], shard.points[p + 1]);
+      }
+      ctx.closePath();
+      ctx.fill();
+
+      // White core for glass look
+      ctx.fillStyle = `rgba(255, 255, 255, ${shard.life * 0.6})`;
+      ctx.beginPath();
+      ctx.arc(0, 0, shard.size * 0.25, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.restore();
     }
   }
 }
