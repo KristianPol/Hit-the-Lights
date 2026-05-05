@@ -143,8 +143,8 @@ export class GameplayComponent implements AfterViewInit, OnDestroy {
   // FIX: Added key state tracking to prevent held-key spamming
   private keyStates: boolean[] = [false, false, false, false];
 
-  readonly canvasWidth = 1280;
-  readonly canvasHeight = 800;
+  // readonly canvasWidth = 1280;
+  // readonly canvasHeight = 800;
   readonly noteSize = 104;
   readonly hitAreaRadius = 52;
   readonly hitWindow = 130;
@@ -338,10 +338,7 @@ export class GameplayComponent implements AfterViewInit, OnDestroy {
   private setupCanvas(): void {
     this.canvas = this.canvasRef.nativeElement;
     this.ctx = this.canvas.getContext('2d') as CanvasRenderingContext2D;
-    this.canvas.width = this.canvasWidth;
-    this.canvas.height = this.canvasHeight;
-    this.canvas.style.width = '100%';
-    this.canvas.style.height = '100%';
+    this.resizeCanvasToDisplaySize();
     this.focusCanvas();
   }
 
@@ -349,6 +346,8 @@ export class GameplayComponent implements AfterViewInit, OnDestroy {
     if (!this.canvas || !this.ctx) {
       return;
     }
+
+    this.resizeCanvasToDisplaySize();
 
     this.render(this.getAudioTimeMs());
   }
@@ -558,14 +557,14 @@ export class GameplayComponent implements AfterViewInit, OnDestroy {
       return;
     }
 
-    const width = this.canvasWidth;
-    const height = this.canvasHeight;
+    const width = this.canvas.width;
+    const height = this.canvas.height;
 
     this.ctx.clearRect(0, 0, width, height);
     this.drawBackground(width, height);
     this.drawLaneGuides(height);
     this.drawHitZone(width, height);
-    this.drawNotes(audioTime);
+    this.drawNotes(audioTime, width, height);
     this.drawLaneLabels(height);
   }
 
@@ -620,9 +619,9 @@ export class GameplayComponent implements AfterViewInit, OnDestroy {
     }
   }
 
-  private drawNotes(audioTime: number): void {
-    const geometry = this.getLaneGeometry();
-    const hitZoneY = this.getHitZoneY(this.canvasHeight);
+  private drawNotes(audioTime: number, width: number, height: number): void {
+    const geometry = this.getLaneGeometry(width);
+    const hitZoneY = this.getHitZoneY(height);
     const noteRadius = this.noteSize / 2;
 
     for (const note of this.notes) {
@@ -633,7 +632,7 @@ export class GameplayComponent implements AfterViewInit, OnDestroy {
       const timeDiff = note.time - audioTime;
       const yCenter = hitZoneY - timeDiff * this.fallingSpeed;
 
-      if (yCenter < -noteRadius || yCenter > this.canvasHeight + noteRadius) {
+      if (yCenter < -noteRadius || yCenter > height + noteRadius) {
         continue;
       }
 
@@ -680,10 +679,10 @@ export class GameplayComponent implements AfterViewInit, OnDestroy {
     return geometry.leftMargin + lane * (geometry.laneWidth + geometry.gap) + geometry.laneWidth / 2;
   }
 
-  private getLaneGeometry(): { leftMargin: number; laneWidth: number; gap: number } {
+  private getLaneGeometry(width: number = this.canvas.width ): { leftMargin: number; laneWidth: number; gap: number } {
     const leftMargin = 32;
     const gap = 6;
-    const laneWidth = (this.canvasWidth - leftMargin * 2 - gap * (this.laneCount - 1)) / this.laneCount;
+    const laneWidth = (width - leftMargin * 2 - gap * (this.laneCount - 1)) / this.laneCount;
     return { leftMargin, laneWidth, gap };
   }
 
@@ -766,6 +765,17 @@ export class GameplayComponent implements AfterViewInit, OnDestroy {
     if (this.animationFrameId !== null) {
       cancelAnimationFrame(this.animationFrameId);
       this.animationFrameId = null;
+    }
+  }
+
+  private resizeCanvasToDisplaySize() {
+    const rect = this.canvas.getBoundingClientRect();
+    const displayWidth = Math.round(rect.width);
+    const displayHeight = Math.round(rect.height);
+
+    if(this.canvas.width !== displayWidth || this.canvas.height !== displayHeight){
+      this.canvas.width = displayWidth;
+      this.canvas.height = displayHeight;
     }
   }
 }

@@ -1,16 +1,11 @@
 ﻿<div class="gameplay-page">
-  <div class="title-row">
-    <div class="track-meta">
-      <p class="eyebrow">Hit The Lights</p>
-      <h1>{{ displayTitleText() }}</h1>
-      <p class="subtitle">{{ displayArtistText() }} • {{ displayBpmText() }}</p>
-    </div>
-
-    <button type="button" class="menu-button" (click)="returnToMenu()">Back to Menu</button>
-  </div>
-
   <div class="gameplay-layout">
     <aside class="stats-column left-column">
+      <div class="track-meta">
+        <p class="eyebrow">Hit The Lights</p>
+        <h1>{{ displayTitleText() }}</h1>
+        <p class="subtitle">{{ displayArtistText() }} • {{ displayBpmText() }}</p>
+      </div>
       <div class="stat-card">
         <span class="label">Score</span>
         <span class="value">{{ stats().score }}</span>
@@ -27,6 +22,11 @@
         <span class="label">Max Combo</span>
         <span class="value">{{ stats().maxCombo }}</span>
       </div>
+      @if (!gameFinished()) {
+        <p class="instructions">
+          Press D, F, J, or K to hit the notes. The first valid key starts the song.
+        </p>
+      }
     </aside>
 
     <div class="gameplay-card">
@@ -40,6 +40,8 @@
     </div>
 
     <aside class="stats-column right-column">
+
+      <button type="button" class="menu-button" (click)="returnToMenu()">Back to Menu</button>
       <div class="stat-card highlight">
         <span class="label">Radiant</span>
         <span class="value">{{ stats().perfect }}</span>
@@ -57,12 +59,6 @@
       }
     </aside>
   </div>
-
-  @if (!gameFinished()) {
-    <p class="instructions">
-      Press D, F, J, or K to hit the notes. The first valid key starts the song.
-    </p>
-  }
 
   @if (isLoading()) {
     <div class="loading-overlay">
