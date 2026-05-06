@@ -74,6 +74,11 @@ export class GameplayComponent implements AfterViewInit, OnDestroy {
   private readonly onResize = () => this.handleResize();
   private readonly onAudioEnded = () => this.finishGame();
   private activeFlashes: Map<number, number> = new Map();
+  private readonly difficultyIdFromState: number | null = (() => {
+    const value = Number(window.history.state?.difficultyId);
+    return Number.isFinite(value) && value > 0 ? value : null;
+  })();
+  private resolvedDifficultyId: number | null = this.difficultyIdFromState;
 
   private chartNotes: ChartNote[] = [];
   notes: ChartNote[] = [];
@@ -191,7 +196,7 @@ export class GameplayComponent implements AfterViewInit, OnDestroy {
       console.error('Failed to initialize gameplay:', error);
       this.loadingError.set(error instanceof Error ? error.message : 'Failed to start the rhythm game.');
       await this.loadFallbackAudio();
-      await this.loadChart();
+      this.useFallbackChart();
     } finally {
       this.isLoading.set(false);
       this.render(this.getAudioTimeMs());
@@ -255,7 +260,17 @@ export class GameplayComponent implements AfterViewInit, OnDestroy {
   private async initializeGame(): Promise<void> {
     const song = await this.resolveSong();
     this.currentSong.set(song);
-    await Promise.all([this.loadChart(), this.configureAudio(song?.songUrl ?? this.defaultSongUrl)]);
+    this.resolvedDifficultyId = this.resolveDifficultyId(song);
+    await Promise.all([this.loadChart(song, this.resolvedDifficultyId), this.configureAudio(song?.songUrl ?? this.defaultSongUrl)]);
+  }
+
+  private resolveDifficultyId(song: Song | null): number | null {
+    if (this.difficultyIdFromState) {
+      return this.difficultyIdFromState;
+    }
+
+    const firstDifficulty = song?.difficulties?.[0];
+    return firstDifficulty?.id ?? null;
   }
 
   private async resolveSong(): Promise<Song | null> {
@@ -284,22 +299,30 @@ export class GameplayComponent implements AfterViewInit, OnDestroy {
     return null;
   }
 
-  private async loadChart(): Promise<void> {
+  private async loadChart(song: Song | null, difficultyId: number | null): Promise<void> {
     try {
-      const chart = await firstValueFrom(this.http.get<ChartFile>('/assets/charts/prototype-chart.json'));
-      if (!Array.isArray(chart.notes) || chart.notes.length === 0) {
-        console.warn('Prototype chart JSON is invalid; using fallback chart.');
+      if (!song || !difficultyId) {
+        console.warn('No difficulty selected; using fallback chart.');
         this.useFallbackChart();
         return;
       }
 
-      this.chartMetadata.set(chart.metadata ?? {});
-      this.chartNotes = chart.notes
+      const viewerId = this.authService.currentUser?.id ?? undefined;
+      const response = await firstValueFrom(this.songService.getDifficultyChart(song.id, difficultyId, viewerId));
+
+      if (!response.success || !response.chart?.notes?.length) {
+        console.warn('Difficulty chart is invalid or empty; using fallback chart.');
+        this.useFallbackChart();
+        return;
+      }
+
+      this.chartMetadata.set(response.chart.metadata ?? {});
+      this.chartNotes = response.chart.notes
         .map(note => ({ ...note, judged: false, missed: false }))
         .sort((a, b) => a.time - b.time);
       this.notes = this.cloneNotes(this.chartNotes);
     } catch (error) {
-      console.warn('Failed to load prototype chart JSON; using fallback chart.', error);
+      console.warn('Failed to load difficulty chart; using fallback chart.', error);
       this.useFallbackChart();
     }
   }
@@ -812,6 +835,35 @@ export class GameplayComponent implements AfterViewInit, OnDestroy {
     }
 
     this.render(this.getAudioTimeMs());
+    void this.submitFinalScore();
+  }
+
+  private submitFinalScore(): void {
+    const songId = this.currentSong()?.id;
+    const difficultyId = this.resolvedDifficultyId;
+    const userId = this.authService.currentUser?.id;
+
+    if (!songId || !difficultyId || !userId) {
+      return;
+    }
+
+    const currentStats = this.stats();
+    this.songService.submitDifficultyHighscore(songId, difficultyId, {
+      userId,
+      score: currentStats.score,
+      maxCombo: currentStats.maxCombo,
+      accuracy: currentStats.accuracy,
+      date: new Date().toISOString()
+    }).subscribe({
+      next: response => {
+        if (!response.success) {
+          console.warn('Failed to submit leaderboard score:', response.error);
+        }
+      },
+      error: error => {
+        console.warn('Failed to submit leaderboard score:', error);
+      }
+    });
   }
 
   private createInitialStats(): GameStats {
@@ -1087,3 +1139,4 @@ export class GameplayComponent implements AfterViewInit, OnDestroy {
     }
   }
 }
+

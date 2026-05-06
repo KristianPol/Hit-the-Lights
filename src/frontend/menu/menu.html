@@ -122,64 +122,114 @@
       </div>
     </div>
 
-    <div class="detail-panel" [class.has-selection]="selectedSong">
-      @if (selectedSong) {
-        <div class="detail-content">
-          <div class="detail-cover">
-            <img [src]="selectedSong.coverUrl" [alt]="selectedSong.name + ' cover'">
-          </div>
+     <div class="detail-panel" [class.has-selection]="selectedSong">
+       @if (selectedSong) {
+         <div class="detail-content">
+           <div class="detail-left">
+             <div class="detail-cover">
+               <img [src]="selectedSong.coverUrl" [alt]="selectedSong.name + ' cover'">
+             </div>
 
-          <div class="detail-info">
-            <h1 class="detail-title">{{ selectedSong.name }}</h1>
-            <p class="detail-artist">{{ selectedSong.author }}</p>
+             <div class="detail-info">
+               <h1 class="detail-title">{{ selectedSong.name }}</h1>
+               <p class="detail-artist">{{ selectedSong.author }}</p>
 
-            <div class="detail-stats">
-              <div class="stat-box">
-                <span class="stat-label">Duration</span>
-                <span class="stat-value">{{ selectedSong.length }}</span>
-              </div>
-              <div class="stat-box">
-                <span class="stat-label">Tempo</span>
-                <span class="stat-value">{{ selectedSong.bpm }} <small>BPM</small></span>
-              </div>
-              <div class="stat-box">
-                <span class="stat-label">Difficulty</span>
-                <span class="stat-value">Medium</span>
-              </div>
-              <div class="stat-box visibility-box">
-                <span class="stat-label">Visibility</span>
-                <span class="stat-value">{{ selectedSongVisibility || (selectedSong.isPublic ? 'Public' : 'Private') }}</span>
-              </div>
-            </div>
+               <div class="detail-stats">
+                 <div class="stat-box">
+                   <span class="stat-label">Duration</span>
+                   <span class="stat-value">{{ selectedSong.length }}</span>
+                 </div>
+                 <div class="stat-box">
+                   <span class="stat-label">Tempo</span>
+                   <span class="stat-value">{{ selectedSong.bpm }} <small>BPM</small></span>
+                 </div>
+                 <div class="stat-box difficulty-stat-box" (click)="openDifficultyPicker()" style="cursor: pointer;">
+                   <span class="stat-label">Difficulty</span>
+                   <span class="stat-value clickable">
+                     {{ getSelectedDifficultyLevel() }}
+                     <span class="dropdown-indicator">▼</span>
+                   </span>
+                 </div>
+                 <div class="stat-box visibility-box">
+                   <span class="stat-label">Visibility</span>
+                   <span class="stat-value">{{ selectedSongVisibility || (selectedSong.isPublic ? 'Public' : 'Private') }}</span>
+                 </div>
+               </div>
 
-            <div class="visualizer">
-              @for (i of [1,2,3,4,5,6,7,8]; track i) {
-                <div class="bar" [style.animation-delay]="i * 0.1 + 's'"></div>
-              }
-            </div>
+               <div class="visualizer">
+                 @for (i of [1,2,3,4,5,6,7,8]; track i) {
+                   <div class="bar" [style.animation-delay]="i * 0.1 + 's'"></div>
+                 }
+               </div>
 
-            <div class="detail-actions">
-              <button class="play-track-btn" type="button" (click)="launchGameplay()">
-                ▶ Play Track
-              </button>
-              @if (isSelectedSongOwnedByCurrentUser) {
-                <button class="visibility-toggle-btn" type="button" (click)="toggleSelectedSongVisibility()">
-                  {{ selectedSong.isPublic ? 'Make Private' : 'Make Public' }}
-                </button>
-              }
-            </div>
-          </div>
+               <div class="detail-actions">
+                 <button class="play-track-btn" type="button" (click)="launchGameplay()">
+                   ▶ Play Track
+                 </button>
+                 @if (isSelectedSongOwnedByCurrentUser) {
+                   <button class="visibility-toggle-btn" type="button" (click)="toggleSelectedSongVisibility()">
+                     {{ selectedSong.isPublic ? 'Make Private' : 'Make Public' }}
+                   </button>
+                 }
+               </div>
+             </div>
+           </div>
 
-          <div class="detail-glow"></div>
-        </div>
-      } @else {
-        <div class="empty-state">
-          <div class="empty-icon">♪</div>
-          <p>Select a track to view details</p>
-          <div class="empty-glow"></div>
-        </div>
-      }
-    </div>
+           <div class="detail-right">
+             <div class="leaderboard-panel">
+               <div class="leaderboard-header">
+                 <div>
+                   <h3>Leaderboard</h3>
+                   <p>{{ leaderboardState().difficultyLabel || getSelectedDifficultyLevel() }}</p>
+                 </div>
+                 @if (selectedDifficultyId) {
+                   <span class="leaderboard-hint">Top 10 + your rank</span>
+                 }
+               </div>
+
+               @if (!selectedDifficultyId) {
+                 <p class="leaderboard-empty">Choose a difficulty to see the leaderboard.</p>
+               } @else if (leaderboardState().loading) {
+                 <p class="leaderboard-loading">Loading leaderboard...</p>
+               } @else if (leaderboardState().error) {
+                 <p class="leaderboard-error">{{ leaderboardState().error }}</p>
+               } @else if (leaderboardState().entries.length === 0) {
+                 <p class="leaderboard-empty">No scores yet. Be the first to post one!</p>
+               } @else {
+                 <div class="leaderboard-list">
+                   @for (entry of leaderboardState().entries; track entry.position + '-' + entry.userId) {
+                     <div class="leaderboard-row" [class.current-user]="entry.isCurrentUser">
+                       <div class="leaderboard-rank">#{{ entry.position }}</div>
+                       <div class="leaderboard-user-block">
+                         <div class="leaderboard-user-name">{{ entry.username }}</div>
+                         @if (entry.isCurrentUser) {
+                           <span class="leaderboard-you">You</span>
+                         }
+                       </div>
+                       <div class="leaderboard-score-block">
+                         <div class="leaderboard-score">{{ entry.score }}</div>
+                         <div class="leaderboard-stats">
+                           <span>{{ entry.maxCombo }} combo</span>
+                           <span>{{ entry.accuracy.toFixed(1) }}%</span>
+                         </div>
+                       </div>
+                     </div>
+                   }
+                 </div>
+               }
+             </div>
+           </div>
+
+           <div class="detail-glow"></div>
+         </div>
+       } @else {
+         <div class="empty-state">
+           <div class="empty-icon">♪</div>
+           <p>Select a track to view details</p>
+           <div class="empty-glow"></div>
+         </div>
+       }
+     </div>
   </div>
 </div>
 
@@ -252,20 +302,97 @@
         <button class="modal-close" (click)="cancelDelete()">✕</button>
       </div>
       <div class="modal-body">
-        <!-- Song Preview -->
-        <div class="delete-song-preview">
-          <img [src]="pendingDeleteSong?.coverUrl" [alt]="pendingDeleteSong?.name + ' cover'" class="delete-cover-preview">
-        </div>
-        <h3>{{ pendingDeleteSong?.name }}</h3>
-        <p class="delete-author">{{ pendingDeleteSong?.author }}</p>
-        <p>Are you sure you want to delete this song?</p>
-        <p class="warning-text">This will permanently delete the song files from the server. This action cannot be undone.</p>
+         <!-- Song Preview -->
+         <div class="delete-song-preview">
+           <img [src]="pendingDeleteSong?.coverUrl" [alt]="pendingDeleteSong?.name + ' cover'" class="delete-cover-preview">
+         </div>
+         <h3>{{ pendingDeleteSong?.name }}</h3>
+         <p class="delete-author">{{ pendingDeleteSong?.author }}</p>
+         <p>Are you sure you want to delete this song?</p>
+         <p class="warning-text">This will permanently delete the song files from the server. This action cannot be undone.</p>
+       </div>
+       <div class="modal-footer">
+         <button class="btn-cancel" (click)="cancelDelete()">Cancel</button>
+         <button class="btn-danger" (click)="confirmDelete()">Delete Song</button>
+       </div>
+     </div>
+   </div>
+}
+
+<!-- Difficulty Picker Modal -->
+@if (difficultyPickerState().showPicker) {
+  <div class="modal-overlay" (click)="closeDifficultyPicker()">
+    <div class="modal difficulty-modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Select Difficulty</h2>
+        <button class="modal-close" (click)="closeDifficultyPicker()">✕</button>
+      </div>
+      <div class="modal-body">
+        @if (!difficultyPickerState().showUploadForm) {
+          <div class="difficulties-list">
+            @if (difficultyPickerState().difficulties.length === 0) {
+              <p class="no-difficulties">No difficulties uploaded for this song yet.</p>
+            } @else {
+              @for (diff of difficultyPickerState().difficulties; track diff.id) {
+                <button
+                  class="difficulty-btn"
+                  [class.selected]="difficultyPickerState().selectedDifficultyId === diff.id"
+                  (click)="selectDifficulty(diff.id)">
+                  <span class="diff-label">Difficulty {{ diff.difficulty }}</span>
+                  <span class="diff-notes">{{ diff.noteCount }} notes</span>
+                  @if (difficultyPickerState().selectedDifficultyId === diff.id) {
+                    <span class="checkmark">✓</span>
+                  }
+                </button>
+              }
+            }
+          </div>
+          @if (canManageSong(selectedSong!)) {
+            <button class="btn-upload-chart" (click)="openUploadDifficultyForm()">
+              + Upload New Difficulty
+            </button>
+          }
+        } @else {
+          <div class="upload-chart-form">
+            <div class="form-group">
+              <label for="difficultySelect">Difficulty Level</label>
+              <select
+                id="difficultySelect"
+                [(ngModel)]="uploadDifficultyChoice"
+                class="difficulty-select">
+                <option [ngValue]="null" disabled>Select difficulty...</option>
+                @if (isDifficultyAvailable('Easy')) {
+                  <option value="Easy">Easy</option>
+                }
+                @if (isDifficultyAvailable('Medium')) {
+                  <option value="Medium">Medium</option>
+                }
+                @if (isDifficultyAvailable('Hard')) {
+                  <option value="Hard">Hard</option>
+                }
+                @if (isDifficultyAvailable('Expert')) {
+                  <option value="Expert">Expert</option>
+                }
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Chart File (JSON)</label>
+              <button class="file-btn" (click)="chartFileInput.click()">
+                📄 {{ difficultyPickerState().uploadChartFile ? 'Chart Selected' : 'Choose JSON File' }}
+              </button>
+              <input #chartFileInput type="file" accept=".json,application/json" style="display: none" (change)="onChartFileSelected($event)" />
+            </div>
+          </div>
+        }
       </div>
       <div class="modal-footer">
-        <button class="btn-cancel" (click)="cancelDelete()">Cancel</button>
-        <button class="btn-danger" (click)="confirmDelete()">Delete Song</button>
+        @if (difficultyPickerState().showUploadForm) {
+          <button class="btn-cancel" (click)="closeUploadDifficultyForm()">Back</button>
+          <button class="btn-submit" (click)="uploadChartDifficulty()">Upload Chart</button>
+        } @else {
+          <button class="btn-cancel" (click)="closeDifficultyPicker()">Close</button>
+        }
       </div>
     </div>
   </div>
 }
-

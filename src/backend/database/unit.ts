@@ -151,42 +151,58 @@ class DB {
       connection.exec('ALTER TABLE User ADD COLUMN joinDate TEXT');
     }
 
-    connection.exec("UPDATE User SET joinDate = CURRENT_TIMESTAMP WHERE joinDate IS NULL OR TRIM(joinDate) = ''");
+     connection.exec("UPDATE User SET joinDate = CURRENT_TIMESTAMP WHERE joinDate IS NULL OR TRIM(joinDate) = ''");
 
-    connection.exec(`
-            CREATE TABLE IF NOT EXISTS Highscore (
-              user_id INTEGER NOT NULL,
-              difficulty_id INTEGER NOT NULL,
-              score INTEGER NOT NULL,
-              max_combo INTEGER NOT NULL,
-              accuracy INTEGER NOT NULL,
-              date TEXT NOT NULL,
-              CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES User(id),
-              CONSTRAINT fk_difficulty FOREIGN KEY (difficulty_id) REFERENCES Difficulty(id)
-              ) STRICT
-        `);
+     connection.exec(`
+              CREATE TABLE IF NOT EXISTS Difficulty (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                song_id INTEGER NOT NULL,
+                difficulty INTEGER NOT NULL,
+                note_count INTEGER NOT NULL,
+                CONSTRAINT fk_song FOREIGN KEY (song_id) REFERENCES Song(id)
+               ) STRICT
+         `);
 
-    connection.exec(`
-            CREATE TABLE IF NOT EXISTS Difficulty (
-              id INTEGER PRIMARY KEY AUTOINCREMENT,
-              song_id INTEGER NOT NULL,
-              difficulty INTEGER NOT NULL,
-              note_count INTEGER NOT NULL,
-              CONSTRAINT fk_song FOREIGN KEY (song_id) REFERENCES Song(id)
-              ) STRICT
-        `);
+     connection.exec(`
+             CREATE TABLE IF NOT EXISTS Highscore (
+               user_id INTEGER NOT NULL,
+               difficulty_id INTEGER NOT NULL,
+               score INTEGER NOT NULL,
+               max_combo INTEGER NOT NULL,
+               accuracy INTEGER NOT NULL,
+               date TEXT NOT NULL,
+               CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES User(id),
+               CONSTRAINT fk_difficulty FOREIGN KEY (difficulty_id) REFERENCES Difficulty(id)
+               ) STRICT
+         `);
 
-    connection.exec(`
-            CREATE TABLE IF NOT EXISTS Note (
-              id INTEGER PRIMARY KEY AUTOINCREMENT,
-              difficulty_id INTEGER NOT NULL,
-              time_ms INTEGER NOT NULL,
-              lane INTEGER NOT NULL,
-              type INTEGER NOT NULL,
-              duration_ms INTEGER,
-              CONSTRAINT fk_difficulty FOREIGN KEY (difficulty_id) REFERENCES Difficulty(id)
-              ) STRICT
-        `);
+     connection.exec(`
+       WITH ranked AS (
+         SELECT rowid,
+                ROW_NUMBER() OVER (
+                  PARTITION BY user_id, difficulty_id
+                  ORDER BY score DESC, accuracy DESC, max_combo DESC, date ASC, rowid ASC
+                ) AS rn
+         FROM Highscore
+       )
+       DELETE FROM Highscore
+       WHERE rowid IN (SELECT rowid FROM ranked WHERE rn > 1);
+     `);
+
+     connection.exec('CREATE UNIQUE INDEX IF NOT EXISTS uq_highscore_user_difficulty ON Highscore(user_id, difficulty_id)');
+     connection.exec('CREATE INDEX IF NOT EXISTS idx_highscore_leaderboard ON Highscore(difficulty_id, score DESC, accuracy DESC, max_combo DESC, date ASC)');
+
+     connection.exec(`
+             CREATE TABLE IF NOT EXISTS Note (
+               id INTEGER PRIMARY KEY AUTOINCREMENT,
+               difficulty_id INTEGER NOT NULL,
+               time_ms INTEGER NOT NULL,
+               lane INTEGER NOT NULL,
+               type INTEGER NOT NULL,
+               duration_ms INTEGER,
+               CONSTRAINT fk_difficulty FOREIGN KEY (difficulty_id) REFERENCES Difficulty(id)
+               ) STRICT
+         `);
   }
 }
 
@@ -196,7 +212,7 @@ type RunResult = ReturnType<RawStatement<unknown>["run"]>;
 export interface ITypedStatement<TResult = unknown, TParams = unknown> {
   readonly _params?: TParams;
 
-  get(): TResult | undefined;
+  get(): TResult | undefined
   all(): TResult[];
   run(): RunResult;
 }

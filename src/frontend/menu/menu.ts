@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy, ChangeDetectorRef, NgZone, computed, sign
 import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService, User } from '../../app/services/auth.service';
-import { SongService } from '../../app/services/song.service';
+import { SongService, SongDifficulty, DifficultyLevel, LeaderboardEntry, difficultyNumberToName, difficultyNameToNumber } from '../../app/services/song.service';
 import { tap } from 'rxjs/operators';
 
 interface MenuItem {
@@ -23,6 +23,7 @@ interface Song {
   songUrl: string;
   ownerId?: number | string | null;
   isPublic?: boolean | number | string;
+  difficulties?: SongDifficulty[];
 }
 
 interface AddSongFormData {
@@ -32,6 +33,23 @@ interface AddSongFormData {
   audioFile?: File;
   coverFile?: File;
   visibility?: 'public' | 'private';
+}
+
+interface DifficultyPickerState {
+  showPicker: boolean;
+  difficulties: SongDifficulty[];
+  selectedDifficultyId: number | null;
+  showUploadForm: boolean;
+  uploadDifficulty?: DifficultyLevel;
+  uploadChartFile?: File;
+}
+
+interface LeaderboardState {
+  loading: boolean;
+  error: string | null;
+  entries: LeaderboardEntry[];
+  difficultyId: number | null;
+  difficultyLabel: string;
 }
 
 @Component({
@@ -65,6 +83,23 @@ export class MenuComponent implements OnInit, OnDestroy {
   isLoading = true;
 
   selectedSong: Song | null = null;
+  selectedDifficultyId: number | null = null;
+  uploadDifficultyChoice: DifficultyLevel | null = null;
+
+  difficultyPickerState = signal<DifficultyPickerState>({
+    showPicker: false,
+    difficulties: [],
+    selectedDifficultyId: null,
+    showUploadForm: false
+  });
+
+  leaderboardState = signal<LeaderboardState>({
+    loading: false,
+    error: null,
+    entries: [],
+    difficultyId: null,
+    difficultyLabel: ''
+  });
 
   showAddTrackForm = false;
   pendingSong: AddSongFormData = {};
@@ -118,6 +153,9 @@ export class MenuComponent implements OnInit, OnDestroy {
         if (response.success) {
           this.allSongsSignal.set(response.songs.map(song => this.normalizeSong(song)));
           this.ensureSelectedSongVisible();
+          if (this.selectedSong && this.selectedDifficultyId) {
+            this.loadLeaderboardForSelection();
+          }
           console.log(`📦 MenuComponent: Successfully loaded ${this.songs.length} visible songs`);
           this.loadingError = null;
           this.isLoading = false;
@@ -160,7 +198,139 @@ export class MenuComponent implements OnInit, OnDestroy {
 
   selectSong(song: Song) {
     this.selectedSong = song;
+    this.selectedDifficultyId = song.difficulties?.[0]?.id ?? null;
+    this.loadLeaderboardForSelection();
     this.playSong(this.selectedSong.songUrl).then(() => "Audio played");
+  }
+
+  openDifficultyPicker() {
+    if (!this.selectedSong) return;
+
+    this.songService.getSongDifficulties(this.selectedSong.id, this.currentUser?.id ?? undefined).subscribe({
+      next: response => {
+        if (response.success && response.difficulties) {
+          this.difficultyPickerState.set({
+            showPicker: true,
+            difficulties: response.difficulties,
+            selectedDifficultyId: this.selectedDifficultyId,
+            showUploadForm: false
+          });
+        }
+      },
+      error: () => {
+        console.error('Failed to load difficulties');
+        alert('Failed to load difficulties');
+      }
+    });
+  }
+
+  selectDifficulty(difficultyId: number) {
+    this.selectedDifficultyId = difficultyId;
+    this.difficultyPickerState.update(state => ({
+      ...state,
+      selectedDifficultyId: difficultyId,
+      showPicker: false
+    }));
+    this.loadLeaderboardForSelection();
+  }
+
+  getSelectedDifficultyLevel(): string {
+    if (!this.selectedDifficultyId || !this.difficultyPickerState().difficulties) {
+      return '?';
+    }
+    const found = this.difficultyPickerState().difficulties.find(d => d.id === this.selectedDifficultyId);
+    return found ? difficultyNumberToName(found.difficulty) : '?';
+  }
+
+  isDifficultyAvailable(difficultyLevel: DifficultyLevel): boolean {
+    const numLevel = difficultyNameToNumber(difficultyLevel);
+    return !this.difficultyPickerState().difficulties.some(existing => existing.difficulty === numLevel);
+  }
+
+  closeDifficultyPicker() {
+    this.difficultyPickerState.update(state => ({
+      ...state,
+      showPicker: false,
+      showUploadForm: false
+    }));
+  }
+
+  openUploadDifficultyForm() {
+    this.difficultyPickerState.update(state => ({
+      ...state,
+      showUploadForm: true,
+      uploadDifficulty: undefined,
+      uploadChartFile: undefined
+    }));
+    this.uploadDifficultyChoice = null;
+  }
+
+  closeUploadDifficultyForm() {
+    this.difficultyPickerState.update(state => ({
+      ...state,
+      showUploadForm: false,
+      uploadDifficulty: undefined,
+      uploadChartFile: undefined
+    }));
+    this.uploadDifficultyChoice = null;
+  }
+
+  onChartFileSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (input.files?.length) {
+      const file = input.files[0];
+      if (file.type === 'application/json' || file.name.endsWith('.json')) {
+        this.difficultyPickerState.update(state => ({
+          ...state,
+          uploadChartFile: file,
+          uploadDifficulty: state.uploadDifficulty ?? undefined
+        }));
+      } else {
+        alert('Please select a valid JSON chart file');
+        input.value = '';
+      }
+    }
+  }
+
+  uploadChartDifficulty() {
+    const state = this.difficultyPickerState();
+    if (!this.selectedSong || !this.uploadDifficultyChoice || !state.uploadChartFile || !this.currentUser?.id) {
+      alert('Please fill in all fields');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const content = event.target?.result as string;
+        const chartData = JSON.parse(content);
+
+        if (!Array.isArray(chartData.notes) || chartData.notes.length === 0) {
+          alert('Chart must contain at least one note');
+          return;
+        }
+
+        this.songService.addSongDifficulty(this.selectedSong!.id, {
+          ownerId: this.currentUser!.id,
+          difficulty: difficultyNameToNumber(this.uploadDifficultyChoice!),
+          notes: chartData.notes
+        }).subscribe({
+          next: response => {
+            if (response.success) {
+              alert('Chart uploaded successfully!');
+              this.closeUploadDifficultyForm();
+              this.loadSongsFromDatabase();
+            } else {
+              alert(`Failed to upload chart: ${response.error}`);
+            }
+          },
+          error: err => alert(`Error uploading chart: ${err.message}`)
+        });
+      } catch (error) {
+        alert('Invalid JSON file format');
+      }
+    };
+    reader.readAsText(state.uploadChartFile);
   }
 
   get isSelectedSongOwnedByCurrentUser(): boolean {
@@ -186,7 +356,7 @@ export class MenuComponent implements OnInit, OnDestroy {
     }
 
     this.stopAudio();
-    this.router.navigate(['/gameplay', song.id], { state: { song } });
+    this.router.navigate(['/gameplay', song.id], { state: { song, difficultyId: this.selectedDifficultyId } });
   }
 
   showDeleteConfirm = false;
@@ -513,5 +683,60 @@ export class MenuComponent implements OnInit, OnDestroy {
     const minutes = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${minutes}:${secs.toString().padStart(2, '0')}`;
+  }
+
+  private loadLeaderboardForSelection(): void {
+    if (!this.selectedSong || !this.selectedDifficultyId) {
+      this.leaderboardState.set({
+        loading: false,
+        error: null,
+        entries: [],
+        difficultyId: null,
+        difficultyLabel: ''
+      });
+      return;
+    }
+
+    const selectedDifficulty = this.selectedSong.difficulties?.find(diff => diff.id === this.selectedDifficultyId);
+    const difficultyLabel = selectedDifficulty ? difficultyNumberToName(selectedDifficulty.difficulty) : 'Difficulty';
+
+    this.leaderboardState.set({
+      loading: true,
+      error: null,
+      entries: this.leaderboardState().entries,
+      difficultyId: this.selectedDifficultyId,
+      difficultyLabel
+    });
+
+    this.songService.getDifficultyLeaderboard(this.selectedSong.id, this.selectedDifficultyId, this.currentUser?.id ?? undefined).subscribe({
+      next: response => {
+        if (response.success) {
+          this.leaderboardState.set({
+            loading: false,
+            error: null,
+            entries: response.entries,
+            difficultyId: response.difficultyId,
+            difficultyLabel
+          });
+        } else {
+          this.leaderboardState.set({
+            loading: false,
+            error: response.error || 'Failed to load leaderboard',
+            entries: [],
+            difficultyId: this.selectedDifficultyId,
+            difficultyLabel
+          });
+        }
+      },
+      error: err => {
+        this.leaderboardState.set({
+          loading: false,
+          error: err.message || 'Failed to load leaderboard',
+          entries: [],
+          difficultyId: this.selectedDifficultyId,
+          difficultyLabel
+        });
+      }
+    });
   }
 }

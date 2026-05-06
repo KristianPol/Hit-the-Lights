@@ -13,6 +13,44 @@ export interface Song {
   coverUrl: string;
   ownerId?: number | null;
   isPublic?: boolean;
+  difficulties?: SongDifficulty[];
+}
+
+export interface SongDifficulty {
+  id: number;
+  difficulty: number;
+  noteCount: number;
+}
+
+export type DifficultyLevel = 'Easy' | 'Medium' | 'Hard' | 'Expert';
+
+const DIFFICULTY_MAP: Record<DifficultyLevel, number> = {
+  'Easy': 1,
+  'Medium': 2,
+  'Hard': 3,
+  'Expert': 4
+};
+
+const REVERSE_DIFFICULTY_MAP: Record<number, DifficultyLevel> = {
+  1: 'Easy',
+  2: 'Medium',
+  3: 'Hard',
+  4: 'Expert'
+};
+
+export function difficultyNumberToName(num: number): DifficultyLevel {
+  return REVERSE_DIFFICULTY_MAP[num] || 'Medium';
+}
+
+export function difficultyNameToNumber(name: DifficultyLevel): number {
+  return DIFFICULTY_MAP[name];
+}
+
+export interface ChartNote {
+  time: number;
+  lane: number;
+  type?: number;
+  durationMs?: number | null;
 }
 
 export interface AddSongRequest {
@@ -60,6 +98,81 @@ export interface UpdateSongVisibilityResponse {
 export interface UploadedSongCountResponse {
   success: boolean;
   count: number;
+  error?: string;
+}
+
+export interface GetDifficultiesResponse {
+  success: boolean;
+  difficulties?: SongDifficulty[];
+  error?: string;
+}
+
+export interface AddDifficultyRequest {
+  ownerId: number;
+  difficulty: number;
+  notes: ChartNote[];
+}
+
+export interface AddDifficultyResponse {
+  success: boolean;
+  difficulty?: SongDifficulty;
+  error?: string;
+  message?: string;
+}
+
+export interface LeaderboardEntry {
+  position: number;
+  userId: number;
+  username: string;
+  score: number;
+  maxCombo: number;
+  accuracy: number;
+  date: string;
+  isCurrentUser: boolean;
+}
+
+export interface GetLeaderboardResponse {
+  success: boolean;
+  songId: number;
+  difficultyId: number;
+  entries: LeaderboardEntry[];
+  error?: string;
+}
+
+export interface SubmitLeaderboardRequest {
+  userId: number;
+  score: number;
+  maxCombo: number;
+  accuracy: number;
+  date?: string;
+}
+
+export interface SubmitLeaderboardResponse {
+  success: boolean;
+  improved: boolean;
+  entry?: LeaderboardEntry;
+  error?: string;
+}
+
+export interface DifficultyChartNote {
+  time: number;
+  lane: number;
+}
+
+export interface DifficultyChart {
+  metadata: {
+    title: string;
+    artist: string;
+    bpm: number;
+  };
+  notes: DifficultyChartNote[];
+}
+
+export interface GetDifficultyChartResponse {
+  success: boolean;
+  songId: number;
+  difficultyId: number;
+  chart: DifficultyChart;
   error?: string;
 }
 
@@ -139,6 +252,74 @@ export class SongService {
         catchError(error => {
           return throwError(
             () => new Error(error.error?.error || 'Failed to fetch uploaded song count')
+          );
+        })
+      );
+  }
+
+  getSongDifficulties(songId: number, viewerId?: number): Observable<GetDifficultiesResponse> {
+    return this.http
+      .get<GetDifficultiesResponse>(`${this.apiUrl}/${songId}/difficulties`, { params: this.buildViewerParams(viewerId) })
+      .pipe(
+        catchError(error => {
+          return throwError(
+            () => new Error(error.error?.error || 'Failed to fetch difficulties')
+          );
+        })
+      );
+  }
+
+  addSongDifficulty(songId: number, request: AddDifficultyRequest): Observable<AddDifficultyResponse> {
+    return this.http
+      .post<AddDifficultyResponse>(`${this.apiUrl}/${songId}/difficulties`, request)
+      .pipe(
+        catchError(error => {
+          return throwError(
+            () => new Error(error.error?.error || 'Failed to upload difficulty')
+          );
+        })
+      );
+  }
+
+  getDifficultyLeaderboard(songId: number, difficultyId: number, viewerId?: number): Observable<GetLeaderboardResponse> {
+    return this.http
+      .get<GetLeaderboardResponse>(`${this.apiUrl}/${songId}/difficulties/${difficultyId}/leaderboard`, {
+        params: this.buildViewerParams(viewerId)
+      })
+      .pipe(
+        catchError(error => {
+          return throwError(
+            () => new Error(error.error?.error || 'Failed to fetch leaderboard')
+          );
+        })
+      );
+  }
+
+  submitDifficultyHighscore(
+    songId: number,
+    difficultyId: number,
+    request: SubmitLeaderboardRequest
+  ): Observable<SubmitLeaderboardResponse> {
+    return this.http
+      .post<SubmitLeaderboardResponse>(`${this.apiUrl}/${songId}/difficulties/${difficultyId}/leaderboard`, request)
+      .pipe(
+        catchError(error => {
+          return throwError(
+            () => new Error(error.error?.error || 'Failed to submit score')
+          );
+        })
+      );
+  }
+
+  getDifficultyChart(songId: number, difficultyId: number, viewerId?: number): Observable<GetDifficultyChartResponse> {
+    return this.http
+      .get<GetDifficultyChartResponse>(`${this.apiUrl}/${songId}/difficulties/${difficultyId}/chart`, {
+        params: this.buildViewerParams(viewerId)
+      })
+      .pipe(
+        catchError(error => {
+          return throwError(
+            () => new Error(error.error?.error || 'Failed to fetch chart')
           );
         })
       );

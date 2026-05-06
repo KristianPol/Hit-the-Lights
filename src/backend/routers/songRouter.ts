@@ -281,3 +281,202 @@ songRouter.delete('/:id', (req: Request, res: Response) => {
     res.status(500).json({ success: false, error: error.message || 'Internal server error' });
   }
 });
+
+songRouter.get('/:songId/difficulties', (req: Request, res: Response) => {
+  const unit = new Unit(true);
+
+  try {
+    const songId = parseInt(req.params['songId'] as string, 10);
+    const viewerId = parseOptionalNumber(req.query['viewerId']);
+
+    if (isNaN(songId)) {
+      unit.complete();
+      res.status(400).json({ success: false, error: 'Invalid song ID' });
+      return;
+    }
+
+    const songService = new SongService(unit);
+    const difficulties = songService.getSongDifficulties(songId, viewerId);
+
+    if (difficulties === undefined) {
+      unit.complete();
+      res.status(404).json({ success: false, error: 'Song not found or not accessible' });
+      return;
+    }
+
+    unit.complete();
+    res.status(200).json({ success: true, difficulties });
+  } catch (error: any) {
+    unit.complete();
+    res.status(500).json({ success: false, error: error.message || 'Internal server error' });
+  }
+});
+
+songRouter.post('/:songId/difficulties', (req: Request, res: Response) => {
+  const unit = new Unit(false);
+
+  try {
+    const songId = parseInt(req.params['songId'] as string, 10);
+    const { ownerId, difficulty, notes } = req.body;
+
+    if (isNaN(songId)) {
+      unit.complete(false);
+      res.status(400).json({ success: false, error: 'Invalid song ID' });
+      return;
+    }
+
+    const parsedOwnerId = parseOptionalNumber(ownerId);
+    if (parsedOwnerId === undefined) {
+      unit.complete(false);
+      res.status(400).json({ success: false, error: 'ownerId is required' });
+      return;
+    }
+
+    const parsedDifficulty = parseOptionalNumber(difficulty);
+    if (parsedDifficulty === undefined) {
+      unit.complete(false);
+      res.status(400).json({ success: false, error: 'difficulty is required' });
+      return;
+    }
+
+    if (!Array.isArray(notes)) {
+      unit.complete(false);
+      res.status(400).json({ success: false, error: 'notes must be an array' });
+      return;
+    }
+
+    const songService = new SongService(unit);
+    const result = songService.addSongDifficulty(songId, parsedOwnerId, parsedDifficulty, notes);
+
+    if (result.success) {
+      unit.complete(true);
+      res.status(201).json({ success: true, difficulty: result.difficulty, message: 'Difficulty uploaded successfully' });
+    } else {
+      unit.complete(false);
+      res.status(result.error === 'Song not found' ? 404 : 400).json({ success: false, error: result.error });
+    }
+  } catch (error: any) {
+    unit.complete(false);
+    res.status(500).json({ success: false, error: error.message || 'Internal server error' });
+  }
+});
+
+songRouter.get('/:songId/difficulties/:difficultyId/leaderboard', (req: Request, res: Response) => {
+  const unit = new Unit(true);
+
+  try {
+    const songId = parseInt(req.params['songId'] as string, 10);
+    const difficultyId = parseInt(req.params['difficultyId'] as string, 10);
+    const viewerId = parseOptionalNumber(req.query['viewerId']);
+
+    if (isNaN(songId) || isNaN(difficultyId)) {
+      unit.complete();
+      res.status(400).json({ success: false, error: 'Invalid song or difficulty ID' });
+      return;
+    }
+
+    const songService = new SongService(unit);
+    const result = songService.getDifficultyLeaderboard(songId, difficultyId, viewerId);
+
+    if (!result) {
+      unit.complete();
+      res.status(404).json({ success: false, error: 'Leaderboard not found or inaccessible' });
+      return;
+    }
+
+    unit.complete();
+    res.status(200).json(result);
+  } catch (error: any) {
+    unit.complete();
+    res.status(500).json({ success: false, error: error.message || 'Internal server error' });
+  }
+});
+
+songRouter.post('/:songId/difficulties/:difficultyId/leaderboard', (req: Request, res: Response) => {
+  const unit = new Unit(false);
+
+  try {
+    const songId = parseInt(req.params['songId'] as string, 10);
+    const difficultyId = parseInt(req.params['difficultyId'] as string, 10);
+    const { userId, score, maxCombo, accuracy, date } = req.body;
+
+    if (isNaN(songId) || isNaN(difficultyId)) {
+      unit.complete(false);
+      res.status(400).json({ success: false, error: 'Invalid song or difficulty ID' });
+      return;
+    }
+
+    const parsedUserId = parseOptionalNumber(userId);
+    if (parsedUserId === undefined) {
+      unit.complete(false);
+      res.status(400).json({ success: false, error: 'userId is required' });
+      return;
+    }
+
+    const parsedScore = parseOptionalNumber(score);
+    const parsedMaxCombo = parseOptionalNumber(maxCombo);
+    const parsedAccuracy = parseOptionalNumber(accuracy);
+
+    if (parsedScore === undefined || parsedMaxCombo === undefined || parsedAccuracy === undefined) {
+      unit.complete(false);
+      res.status(400).json({ success: false, error: 'score, maxCombo, and accuracy are required' });
+      return;
+    }
+
+    const songService = new SongService(unit);
+    const result = songService.submitDifficultyHighscore(songId, difficultyId, parsedUserId, {
+      score: parsedScore,
+      maxCombo: parsedMaxCombo,
+      accuracy: parsedAccuracy,
+      date: typeof date === 'string' && date.trim().length > 0 ? date : undefined
+    });
+
+    if (result.success) {
+      unit.complete(true);
+      res.status(200).json({
+        success: true,
+        improved: result.improved,
+        entry: result.entry,
+        message: result.improved ? 'Highscore updated' : 'Score did not beat existing highscore'
+      });
+    } else {
+      unit.complete(false);
+      const status = result.error === 'Song not found or not accessible' ? 403 : result.error === 'Difficulty not found' ? 404 : 400;
+      res.status(status).json({ success: false, improved: false, error: result.error });
+    }
+  } catch (error: any) {
+    unit.complete(false);
+    res.status(500).json({ success: false, error: error.message || 'Internal server error' });
+  }
+});
+
+songRouter.get('/:songId/difficulties/:difficultyId/chart', (req: Request, res: Response) => {
+  const unit = new Unit(true);
+
+  try {
+    const songId = parseInt(req.params['songId'] as string, 10);
+    const difficultyId = parseInt(req.params['difficultyId'] as string, 10);
+    const viewerId = parseOptionalNumber(req.query['viewerId']);
+
+    if (isNaN(songId) || isNaN(difficultyId)) {
+      unit.complete();
+      res.status(400).json({ success: false, error: 'Invalid song or difficulty ID' });
+      return;
+    }
+
+    const songService = new SongService(unit);
+    const result = songService.getDifficultyChart(songId, difficultyId, viewerId);
+
+    if (!result) {
+      unit.complete();
+      res.status(404).json({ success: false, error: 'Chart not found or inaccessible' });
+      return;
+    }
+
+    unit.complete();
+    res.status(200).json(result);
+  } catch (error: any) {
+    unit.complete();
+    res.status(500).json({ success: false, error: error.message || 'Internal server error' });
+  }
+});
