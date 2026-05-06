@@ -3,7 +3,8 @@
   username: string,
   password: string,
   profilePicture?: Buffer | null,
-  joinDate: string
+  joinDate: string,
+  playtimeSeconds?: number
 };
 
 export interface Song {

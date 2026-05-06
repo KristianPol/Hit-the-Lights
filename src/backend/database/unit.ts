@@ -139,6 +139,7 @@ class DB {
                 password TEXT NOT NULL,
                 profilePicture BLOB,
                 joinDate TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                playtime_seconds INTEGER NOT NULL DEFAULT 0,
                 CONSTRAINT uq_username UNIQUE (username)
             ) STRICT
         `);
@@ -151,7 +152,12 @@ class DB {
       connection.exec('ALTER TABLE User ADD COLUMN joinDate TEXT');
     }
 
-     connection.exec("UPDATE User SET joinDate = CURRENT_TIMESTAMP WHERE joinDate IS NULL OR TRIM(joinDate) = ''");
+    // Ensure playtime_seconds column exists (constant default allowed)
+    if (!userColumnNames.has('playtime_seconds')) {
+      connection.exec('ALTER TABLE User ADD COLUMN playtime_seconds INTEGER NOT NULL DEFAULT 0');
+    }
+
+    connection.exec("UPDATE User SET joinDate = CURRENT_TIMESTAMP WHERE joinDate IS NULL OR TRIM(joinDate) = ''");
 
      connection.exec(`
               CREATE TABLE IF NOT EXISTS Difficulty (

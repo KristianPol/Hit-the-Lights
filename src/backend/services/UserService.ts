@@ -15,6 +15,7 @@ export interface GetUserResponse {
   id: number;
   username: string;
   joinDate: string;
+  playtimeSeconds?: number;
   profilePictureUrl?: string;
 }
 
@@ -140,10 +141,10 @@ export class UserService {
    */
   public getUserById(userId: number): GetUserResponse | undefined {
     const stmt = this.unit.prepare<
-      { id: number; username: string; joinDate: string; profilePicture: Buffer | null },
+      { id: number; username: string; joinDate: string; profilePicture: Buffer | null; playtime_seconds?: number },
       { userId: number }
     >(
-      'SELECT id, username, joinDate, profilePicture FROM User WHERE id = $userId',
+      'SELECT id, username, joinDate, profilePicture, playtime_seconds FROM User WHERE id = $userId',
       { userId }
     );
     const result = stmt.get();
@@ -156,9 +157,43 @@ export class UserService {
       id: result.id,
       username: result.username,
       joinDate: result.joinDate,
+      playtimeSeconds: typeof result.playtime_seconds === 'number' ? result.playtime_seconds : 0,
       profilePictureUrl: result.profilePicture
         ? `http://localhost:3000/api/auth/profile-picture/${result.id}?t=${Date.now()}`
         : undefined
     };
+  }
+
+  /**
+   * Adds playtime seconds to a user's total playtime and returns the new total
+   */
+  public addPlaytime(userId: number, seconds: number): { success: boolean; playtimeSeconds?: number; error?: string } {
+    if (!userId || userId <= 0) {
+      return { success: false, error: 'Invalid user ID' };
+    }
+
+    if (!Number.isFinite(seconds) || seconds <= 0) {
+      return { success: false, error: 'Invalid seconds value' };
+    }
+
+    try {
+      const checkStmt = this.unit.prepare<{ id: number }, { userId: number }>('SELECT id FROM User WHERE id = $userId', { userId });
+      const user = checkStmt.get();
+      if (!user) {
+        return { success: false, error: 'User not found' };
+      }
+
+      const updateStmt = this.unit.prepare<unknown, { seconds: number; userId: number }>(
+        'UPDATE User SET playtime_seconds = COALESCE(playtime_seconds, 0) + $seconds WHERE id = $userId',
+        { seconds, userId }
+      );
+      updateStmt.run();
+
+      const resultStmt = this.unit.prepare<{ playtime_seconds: number }, { userId: number }>('SELECT playtime_seconds FROM User WHERE id = $userId', { userId });
+      const result = resultStmt.get();
+      return { success: true, playtimeSeconds: typeof result?.playtime_seconds === 'number' ? result.playtime_seconds : 0 };
+    } catch (error: any) {
+      return { success: false, error: error.message || 'Database error' };
+    }
   }
 }

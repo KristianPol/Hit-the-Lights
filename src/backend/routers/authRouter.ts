@@ -289,3 +289,41 @@ authRouter.get('/user/:userId', (req: Request, res: Response) => {
     });
   }
 });
+
+// Add playtime (seconds) to user's total
+authRouter.post('/playtime', (req: Request, res: Response) => {
+  const unit = new Unit(false);
+
+  try {
+    const { userId, seconds } = req.body;
+    const parsedUserId = Number(userId);
+    const parsedSeconds = Number(seconds);
+
+    if (!Number.isFinite(parsedUserId) || parsedUserId <= 0) {
+      unit.complete(false);
+      res.status(400).json({ success: false, error: 'Invalid userId' });
+      return;
+    }
+
+    if (!Number.isFinite(parsedSeconds) || parsedSeconds <= 0) {
+      unit.complete(false);
+      res.status(400).json({ success: false, error: 'Invalid seconds value' });
+      return;
+    }
+
+    const userService = new UserService(unit);
+    const result = userService.addPlaytime(parsedUserId, Math.floor(parsedSeconds));
+
+    if (result.success) {
+      unit.complete(true);
+      res.status(200).json({ success: true, playtimeSeconds: result.playtimeSeconds });
+    } else {
+      unit.complete(false);
+      res.status(400).json({ success: false, error: result.error });
+    }
+  } catch (error: any) {
+    unit.complete(false);
+    res.status(500).json({ success: false, error: error.message || 'Internal server error' });
+  }
+});
+

@@ -71,6 +71,10 @@ export class GameplayComponent implements AfterViewInit, OnDestroy {
   private canvas!: HTMLCanvasElement;
   private ctx!: CanvasRenderingContext2D;
   private animationFrameId: number | null = null;
+  // Playtime tracking
+  private playtimeIntervalId: number | null = null;
+  private playtimePendingSeconds = 0;
+  private readonly playtimeSendInterval = 10; // send to server every 10 seconds
   private readonly onResize = () => this.handleResize();
   private readonly onAudioEnded = () => this.finishGame();
   private activeFlashes: Map<number, number> = new Map();
@@ -200,10 +204,14 @@ export class GameplayComponent implements AfterViewInit, OnDestroy {
     } finally {
       this.isLoading.set(false);
       this.render(this.getAudioTimeMs());
+      // start background playtime tracking when component is initialized
+      this.startPlaytimeTracking();
     }
   }
 
   ngOnDestroy(): void {
+    // stop tracking and flush remaining seconds
+    this.stopPlaytimeTracking();
     this.teardown();
   }
 
@@ -888,6 +896,56 @@ export class GameplayComponent implements AfterViewInit, OnDestroy {
       cancelAnimationFrame(this.animationFrameId);
       this.animationFrameId = null;
     }
+  }
+
+  // Playtime tracking helpers
+  private startPlaytimeTracking(): void {
+    if (!this.authService.isLoggedIn) return;
+
+    // Clear any previous interval
+    this.stopPlaytimeTracking();
+
+    this.playtimePendingSeconds = 0;
+    this.playtimeIntervalId = window.setInterval(() => {
+      this.playtimePendingSeconds++;
+
+      if (this.playtimePendingSeconds >= this.playtimeSendInterval) {
+        const toSend = this.playtimePendingSeconds;
+        this.playtimePendingSeconds = 0;
+        const userId = this.authService.currentUser?.id;
+        if (!userId) return;
+        this.authService.addPlaytime(userId, toSend).subscribe({
+          next: _ => {
+            // successful update handled by authService
+          },
+          error: err => {
+            console.warn('Failed to send playtime:', err);
+          }
+        });
+      }
+    }, 1000);
+  }
+
+  private stopPlaytimeTracking(): void {
+    if (this.playtimeIntervalId != null) {
+      clearInterval(this.playtimeIntervalId);
+      this.playtimeIntervalId = null;
+    }
+    // flush remaining seconds
+    this.flushPlaytime();
+  }
+
+  private flushPlaytime(): void {
+    if (!this.authService.isLoggedIn) return;
+    const userId = this.authService.currentUser?.id;
+    if (!userId) return;
+    const toSend = this.playtimePendingSeconds;
+    if (toSend <= 0) return;
+    this.playtimePendingSeconds = 0;
+    this.authService.addPlaytime(userId, toSend).subscribe({
+      next: _ => {},
+      error: err => console.warn('Failed to flush playtime:', err)
+    });
   }
 
   private resizeCanvasToDisplaySize() {

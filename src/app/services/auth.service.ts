@@ -19,6 +19,7 @@ export interface User {
   username: string;
   joinDate?: string;
   profilePictureUrl?: string;
+  playtimeSeconds?: number;
 }
 
 export interface UpdateProfilePictureResponse {
@@ -164,8 +165,14 @@ export class AuthService {
       map(response => {
         console.log('refreshUser response:', response);
         if (response.success && response.user) {
-          localStorage.setItem('currentUser', JSON.stringify(response.user));
-          this.currentUserSignal.set(response.user);
+          // Preserve existing stored user fields where backend may not return them
+          const existing = this.currentUser;
+          const merged: User = {
+            ...(existing ?? {}),
+            ...response.user
+          } as User;
+          localStorage.setItem('currentUser', JSON.stringify(merged));
+          this.currentUserSignal.set(merged);
           return { success: true, user: response.user };
         }
         return { success: false, error: response.error };
@@ -173,6 +180,28 @@ export class AuthService {
       catchError(error => {
         console.error('refreshUser error:', error);
         return throwError(() => new Error(error.error?.error || 'Failed to refresh user'));
+      })
+    );
+  }
+
+  /**
+   * Add playtime seconds to user's total on server. Updates local user on success.
+   */
+  addPlaytime(userId: number, seconds: number) {
+    return this.http.post<{ success: boolean; playtimeSeconds?: number; error?: string }>(
+      `${this.apiUrl}/playtime`,
+      { userId, seconds }
+    ).pipe(
+      map(response => {
+        if (response.success && typeof response.playtimeSeconds === 'number') {
+          const current = this.currentUser;
+          if (current && current.id === userId) {
+            const updated: User = { ...current, playtimeSeconds: response.playtimeSeconds };
+            localStorage.setItem('currentUser', JSON.stringify(updated));
+            this.currentUserSignal.set(updated);
+          }
+        }
+        return response;
       })
     );
   }

@@ -96,6 +96,16 @@ export class ProfileComponent implements OnInit {
     });
   }
 
+  get formattedPlaytime(): string {
+    const seconds = this.user?.playtimeSeconds ?? 0;
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) {
+      return `${minutes}m`;
+    }
+    const hours = seconds / 3600;
+    return `${hours.toFixed(1)}h`;
+  }
+
   editProfile(): void {
     this.showEditModal = true;
     this.selectedProfilePicture = null;
