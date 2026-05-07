@@ -2,7 +2,6 @@
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
-import { HttpClient } from '@angular/common/http';
 import { Song, SongService } from '../../app/services/song.service';
 import { AuthService } from '../../app/services/auth.service';
 
@@ -22,17 +21,13 @@ interface ChartMetadata {
   description?: string;
 }
 
-interface ChartFile {
-  metadata?: ChartMetadata;
-  notes: Array<{ time: number; lane: number }>;
-}
-
 interface GameStats {
   score: number;
   combo: number;
   maxCombo: number;
   perfect: number;
   good: number;
+  glimmer: number;
   miss: number;
   accuracy: number;
 }
@@ -115,7 +110,7 @@ export class GameplayComponent implements AfterViewInit, OnDestroy {
   readonly accuracyLabelText = computed(() => `${this.stats().accuracy.toFixed(1)}%`);
   readonly totalJudgedCount = computed(() => {
     const currentStats = this.stats();
-    return currentStats.perfect + currentStats.good + currentStats.miss;
+    return currentStats.perfect + currentStats.good + currentStats.glimmer + currentStats.miss;
   });
   readonly radiantRateText = computed(() => {
     const total = this.totalJudgedCount();
@@ -132,6 +127,14 @@ export class GameplayComponent implements AfterViewInit, OnDestroy {
     }
 
     return `${((this.stats().good / total) * 100).toFixed(1)}%`;
+  });
+  readonly glimmerRateText = computed(() => {
+    const total = this.totalJudgedCount();
+    if (total === 0) {
+      return '0.0%';
+    }
+
+    return `${((this.stats().glimmer / total) * 100).toFixed(1)}%`;
   });
   readonly resultRank = computed(() => {
     const accuracy = this.stats().accuracy;
@@ -175,17 +178,15 @@ export class GameplayComponent implements AfterViewInit, OnDestroy {
   readonly hitAreaRadius = 52;
   readonly hitWindow = 130;
   readonly perfectWindow = 55;
+  readonly shinningWindow = 90;
   readonly fallingSpeed = 1.7;
-
-  // FIX: Added miss window - notes that pass this point are definitely missed
-  readonly missWindow = 150; // ms after note time to count as miss
+  readonly earlyBuffer = 100; // ms before note where presses are ignored (ghost hit)
 
   constructor(
     private router: Router,
     private route: ActivatedRoute,
     private songService: SongService,
-    private authService: AuthService,
-    private http: HttpClient
+    private authService: AuthService
   ) {}
 
   async ngAfterViewInit(): Promise<void> {
@@ -439,8 +440,8 @@ export class GameplayComponent implements AfterViewInit, OnDestroy {
 
     const audioTime = this.getAudioTimeMs();
 
-    // FIX: Process misses BEFORE rendering to ensure accurate state
-    this.processMissedNotes(audioTime);
+    // Note: No automatic miss detection. Misses are only counted when player actively presses at wrong time.
+    // Ghost hits (pressing empty lane) do not count as misses.
     this.render(audioTime);
 
     this.animationFrameId = requestAnimationFrame(this.gameLoop);
@@ -450,54 +451,13 @@ export class GameplayComponent implements AfterViewInit, OnDestroy {
     return this.audio.currentTime * 1000;
   }
 
-  /**
-   * FIX: Completely rewritten miss detection logic
-   *
-   * The original code had a bug where it only checked if audioTime - note. time > hitWindow,
-   * but this didn't properly handle notes that were completely missed (passed the hit zone).
-   *
-   * New logic:
-   * 1. Notes that pass the missWindow (150ms after their time) are marked as missed
-   * 2. We track which notes have already been processed to avoid double-counting
-   * 3. Combo is reset immediately when any miss occurs
-   */
-  private processMissedNotes(audioTime: number): void {
-    let newMisses = 0;
-
-    for (const note of this.notes) {
-      // Skip already judged notes
-      if (note.judged) {
-        continue;
-      }
-
-      // Calculate how far past the note time we are
-      const timeSinceNote = audioTime - note.time;
-
-      // If note has passed the miss window, it's a guaranteed miss
-      if (timeSinceNote > this.missWindow) {
-        note.judged = true;
-        note.missed = true;
-        newMisses++;
-      }
-    }
-
-    // Update stats if we found new misses
-    if (newMisses > 0) {
-      this.stats.update(stats => ({
-        ...stats,
-        miss: stats.miss + newMisses,
-        combo: 0
-      }));
-      this.updateAccuracy();
-    }
-  }
 
   /**
-   * FIX: Improved hit detection with better window checking
-   *
-   * Original issue: The method didn't properly validate that notes were within
-   * the hit window before processing, and didn't handle the case where multiple
-   * notes in the same lane could be hit simultaneously.
+   * Hit detection now uses forgiving timing windows:
+   * - presses too far in advance (before earlyBuffer) are ignored like ghost hits
+   * - presses within the hit window are graded as Radiant, Shinning, or Glimmer
+   * - presses outside the hit window are misses
+   * - ghost hits (pressing when no notes are in that lane) are ignored
    */
   private handleKeyPress(lane: number): void {
     if (!this.gameRunning()) {
@@ -506,20 +466,36 @@ export class GameplayComponent implements AfterViewInit, OnDestroy {
 
     const audioTime = this.getAudioTimeMs();
 
-    // Find the closest unjudged note in this lane
-    const hittableNote = this.findHittableNote(lane, audioTime);
-
-    if (!hittableNote) {
-      // No note in hit window - this is a valid empty press, no penalty
+    const nextNote = this.findNextUnjudgedNoteInLane(lane);
+    // Ghost hit: no notes in this lane, so ignore the press entirely
+    if (!nextNote) {
       return;
     }
 
-    const { note, delta } = hittableNote;
+    const timeSinceNote = audioTime - nextNote.time;
+
+    // Presses way too early (before earlyBuffer) are treated like ghost hits - just ignore them
+    if (timeSinceNote < -this.earlyBuffer) {
+      return;
+    }
+
+    // Presses outside the valid hit window (but not too early) = miss
+    if (timeSinceNote < 0 || timeSinceNote > this.hitWindow) {
+      nextNote.judged = true;
+      nextNote.missed = true;
+      this.stats.update(stats => ({
+        ...stats,
+        miss: stats.miss + 1,
+        combo: 0
+      }));
+      this.updateAccuracy();
+      return;
+    }
+
+    nextNote.judged = true;
+    nextNote.missed = false;
 
     this.triggerBulbFlash(lane);
-    // Mark as judged first to prevent double-hits
-    note.judged = true;
-    note.missed = false;
 
     const geometry = this.getLaneGeometry(this.canvas.width);
     const hitZoneY = this.getHitZoneY(this.canvas.height);
@@ -527,13 +503,15 @@ export class GameplayComponent implements AfterViewInit, OnDestroy {
     const color = this.laneColors[lane];
     this.spawnShatter(laneCenterX, hitZoneY, color);
 
-    // Score based on accuracy
-    if (delta <= this.perfectWindow) {
-      this.scoreUnits += 2;
+    if (timeSinceNote <= this.perfectWindow) {
+      this.scoreUnits += 3;
       this.stats.update(stats => ({ ...stats, perfect: stats.perfect + 1 }));
+    } else if (timeSinceNote <= this.shinningWindow) {
+      this.scoreUnits += 2;
+      this.stats.update(stats => ({ ...stats, good: stats.good + 1 }));
     } else {
       this.scoreUnits += 1;
-      this.stats.update(stats => ({ ...stats, good: stats.good + 1 }));
+      this.stats.update(stats => ({ ...stats, glimmer: stats.glimmer + 1 }));
     }
 
     this.updateScaledScore();
@@ -549,49 +527,42 @@ export class GameplayComponent implements AfterViewInit, OnDestroy {
     this.updateAccuracy();
   }
 
-  /**
-   * NEW: Helper method to find the best hittable note in a lane
-   *
-   * Returns the note with the smallest time delta that's within the hit window,
-   * or null if no such note exists.
-   */
-  private findHittableNote(lane: number, audioTime: number): { note: ChartNote; delta: number } | null {
-    let bestCandidate: { note: ChartNote; delta: number } | null = null;
-    let smallestDelta = Infinity;
-
+  private findNextUnjudgedNoteInLane(lane: number): ChartNote | null {
+    const audioTime = this.getAudioTimeMs();
     for (const note of this.notes) {
-      // Skip judged notes
       if (note.judged) {
         continue;
       }
 
-      // Wrong lane
       if (note.lane !== lane) {
         continue;
       }
 
-      // Calculate time difference (can be negative if note is approaching)
-      const delta = Math.abs(note.time - audioTime);
-
-      // Must be within hit window
-      if (delta <= this.hitWindow && delta < smallestDelta) {
-        smallestDelta = delta;
-        bestCandidate = { note, delta };
+      // Skip notes that are too far in the past (way beyond the hit window)
+      const timeSinceNote = audioTime - note.time;
+      if (timeSinceNote > this.hitWindow + 50) {
+        // Auto-mark this old note as missed so we don't keep returning it
+        note.judged = true;
+        note.missed = true;
+        continue;
       }
+
+      return note;
     }
 
-    return bestCandidate;
+    return null;
   }
 
   private updateAccuracy(): void {
     const stats = this.stats();
-    const total = stats.perfect + stats.good + stats.miss;
+    const total = stats.perfect + stats.good + stats.glimmer + stats.miss;
+    const weightedJudgements = (stats.perfect * 3) + (stats.good * 2) + stats.glimmer;
     if (total === 0) {
       this.stats.update(current => ({ ...current, accuracy: 0 }));
       return;
     }
 
-    const accuracy = ((stats.perfect * 100 + stats.good * 50) / (total * 100)) * 100;
+    const accuracy = (weightedJudgements / (total * 3)) * 100;
     this.stats.update(current => ({ ...current, accuracy }));
   }
 
@@ -602,7 +573,7 @@ export class GameplayComponent implements AfterViewInit, OnDestroy {
       return;
     }
 
-    const maxUnits = totalNotes * 2;
+    const maxUnits = totalNotes * 3;
     const score = Math.round((this.scoreUnits / maxUnits) * this.maxSongScore);
     this.stats.update(current => ({ ...current, score }));
   }
@@ -881,6 +852,7 @@ export class GameplayComponent implements AfterViewInit, OnDestroy {
       maxCombo: 0,
       perfect: 0,
       good: 0,
+      glimmer: 0,
       miss: 0,
       accuracy: 0
     };

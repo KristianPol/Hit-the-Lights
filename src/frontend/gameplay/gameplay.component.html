@@ -50,6 +50,10 @@
         <span class="label">Shinning</span>
         <span class="value">{{ stats().good }}</span>
       </div>
+      <div class="stat-card highlight">
+        <span class="label">Glimmer</span>
+        <span class="value">{{ stats().glimmer }}</span>
+      </div>
       <div class="stat-card highlight miss-card">
         <span class="label">Shatterred</span>
         <span class="value">{{ stats().miss }}</span>
@@ -106,6 +110,12 @@
           <span class="metric-label">Shinning</span>
           <span class="metric-value">{{ stats().good }}</span>
           <span class="metric-sub">{{ shinningRateText() }}</span>
+        </div>
+
+        <div class="metric-card glimmer-card">
+          <span class="metric-label">Glimmer</span>
+          <span class="metric-value">{{ stats().glimmer }}</span>
+          <span class="metric-sub">{{ glimmerRateText() }}</span>
         </div>
 
         <div class="metric-card shatterred-card">

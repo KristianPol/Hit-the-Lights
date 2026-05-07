@@ -2,33 +2,27 @@
 
 ## Overview
 
-**Hit the Lights** is a browser-based rhythm game built with **Angular**, **TypeScript**, **Node.js**, and **SQLite**. Players can log in, choose songs with multiple difficulties, and aim for the best possible score while keeping time with the music.
+**Hit the Lights** is a browser-based rhythm game built with **Angular**, **TypeScript**, **Node.js**, and **SQLite**. Players can log in, upload or select songs, play charts with lane-based input, and track their performance against increasingly strict timing windows.
 
-The project currently includes:
+The current codebase includes:
 
-- rhythm gameplay with note timing and lane-based input
-- user accounts with login and registration
-- song selection with multiple difficulties
-- saved highscores, accuracy, combo, and playtime tracking
+- rhythm gameplay with falling-note timing and keyboard lanes
+- four score ranks: **Radiant**, **Shinning**, **Glimmer**, and **Shatterred**
+- stricter timing so very early key presses count as misses
+- user accounts with login, registration, playtime tracking, and profile pictures
+- song uploads with public/private visibility and owner checks
+- song charts with multiple difficulties and saved highscores
+- friends and in-game messaging
 
 ---
 
 ## Current Scope
 
-- Play songs with 3 difficulty levels: Easy, Medium, Hard
-- Track highscores, accuracy, combo, and playtime per user
+- Play songs with 4 difficulty levels: Easy, Medium, Hard, Expert
 - Load note charts from the database for each difficulty
-- Keep gameplay responsive in the browser with a clean UI
-
----
-
-## Planned Features
-
-We are currently expanding the project scope with the following features:
-
-- an additional **"Okay" score** rank/tier between the current lower and higher performance results
-- **friend functionality** so players can connect with other users
-- **messaging** so friends can send messages inside the game
+- Track score, combo, max combo, accuracy, and playtime per user
+- Use owner-aware public/private song access in the menu and gameplay screens
+- Keep gameplay responsive in the browser with a clean UI and animated hit effects
 
 ---
 
@@ -37,7 +31,7 @@ We are currently expanding the project scope with the following features:
 - **Frontend:** Angular, HTML5, SCSS
 - **Backend:** Node.js, TypeScript, Express
 - **Database:** SQLite
-- **APIs:** RESTful endpoints for users, songs, charts, highscores, and playtime
+- **APIs:** RESTful endpoints for auth, songs, charts, highscores, friendships, messages, and playtime
 
 ---
 
@@ -45,22 +39,24 @@ We are currently expanding the project scope with the following features:
 
 | Table | Key Columns | Notes |
 |---|---|---|
-| **User** | id (PK), username, password, playtime_seconds | Stores player accounts and total playtime |
-| **Song** | id (PK), name, author, bpm | Stores song metadata |
+| **User** | id (PK), username, password, profilePicture, joinDate, playtime_seconds | Stores player accounts and total playtime |
+| **Song** | id (PK), name, author, bpm, length, songUrl, coverUrl, ownerId, isPublic | Stores song metadata and ownership |
 | **Difficulty** | id (PK), song_id (FK), difficulty, note_count | Multiple charts per song |
 | **Note** | id (PK), difficulty_id (FK), time_ms, lane, type, duration_ms | Actual gameplay note data |
 | **Highscore** | user_id (FK), difficulty_id (FK), score, max_combo, accuracy, date | Tracks user performance per chart |
+| **Friendship** | id (PK), requester_id, addressee_id, status, created_at | Friend request and friendship state |
+| **Message** | id (PK), sender_id, receiver_id, content, created_at, is_read | In-game messaging between users |
 
-> **Note:** `difficulty` is stored per chart/difficulty, and score/rank handling may be expanded as the project grows.
+> **Note:** Score grading is currently tied to the in-game judgement system and the saved highscore values.
 
 ---
 
 ## Usage
 
 1. Register a new user or log in.
-2. Select a song and difficulty.
-3. Play by hitting notes in time with the music.
-4. Highscores and playtime are saved automatically.
+2. Upload a song or choose an existing one.
+3. Select a difficulty and play by hitting notes in time with the music.
+4. Highscores, accuracy, combo, and playtime are saved automatically.
 
 ---
 
