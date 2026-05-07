@@ -1,9 +1,10 @@
 import { Component, OnInit, OnDestroy, ChangeDetectorRef, NgZone, computed, signal } from '@angular/core';
-import { RouterModule, Router } from '@angular/router';
+import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService, User } from '../../app/services/auth.service';
 import { SongService, SongDifficulty, DifficultyLevel, LeaderboardEntry, difficultyNumberToName, difficultyNameToNumber } from '../../app/services/song.service';
-import { tap } from 'rxjs/operators';
+import { MessageService } from '../../app/services/message.service';
+import { tap, filter } from 'rxjs/operators';
 
 interface MenuItem {
   label: string;
@@ -64,10 +65,12 @@ export class MenuComponent implements OnInit, OnDestroy {
     { label: 'Dashboard', icon: '◆', route: '/dashboard' },
     { label: 'Profile', icon: '◎', route: '/profile' },
     { label: 'Settings', icon: '⚙', route: '/settings' },
-    { label: 'Messages', icon: '✉', route: '/messages', badge: 3 },
+    { label: 'Messages', icon: '✉', route: '/messages' },
     { label: 'Analytics', icon: '◈', route: '/analytics' },
     { label: 'Logout', icon: '→', route: '/logout', isAction: true }
   ];
+
+  unreadMessageCount = signal(0);
 
   activeItem = 'Dashboard';
   currentUser: User | null = null;
@@ -108,6 +111,7 @@ export class MenuComponent implements OnInit, OnDestroy {
   constructor(
     private authService: AuthService,
     private songService: SongService,
+    private messageService: MessageService,
     private router: Router,
     private cdr: ChangeDetectorRef,
     private ngZone: NgZone
@@ -136,9 +140,29 @@ export class MenuComponent implements OnInit, OnDestroy {
       })
     ).subscribe();
 
+    // Refresh unread count whenever user navigates back to menu
+    this.router.events.pipe(
+      filter(event => event instanceof NavigationEnd),
+      tap(() => this.loadUnreadCount())
+    ).subscribe();
+
     setTimeout(() => {
       this.loadSongsFromDatabase();
     }, 0);
+
+    this.loadUnreadCount();
+  }
+
+  loadUnreadCount(): void {
+    const user = this.currentUser;
+    if (!user) return;
+    this.messageService.getUnreadCount(user.id).subscribe({
+      next: response => {
+        if (response.success) {
+          this.unreadMessageCount.set(response.count);
+        }
+      }
+    });
   }
 
   loadSongsFromDatabase() {

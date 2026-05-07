@@ -5,12 +5,14 @@ import {MenuComponent} from '../frontend/menu/menu';
 import {ProfileComponent} from '../frontend/profile/profile';
 import {Starterpage} from '../frontend/starterpage/starterpage';
 import {GameplayComponent} from '../frontend/gameplay/gameplay.component';
+import {MessagesComponent} from '../frontend/messages/messages.component';
 
 export const routes: Routes = [
     {path: 'login', component: LoginComponent},
     {path: 'register', component: Register},
     {path: 'menu' , component : MenuComponent},
     {path: 'profile', component : ProfileComponent},
+    {path: 'messages', component : MessagesComponent},
     {path: 'starterPage', component: Starterpage},
     {path: 'gameplay', component: GameplayComponent},
     {path: 'gameplay/:songId', component: GameplayComponent},

@@ -209,6 +209,35 @@ class DB {
                CONSTRAINT fk_difficulty FOREIGN KEY (difficulty_id) REFERENCES Difficulty(id)
                ) STRICT
          `);
+
+     connection.exec(`
+             CREATE TABLE IF NOT EXISTS Friendship (
+               id INTEGER PRIMARY KEY AUTOINCREMENT,
+               requester_id INTEGER NOT NULL,
+               addressee_id INTEGER NOT NULL,
+               status TEXT NOT NULL DEFAULT 'pending',
+               created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+               UNIQUE(requester_id, addressee_id),
+               CONSTRAINT fk_requester FOREIGN KEY (requester_id) REFERENCES User(id),
+               CONSTRAINT fk_addressee FOREIGN KEY (addressee_id) REFERENCES User(id)
+               ) STRICT
+         `);
+
+     connection.exec(`
+             CREATE TABLE IF NOT EXISTS Message (
+               id INTEGER PRIMARY KEY AUTOINCREMENT,
+               sender_id INTEGER NOT NULL,
+               receiver_id INTEGER NOT NULL,
+               content TEXT NOT NULL,
+               created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+               is_read INTEGER NOT NULL DEFAULT 0,
+               CONSTRAINT fk_sender FOREIGN KEY (sender_id) REFERENCES User(id),
+               CONSTRAINT fk_receiver FOREIGN KEY (receiver_id) REFERENCES User(id)
+               ) STRICT
+         `);
+
+     connection.exec('CREATE INDEX IF NOT EXISTS idx_message_conversation ON Message(sender_id, receiver_id, created_at)');
+     connection.exec('CREATE INDEX IF NOT EXISTS idx_message_receiver ON Message(receiver_id, is_read)');
   }
 }
 

@@ -139,6 +139,21 @@ $text-muted: #555555;
     text-align: center;
     transition: transform 0.3s ease;
     z-index: 2;
+    position: relative;
+
+    &.has-notification::after {
+      content: '';
+      position: absolute;
+      top: -2px;
+      right: -2px;
+      width: 10px;
+      height: 10px;
+      background: $yellow-primary;
+      border-radius: 50%;
+      box-shadow: 0 0 8px $yellow-glow;
+      border: 2px solid $black-secondary;
+      animation: pulse 2s ease-in-out infinite;
+    }
   }
 
   .item-label {

@@ -1,0 +1,390 @@
+<div class="messages-layout">
+  <!-- Left Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <button class="back-btn" (click)="goBack()">← Back</button>
+      <h2>Messages</h2>
+      @if (unreadCount() > 0) {
+        <span class="header-badge">{{ unreadCount() }}</span>
+      }
+    </div>
+
+    <!-- Search -->
+    <div class="search-section">
+      <div class="search-input-wrapper">
+        <span class="search-icon">🔍</span>
+        <input
+          type="text"
+          class="search-input"
+          placeholder="Search by username or ID..."
+          [value]="searchQuery()"
+          (input)="onSearchInput($event)"
+        />
+      </div>
+      @if (searching()) {
+        <div class="search-status">Searching...</div>
+      }
+      @if (searchError()) {
+        <div class="search-error">{{ searchError() }}</div>
+      }
+      @if (searchResults().length > 0) {
+        <div class="search-results">
+          @for (user of searchResults(); track user.id) {
+            <div class="search-result-item">
+              <div class="user-info-row">
+                @if (user.profilePictureUrl) {
+                  <img [src]="user.profilePictureUrl" class="user-avatar-sm" alt="" />
+                } @else {
+                  <div class="user-avatar-sm avatar-fallback">{{ user.username.charAt(0).toUpperCase() }}</div>
+                }
+                <div class="user-details">
+                  <span class="user-name">{{ user.username }}</span>
+                  <span class="user-id">ID: {{ user.id }}</span>
+                </div>
+              </div>
+              @if (isFriend(user.id)) {
+                <button class="btn-add" (click)="startChatWithFriend(user.id)">Chat</button>
+              } @else if (hasPendingRequest(user.id)) {
+                <span class="status-badge pending">Pending</span>
+              } @else {
+                <button class="btn-add" (click)="openRequestForm(user)">Message</button>
+              }
+            </div>
+          }
+        </div>
+      } @else if (searchQuery().trim().length >= 2 && !searching()) {
+        <div class="search-status">No users found</div>
+      }
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button
+        class="tab-btn"
+        [class.active]="activeTab() === 'conversations'"
+        (click)="setTab('conversations')"
+      >
+        Chats
+        @if (unreadCount() > 0) {
+          <span class="tab-badge">{{ unreadCount() }}</span>
+        }
+      </button>
+      <button
+        class="tab-btn"
+        [class.active]="activeTab() === 'friends'"
+        (click)="setTab('friends')"
+      >
+        Friends
+      </button>
+      <button
+        class="tab-btn"
+        [class.active]="activeTab() === 'requests'"
+        (click)="setTab('requests')"
+      >
+        Requests
+        @if (pendingRequests().length > 0) {
+          <span class="tab-badge">{{ pendingRequests().length }}</span>
+        }
+      </button>
+    </div>
+
+    <!-- Tab Content -->
+    <div class="tab-content">
+      <!-- Conversations Tab -->
+      @if (activeTab() === 'conversations') {
+        @if (loadingConversations()) {
+          <div class="loading-state"><div class="spinner"></div></div>
+        } @else if (conversations().length === 0) {
+          <div class="empty-state">
+            <span class="empty-icon">💬</span>
+            <p>No conversations yet</p>
+            <span class="empty-hint">Start chatting with a friend!</span>
+          </div>
+        } @else {
+          <div class="list">
+            @for (conv of conversations(); track conv.otherUserId) {
+              <div
+                class="list-item"
+                [class.selected]="selectedOtherUserId === conv.otherUserId"
+                [class.unread]="conv.unreadCount > 0"
+                (click)="selectConversation(conv)"
+              >
+                @if (conv.otherUserProfilePictureUrl) {
+                  <img [src]="conv.otherUserProfilePictureUrl" class="user-avatar" alt="" />
+                } @else {
+                  <div class="user-avatar avatar-fallback">{{ conv.otherUsername.charAt(0).toUpperCase() }}</div>
+                }
+                <div class="list-item-body">
+                  <div class="list-item-top">
+                    <span class="list-item-name">{{ conv.otherUsername }}</span>
+                    <span class="list-item-time">{{ formatTime(conv.lastMessage.createdAt) }}</span>
+                  </div>
+                  <div class="list-item-bottom">
+                    <span class="list-item-preview" [class.unread-text]="conv.unreadCount > 0">
+                      {{ conv.lastMessage.senderId === currentUser?.id ? 'You: ' : '' }}{{ conv.lastMessage.content }}
+                    </span>
+                    @if (conv.unreadCount > 0) {
+                      <span class="unread-badge">{{ conv.unreadCount }}</span>
+                    }
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      }
+
+      <!-- Friends Tab -->
+      @if (activeTab() === 'friends') {
+        @if (loadingFriends()) {
+          <div class="loading-state"><div class="spinner"></div></div>
+        } @else if (friends().length === 0) {
+          <div class="empty-state">
+            <span class="empty-icon">👥</span>
+            <p>No friends yet</p>
+            <span class="empty-hint">Search for users to add friends</span>
+          </div>
+        } @else {
+          <div class="list">
+            @for (friend of friends(); track friend.id) {
+              <div
+                class="list-item"
+                [class.selected]="selectedOtherUserId === friend.otherUser.id"
+                (click)="selectFriend(friend)"
+              >
+                @if (friend.otherUser.profilePictureUrl) {
+                  <img [src]="friend.otherUser.profilePictureUrl" class="user-avatar" alt="" />
+                } @else {
+                  <div class="user-avatar avatar-fallback">{{ friend.otherUser.username.charAt(0).toUpperCase() }}</div>
+                }
+                <div class="list-item-body">
+                  <div class="list-item-top">
+                    <span class="list-item-name">{{ friend.otherUser.username }}</span>
+                  </div>
+                  <div class="list-item-bottom">
+                    <span class="list-item-preview">ID: {{ friend.otherUser.id }}</span>
+                  </div>
+                </div>
+                <button
+                  class="btn-remove"
+                  (click)="removeFriend(friend.otherUser.id); $event.stopPropagation()"
+                  title="Remove friend"
+                >
+                  ✕
+                </button>
+              </div>
+            }
+          </div>
+        }
+      }
+
+      <!-- Requests Tab -->
+      @if (activeTab() === 'requests') {
+        @if (loadingRequests()) {
+          <div class="loading-state"><div class="spinner"></div></div>
+        } @else {
+          <!-- Incoming Requests -->
+          @if (pendingRequests().length > 0) {
+            <div class="section-label">Incoming</div>
+            <div class="list">
+              @for (req of pendingRequests(); track req.id) {
+                <div class="list-item request-item">
+                  @if (req.otherUser.profilePictureUrl) {
+                    <img [src]="req.otherUser.profilePictureUrl" class="user-avatar" alt="" />
+                  } @else {
+                    <div class="user-avatar avatar-fallback">{{ req.otherUser.username.charAt(0).toUpperCase() }}</div>
+                  }
+                  <div class="list-item-body">
+                    <div class="list-item-top">
+                      <span class="list-item-name">{{ req.otherUser.username }}</span>
+                    </div>
+                    <div class="list-item-bottom">
+                      @if (req.initialMessage) {
+                        <span class="list-item-preview request-preview">💬 "{{ req.initialMessage }}"</span>
+                      } @else {
+                        <span class="list-item-preview">Wants to be friends</span>
+                      }
+                    </div>
+                  </div>
+                  <div class="request-actions">
+                    <button class="btn-accept" (click)="acceptRequest(req.id)">✓</button>
+                    <button class="btn-decline" (click)="declineRequest(req.id)">✕</button>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+
+          <!-- Sent Requests -->
+          @if (sentRequests().length > 0) {
+            <div class="section-label">Sent</div>
+            <div class="list">
+              @for (req of sentRequests(); track req.id) {
+                <div class="list-item request-item">
+                  @if (req.otherUser.profilePictureUrl) {
+                    <img [src]="req.otherUser.profilePictureUrl" class="user-avatar" alt="" />
+                  } @else {
+                    <div class="user-avatar avatar-fallback">{{ req.otherUser.username.charAt(0).toUpperCase() }}</div>
+                  }
+                  <div class="list-item-body">
+                    <div class="list-item-top">
+                      <span class="list-item-name">{{ req.otherUser.username }}</span>
+                    </div>
+                    <div class="list-item-bottom">
+                      <span class="list-item-preview">Request pending</span>
+                    </div>
+                  </div>
+                  <span class="status-badge pending">Pending</span>
+                </div>
+              }
+            </div>
+          }
+
+          @if (pendingRequests().length === 0 && sentRequests().length === 0) {
+            <div class="empty-state">
+              <span class="empty-icon">📭</span>
+              <p>No pending requests</p>
+            </div>
+          }
+        }
+      }
+    </div>
+  </div>
+
+  <!-- Chat Area -->
+  <div class="chat-area">
+    @if (showRequestForm() && requestTarget()) {
+      <!-- Message Request Form -->
+      <div class="request-overlay">
+        <div class="request-card">
+          <div class="request-header">
+            <div class="request-user">
+              @if (requestTarget()!.profilePictureUrl) {
+                <img [src]="requestTarget()!.profilePictureUrl" class="user-avatar-md" alt="" />
+              } @else {
+                <div class="user-avatar-md avatar-fallback">{{ requestTarget()!.username.charAt(0).toUpperCase() }}</div>
+              }
+              <div class="request-user-info">
+                <span class="request-user-name">{{ requestTarget()!.username }}</span>
+                <span class="request-user-hint">Send a message request to start chatting</span>
+              </div>
+            </div>
+            <button class="btn-close-chat" (click)="closeRequestForm()">✕</button>
+          </div>
+          <div class="request-body">
+            <textarea
+              class="request-textarea"
+              placeholder="Say something to introduce yourself..."
+              [value]="requestMessageContent()"
+              (input)="requestMessageContent.set(($any($event.target)).value)"
+              rows="4"
+            ></textarea>
+            @if (searchError()) {
+              <div class="search-error">{{ searchError() }}</div>
+            }
+          </div>
+          <div class="request-footer">
+            <button class="btn-cancel" (click)="closeRequestForm()">Cancel</button>
+            <button
+              class="btn-submit"
+              [disabled]="!requestMessageContent().trim()"
+              (click)="sendMessageRequest()"
+            >
+              Send Request
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+
+    @if (selectedOtherUserId != null) {
+      <!-- Chat Header -->
+      <div class="chat-header">
+        <div class="chat-header-user">
+          @if (selectedOtherUserProfilePicture) {
+            <img [src]="selectedOtherUserProfilePicture" class="user-avatar-md" alt="" />
+          } @else {
+            <div class="user-avatar-md avatar-fallback">{{ (selectedOtherUserName ?? '?').charAt(0).toUpperCase() }}</div>
+          }
+          <div class="chat-header-info">
+            <span class="chat-header-name">{{ selectedOtherUserName }}</span>
+            <span class="chat-header-status">Friend</span>
+          </div>
+        </div>
+        <button class="btn-close-chat" (click)="closeChat()">✕</button>
+      </div>
+
+      <!-- Messages -->
+      <div class="messages-scroll">
+        @if (loadingChat()) {
+          <div class="loading-state"><div class="spinner"></div></div>
+        } @else if (chatMessages().length === 0) {
+          <div class="empty-chat">
+            <span class="empty-icon">💬</span>
+            <p>No messages yet</p>
+            <span class="empty-hint">Say hello to {{ selectedOtherUserName }}!</span>
+          </div>
+        } @else {
+          <div class="messages-list">
+            @for (msg of chatMessages(); track msg.id) {
+              <div
+                class="message-bubble"
+                [class.own]="msg.senderId === currentUser?.id"
+              >
+                <div class="message-content">{{ msg.content }}</div>
+                <div class="message-meta">
+                  <span class="message-time">{{ formatTime(msg.createdAt) }}</span>
+                  @if (msg.senderId === currentUser?.id) {
+                    @if (msg.isRead) {
+                      <span class="read-status">✓✓</span>
+                    } @else {
+                      <span class="read-status">✓</span>
+                    }
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        }
+        @if (chatError()) {
+          <div class="chat-error">{{ chatError() }}</div>
+        }
+      </div>
+
+      <!-- Input -->
+      <div class="chat-input-area">
+        <div class="chat-input-wrapper">
+          <input
+            type="text"
+            class="chat-input"
+            placeholder="Type a message..."
+            [value]="newMessageContent()"
+            (input)="newMessageContent.set(($any($event.target)).value)"
+            (keydown)="onKeyDown($event)"
+            [disabled]="sendingMessage()"
+          />
+          <button
+            class="btn-send"
+            [disabled]="sendingMessage() || !newMessageContent().trim()"
+            (click)="sendMessage()"
+          >
+            @if (sendingMessage()) {
+              <span class="send-spinner"></span>
+            } @else {
+              <span>➤</span>
+            }
+          </button>
+        </div>
+      </div>
+    } @else {
+      <!-- Empty Chat State -->
+      <div class="empty-chat-area">
+        <div class="empty-chat-content">
+          <span class="empty-chat-icon">✉</span>
+          <h3>Your Messages</h3>
+          <p>Select a conversation or friend to start chatting</p>
+        </div>
+      </div>
+    }
+  </div>
+</div>

@@ -3,6 +3,7 @@ import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService, User } from '../../app/services/auth.service';
 import { SongService } from '../../app/services/song.service';
+import { MessageService } from '../../app/services/message.service';
 import { catchError, of, tap, finalize } from 'rxjs';
 
 @Component({
@@ -17,6 +18,7 @@ export class ProfileComponent implements OnInit {
   loading = true;
   error: string | null = null;
   uploadedSongCount = 0;
+  unreadMessageCount = 0;
 
   // Edit profile modal state
   showEditModal = false;
@@ -31,6 +33,7 @@ export class ProfileComponent implements OnInit {
     private authService: AuthService,
     private router: Router,
     private songService: SongService,
+    private messageService: MessageService,
     private ngZone: NgZone
   ) {}
 
@@ -49,9 +52,11 @@ export class ProfileComponent implements OnInit {
 
         if (user) {
           this.loadUploadedSongCount(user.id);
+          this.loadUnreadCount(user.id);
         } else {
           this.ngZone.run(() => {
             this.uploadedSongCount = 0;
+            this.unreadMessageCount = 0;
           });
         }
       }),
@@ -234,6 +239,21 @@ export class ProfileComponent implements OnInit {
       error: () => {
         this.ngZone.run(() => {
           this.uploadedSongCount = 0;
+        });
+      }
+    });
+  }
+
+  private loadUnreadCount(userId: number): void {
+    this.messageService.getUnreadCount(userId).subscribe({
+      next: response => {
+        this.ngZone.run(() => {
+          this.unreadMessageCount = response.success ? response.count : 0;
+        });
+      },
+      error: () => {
+        this.ngZone.run(() => {
+          this.unreadMessageCount = 0;
         });
       }
     });

@@ -1,7 +1,7 @@
 import express, { Request, Response } from "express";
 import cors from "cors";
 import path from "path";
-import { authRouter, songRouter } from "../routers";
+import { authRouter, songRouter, friendshipRouter, messageRouter } from "../routers";
 import { Unit } from './unit';
 
 const app = express();
@@ -13,6 +13,8 @@ app.use('/uploads', express.static(path.resolve(process.cwd(), 'uploads')));
 
 app.use('/api/auth', authRouter);
 app.use('/api/songs', songRouter);
+app.use('/api/friends', friendshipRouter);
+app.use('/api/messages', messageRouter);
 
 app.get('/api/health', (_req: Request, res: Response) => {
   res.json({
@@ -45,5 +47,13 @@ app.listen(PORT, () => {
   console.log(`  POST http://localhost:${PORT}/api/songs/add`);
   console.log(`  GET  http://localhost:${PORT}/api/songs/all`);
   console.log(`  GET  http://localhost:${PORT}/api/songs/:id`);
+  console.log(`  GET  http://localhost:${PORT}/api/friends/search`);
+  console.log(`  GET  http://localhost:${PORT}/api/friends/friends/:userId`);
+  console.log(`  GET  http://localhost:${PORT}/api/friends/pending/:userId`);
+  console.log(`  POST http://localhost:${PORT}/api/friends/request`);
+  console.log(`  POST http://localhost:${PORT}/api/friends/accept`);
+  console.log(`  POST http://localhost:${PORT}/api/messages/send`);
+  console.log(`  GET  http://localhost:${PORT}/api/messages/conversation/:userId/:otherUserId`);
+  console.log(`  GET  http://localhost:${PORT}/api/messages/conversations/:userId`);
   console.log(`  GET  http://localhost:${PORT}/api/health`);
 });

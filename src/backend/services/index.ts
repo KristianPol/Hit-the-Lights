@@ -16,3 +16,17 @@ export type {
   UpdateProfilePictureResponse,
   GetUserResponse
 } from './UserService';
+export { FriendshipService } from './FriendshipService';
+export type {
+  SearchUserResult,
+  FriendRequestResult,
+  FriendshipResult,
+  FriendActionResult
+} from './FriendshipService';
+export { MessageService } from './MessageService';
+export type {
+  SendMessageRequest,
+  SendMessageResult,
+  MessageResult,
+  ConversationPreview
+} from './MessageService';
