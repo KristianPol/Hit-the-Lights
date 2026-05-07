@@ -249,20 +249,12 @@ songRouter.delete('/:id', (req: Request, res: Response) => {
     }
 
     const songService = new SongService(unit);
-    const song = songService.getSongById(songId, viewerId);
-
-    if (!song) {
-      unit.complete(false);
-      res.status(404).json({ success: false, error: 'Song not found' });
-      return;
-    }
-
     const result = songService.deleteSong(songId, viewerId);
 
     if (result.success) {
       // Delete uploaded files only after authorized DB deletion.
-      const audioFilename = song.songUrl.split('/').pop();
-      const coverFilename = song.coverUrl.split('/').pop();
+      const audioFilename = result.song?.songUrl.split('/').pop();
+      const coverFilename = result.song?.coverUrl.split('/').pop();
       const audioPath = path.join(AUDIO_DIR, audioFilename!);
       const coverPath = path.join(COVER_DIR, coverFilename!);
 

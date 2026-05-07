@@ -51,7 +51,7 @@ export class AuthService {
     const storedUser = localStorage.getItem('currentUser');
     let user: User | null = null;
     if (storedUser) {
-      user = JSON.parse(storedUser);
+      user = this.normalizeUser(JSON.parse(storedUser));
     }
     this.currentUserSignal.set(user);
   }
@@ -78,8 +78,9 @@ export class AuthService {
       map(response => {
         if (response.success && response.user) {
           // Store user in localStorage and update subject
-          localStorage.setItem('currentUser', JSON.stringify(response.user));
-          this.currentUserSignal.set(response.user);
+          const normalized = this.normalizeUser(response.user);
+          localStorage.setItem('currentUser', JSON.stringify(normalized));
+          this.currentUserSignal.set(normalized);
         }
         return response;
       }),
@@ -103,8 +104,9 @@ export class AuthService {
             joinDate: new Date().toISOString()
           };
           // Store user in localStorage and update subject
-          localStorage.setItem('currentUser', JSON.stringify(user));
-          this.currentUserSignal.set(user);
+          const normalized = this.normalizeUser(user);
+          localStorage.setItem('currentUser', JSON.stringify(normalized));
+          this.currentUserSignal.set(normalized);
         }
         return response;
       }),
@@ -196,7 +198,7 @@ export class AuthService {
         if (response.success && typeof response.playtimeSeconds === 'number') {
           const current = this.currentUser;
           if (current && current.id === userId) {
-            const updated: User = { ...current, playtimeSeconds: response.playtimeSeconds };
+            const updated: User = this.normalizeUser({ ...current, playtimeSeconds: response.playtimeSeconds });
             localStorage.setItem('currentUser', JSON.stringify(updated));
             this.currentUserSignal.set(updated);
           }
@@ -204,6 +206,14 @@ export class AuthService {
         return response;
       })
     );
+  }
+
+  private normalizeUser(user: User): User {
+    return {
+      ...user,
+      id: Number(user.id),
+      playtimeSeconds: typeof user.playtimeSeconds === 'number' ? user.playtimeSeconds : undefined
+    };
   }
 
   /**

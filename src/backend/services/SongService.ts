@@ -410,7 +410,10 @@ export class SongService {
     }
   }
 
-  public deleteSong(songId: number, requesterId?: number): { success: boolean; error?: string } {
+  public deleteSong(
+    songId: number,
+    requesterId?: number
+  ): { success: boolean; error?: string; song?: SongRecord } {
     try {
       const song = this.getRawSongById(songId);
       if (!song) {
@@ -435,7 +438,7 @@ export class SongService {
         return { success: false, error: 'Failed to delete song' };
       }
 
-      return { success: true };
+      return { success: true, song };
     } catch (error: any) {
       return { success: false, error: error.message || 'Failed to delete song' };
     }
