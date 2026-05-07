@@ -175,50 +175,52 @@
              </div>
            </div>
 
-           <div class="detail-right">
-             <div class="leaderboard-panel">
-               <div class="leaderboard-header">
-                 <div>
-                   <h3>Leaderboard</h3>
-                   <p>{{ leaderboardState().difficultyLabel || getSelectedDifficultyLevel() }}</p>
-                 </div>
-                 @if (selectedDifficultyId) {
-                   <span class="leaderboard-hint">Top 10 + your rank</span>
-                 }
-               </div>
-
-               @if (!selectedDifficultyId) {
-                 <p class="leaderboard-empty">Choose a difficulty to see the leaderboard.</p>
-               } @else if (leaderboardState().loading) {
-                 <p class="leaderboard-loading">Loading leaderboard...</p>
-               } @else if (leaderboardState().error) {
-                 <p class="leaderboard-error">{{ leaderboardState().error }}</p>
-               } @else if (leaderboardState().entries.length === 0) {
-                 <p class="leaderboard-empty">No scores yet. Be the first to post one!</p>
-               } @else {
-                 <div class="leaderboard-list">
-                   @for (entry of leaderboardState().entries; track entry.position + '-' + entry.userId) {
-                     <div class="leaderboard-row" [class.current-user]="entry.isCurrentUser">
-                       <div class="leaderboard-rank">#{{ entry.position }}</div>
-                       <div class="leaderboard-user-block">
-                         <div class="leaderboard-user-name">{{ entry.username }}</div>
-                         @if (entry.isCurrentUser) {
-                           <span class="leaderboard-you">You</span>
-                         }
-                       </div>
-                       <div class="leaderboard-score-block">
-                         <div class="leaderboard-score">{{ entry.score }}</div>
-                         <div class="leaderboard-stats">
-                           <span>{{ entry.maxCombo }} combo</span>
-                           <span>{{ entry.accuracy.toFixed(1) }}%</span>
-                         </div>
-                       </div>
-                     </div>
+           @if(selectedSong.isPublic){
+             <div class="detail-right">
+               <div class="leaderboard-panel">
+                 <div class="leaderboard-header">
+                   <div>
+                     <h3>Leaderboard</h3>
+                     <p>{{ leaderboardState().difficultyLabel || getSelectedDifficultyLevel() }}</p>
+                   </div>
+                   @if (selectedDifficultyId) {
+                     <span class="leaderboard-hint">Top 10 + your rank</span>
                    }
                  </div>
-               }
+
+                 @if (!selectedDifficultyId) {
+                   <p class="leaderboard-empty">Choose a difficulty to see the leaderboard.</p>
+                 } @else if (leaderboardState().loading) {
+                   <p class="leaderboard-loading">Loading leaderboard...</p>
+                 } @else if (leaderboardState().error) {
+                   <p class="leaderboard-error">{{ leaderboardState().error }}</p>
+                 } @else if (leaderboardState().entries.length === 0) {
+                   <p class="leaderboard-empty">No scores yet. Be the first to post one!</p>
+                 } @else {
+                   <div class="leaderboard-list">
+                     @for (entry of leaderboardState().entries; track entry.position + '-' + entry.userId) {
+                       <div class="leaderboard-row" [class.current-user]="entry.isCurrentUser">
+                         <div class="leaderboard-rank">#{{ entry.position }}</div>
+                         <div class="leaderboard-user-block">
+                           <div class="leaderboard-user-name">{{ entry.username }}</div>
+                           @if (entry.isCurrentUser) {
+                             <span class="leaderboard-you">You</span>
+                           }
+                         </div>
+                         <div class="leaderboard-score-block">
+                           <div class="leaderboard-score">{{ entry.score }}</div>
+                           <div class="leaderboard-stats">
+                             <span>{{ entry.maxCombo }} combo</span>
+                             <span>{{ entry.accuracy.toFixed(1) }}%</span>
+                           </div>
+                         </div>
+                       </div>
+                     }
+                   </div>
+                 }
+               </div>
              </div>
-           </div>
+           }
 
            <div class="detail-glow"></div>
          </div>
