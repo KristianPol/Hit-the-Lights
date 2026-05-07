@@ -42,6 +42,7 @@ export interface UserJSON {
   username: string;
   joinDate: string;
   profilePictureUrl?: string;
+  playtimeSeconds?: number;
   highscores?: HighscoreJSON[];
 }
 
@@ -56,7 +57,9 @@ export class HTLService {
       joinDate: user.joinDate,
       profilePictureUrl: user.profilePicture
         ? `http://localhost:3000/api/auth/profile-picture/${user.id}?t=${Date.now()}`
-        : undefined
+        : undefined,
+      // include cumulative playtime so front-end always receives the total
+      playtimeSeconds: typeof (user as any).playtimeSeconds === 'number' ? (user as any).playtimeSeconds : 0
     };
   }
 

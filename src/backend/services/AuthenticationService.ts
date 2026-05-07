@@ -78,7 +78,9 @@ export class AuthenticationService {
           username: user.username,
           password: user.password,
           profilePicture: user.profilePicture,
-          joinDate: user.joinDate
+          joinDate: user.joinDate,
+          // Map DB column playtime_seconds to model property playtimeSeconds
+          playtimeSeconds: typeof (user as any).playtime_seconds === 'number' ? (user as any).playtime_seconds : 0
         }
       };
     } catch (error: any) {
@@ -95,8 +97,9 @@ export class AuthenticationService {
    * @returns The user if found, undefined otherwise
    */
   private findUserByUsername(username: string): User | undefined {
-    const stmt = this.unit.prepare<User, { username: string }>(
-      'SELECT id, username, password, profilePicture, joinDate FROM User WHERE username = $username',
+    // Include playtime_seconds so callers can see cumulative playtime
+    const stmt = this.unit.prepare<any, { username: string }>(
+      'SELECT id, username, password, profilePicture, joinDate, playtime_seconds FROM User WHERE username = $username',
       { username }
     );
     return stmt.get();
