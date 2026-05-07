@@ -174,8 +174,8 @@ export class GameplayComponent implements AfterViewInit, OnDestroy {
 
   // readonly canvasWidth = 1280;
   // readonly canvasHeight = 800;
-  readonly noteSize = 104;
-  readonly hitAreaRadius = 52;
+  readonly noteSize = 80;
+  readonly hitAreaRadius = 40;
   readonly hitWindow = 130;
   readonly perfectWindow = 55;
   readonly shinningWindow = 90;
