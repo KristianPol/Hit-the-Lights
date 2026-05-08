@@ -529,19 +529,21 @@ export class Gameplay implements AfterViewInit, OnDestroy {
     const color = this.laneColors[lane];
     this.spawnShatter(laneCenterX, hitZoneY, color);
 
-    // Award points based on proximity to 0ms (perfect timing)
-    // Max 3 points for hitting at 0ms, decreases linearly to 1 point at the edge of the okay window
-    const pointMultiplier = Math.max(1, Math.round((1 - (timingDelta / this.okayWindow)) * 3));
-    this.scoreUnits += pointMultiplier;
-
-    // Determine judgment based on windows
+    // Determine judgment based on windows and award integer points so
+    // 'perfect' always yields full credit (3), 'good' yields 2, 'glimmer' yields 1.
+    let points: number;
     if (timingDelta <= this.perfectWindow) {
       this.stats.update(stats => ({ ...stats, perfect: stats.perfect + 1 }));
+      points = 3;
     } else if (timingDelta <= this.shinningWindow) {
       this.stats.update(stats => ({ ...stats, good: stats.good + 1 }));
+      points = 2;
     } else {
       this.stats.update(stats => ({ ...stats, glimmer: stats.glimmer + 1 }));
+      points = 1;
     }
+
+    this.scoreUnits += points;
 
     this.updateScaledScore();
 
@@ -583,15 +585,35 @@ export class Gameplay implements AfterViewInit, OnDestroy {
   }
 
   private updateAccuracy(): void {
-    const stats = this.stats();
-    const total = stats.perfect + stats.good + stats.glimmer + stats.miss;
-    const weightedJudgements = (stats.perfect * 3) + (stats.good * 2) + stats.glimmer;
-    if (total === 0) {
+    // Use the granular scoreUnits (which already takes timing into account) to compute
+    // accuracy relative to the maximum possible units for the currently judged notes.
+    // This produces a smoother, timing-aware accuracy value while still penalizing
+    // misses (they contribute 0 units but are counted in the judged total).
+    const judgedCount = this.totalJudgedCount();
+
+    if (judgedCount === 0) {
       this.stats.update(current => ({ ...current, accuracy: 0 }));
       return;
     }
 
-    const accuracy = (weightedJudgements / (total * 3)) * 100;
+    const maxUnitsForJudged = judgedCount * 3; // 3 units is the max per note
+    let accuracy = (this.scoreUnits / maxUnitsForJudged) * 100;
+    if (!Number.isFinite(accuracy) || accuracy < 0) accuracy = 0;
+    if (accuracy > 100) accuracy = 100;
+
+    // Debug: expose computed values to the console to help verify accuracy calculations
+    // (leave as debug-level so it doesn't spam in normal usage)
+    try {
+      console.debug('[Gameplay] updateAccuracy', {
+        scoreUnits: this.scoreUnits,
+        judgedCount,
+        maxUnitsForJudged,
+        accuracy: Number(accuracy.toFixed(4))
+      });
+    } catch (e) {
+      // ignore console errors in restricted environments
+    }
+
     this.stats.update(current => ({ ...current, accuracy }));
   }
 
@@ -834,6 +856,22 @@ export class Gameplay implements AfterViewInit, OnDestroy {
     }
 
     this.updateAccuracy();
+    try {
+      // Log final breakdown for easier inspection when a run finishes
+      const s = this.stats();
+      const judged = this.totalJudgedCount();
+      console.info('[Gameplay] finishGame summary', {
+        perfect: s.perfect,
+        good: s.good,
+        glimmer: s.glimmer,
+        miss: s.miss,
+        scoreUnits: this.scoreUnits,
+        judgedCount: judged,
+        computedAccuracy: s.accuracy
+      });
+    } catch (e) {
+      // ignore
+    }
     this.gameRunning.set(false);
     this.gameFinished.set(true);
 
