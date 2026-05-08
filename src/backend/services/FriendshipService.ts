@@ -1,5 +1,11 @@
 import { Unit } from '../database/unit';
 
+function getLocalTimestamp(): string {
+  const now = new Date();
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+}
+
 export interface SearchUserResult {
   id: number;
   username: string;
@@ -124,9 +130,9 @@ export class FriendshipService {
         unknown,
         { requesterId: number; addresseeId: number }
       >(
-        `UPDATE Friendship SET status = 'pending', requester_id = $requesterId, addressee_id = $addresseeId, created_at = CURRENT_TIMESTAMP
+        `UPDATE Friendship SET status = 'pending', requester_id = $requesterId, addressee_id = $addresseeId, created_at = $createdAt
          WHERE id = $id`,
-        { requesterId, addresseeId }
+        { requesterId, addresseeId, createdAt: getLocalTimestamp(), id: existing.id }
       );
       // Need the id - we'll just delete and reinsert for simplicity
       const delStmt = this.unit.prepare<unknown, { id: number }>(
@@ -138,12 +144,12 @@ export class FriendshipService {
 
     const insertStmt = this.unit.prepare<
       { id: number },
-      { requesterId: number; addresseeId: number }
+      { requesterId: number; addresseeId: number; createdAt: string }
     >(
       `INSERT INTO Friendship (requester_id, addressee_id, status, created_at)
-       VALUES ($requesterId, $addresseeId, 'pending', CURRENT_TIMESTAMP)
+       VALUES ($requesterId, $addresseeId, 'pending', $createdAt)
        RETURNING id`,
-      { requesterId, addresseeId }
+      { requesterId, addresseeId, createdAt: getLocalTimestamp() }
     );
     const result = insertStmt.get();
     if (!result) {
