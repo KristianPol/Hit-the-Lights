@@ -98,12 +98,20 @@ export class FriendshipService {
       return { success: false, error: 'Cannot send friend request to yourself' };
     }
 
-    // Check if users exist
-    const userStmt = this.unit.prepare<{ id: number }, { userId: number }>(
+    // Check if both users exist
+    const requesterStmt = this.unit.prepare<{ id: number }, { userId: number }>(
+      'SELECT id FROM User WHERE id = $userId',
+      { userId: requesterId }
+    );
+    if (!requesterStmt.get()) {
+      return { success: false, error: 'Requester not found' };
+    }
+
+    const addresseeStmt = this.unit.prepare<{ id: number }, { userId: number }>(
       'SELECT id FROM User WHERE id = $userId',
       { userId: addresseeId }
     );
-    if (!userStmt.get()) {
+    if (!addresseeStmt.get()) {
       return { success: false, error: 'User not found' };
     }
 
@@ -126,14 +134,6 @@ export class FriendshipService {
         return { success: false, error: 'Friend request already pending' };
       }
       // If declined, update to pending
-      const updateStmt = this.unit.prepare<
-        unknown,
-        { requesterId: number; addresseeId: number }
-      >(
-        `UPDATE Friendship SET status = 'pending', requester_id = $requesterId, addressee_id = $addresseeId, created_at = $createdAt
-         WHERE id = $id`,
-        { requesterId, addresseeId, createdAt: getLocalTimestamp(), id: existing.id }
-      );
       // Need the id - we'll just delete and reinsert for simplicity
       const delStmt = this.unit.prepare<unknown, { id: number }>(
         'DELETE FROM Friendship WHERE id = $id',
