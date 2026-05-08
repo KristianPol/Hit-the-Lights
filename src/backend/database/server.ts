@@ -1,11 +1,10 @@
-import express, { Request, Response } from "express";
+import express from "express";
 import cors from "cors";
 import path from "path";
 import { authRouter, songRouter, friendshipRouter, messageRouter } from "../routers";
-import { Unit } from './unit';
 
 const app = express();
-const PORT = 3000;
+const PORT = Number(process.env.PORT) || 3000;
 
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
@@ -16,25 +15,25 @@ app.use('/api/songs', songRouter);
 app.use('/api/friends', friendshipRouter);
 app.use('/api/messages', messageRouter);
 
-app.get('/api/health', (_req: Request, res: Response) => {
+app.get('/api/health', (_req: any, res: any) => {
   res.json({
     status: 'OK',
     timestamp: new Date().toISOString()
   });
 });
 
-app.use((_req: Request, res: Response) => {
+app.use((_req: any, res: any) => {
   res.status(404).json({
     error: 'Not Found',
     message: 'The requested resource was not found'
   });
 });
 
-app.use((err: any, _req: Request, res: Response, _next: any) => {
+app.use((err: any, _req: any, res: any, _next: any) => {
   console.error('Server error:', err);
   res.status(500).json({
     error: 'Internal Server Error',
-    message: err.message || 'Something went wrong'
+    message: err?.message || 'Something went wrong'
   });
 });
 

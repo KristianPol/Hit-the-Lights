@@ -3,11 +3,12 @@
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
-    "start": "ng serve",
-    "build": "ng build",
+    "start": "cd src/backend && npm start",
+    "build": "ng build --configuration production && cd src/backend && npm run build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
-    "test:backend": "jest"
+    "test:backend": "jest",
+    "postinstall": "cd src/backend && npm ci --include=dev"
   },
   "prettier": {
     "printWidth": 100,
