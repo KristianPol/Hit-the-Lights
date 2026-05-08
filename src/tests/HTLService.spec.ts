@@ -23,7 +23,7 @@ describe('HTLService', () => {
 
   describe('userToJSON', () => {
     it('should convert user to JSON without password', () => {
-      const user: User = { id: 1, username: 'testuser', password: 'secret' };
+      const user: User = {joinDate: '', id: 1, username: 'testuser', password: 'secret' };
       const result = service.userToJSON(user);
       expect(result).toEqual({ id: 1, username: 'testuser' });
     });
@@ -263,7 +263,7 @@ describe('HTLService', () => {
 
   describe('toJSON', () => {
     it('should route to correct method', () => {
-      const user: User = { id: 1, username: 'test', password: 'pass' };
+      const user: User = {joinDate: '', id: 1, username: 'test', password: 'pass' };
       const result = service.toJSON(user, 'user');
       expect(result).toEqual({ id: 1, username: 'test' });
     });

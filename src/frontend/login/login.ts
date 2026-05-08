@@ -7,15 +7,15 @@ import { AuthService } from '../../app/services/auth.service';
 @Component({
   selector: 'app-login',
   standalone: true,
-  templateUrl: './login.component.html',
+  templateUrl: './login.html',
   imports: [
     ReactiveFormsModule,
     NgOptimizedImage,
     RouterLink
   ],
-  styleUrls: ['./login.component.scss']
+  styleUrls: ['./login.scss']
 })
-export class LoginComponent {
+export class Login {
   loginForm: FormGroup;
   submitted = signal(false);
   protected errorMessage = signal('');

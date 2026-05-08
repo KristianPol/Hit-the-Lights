@@ -21,10 +21,10 @@ type TabType = 'conversations' | 'friends' | 'requests';
   selector: 'app-messages',
   standalone: true,
   imports: [RouterModule, FormsModule, CommonModule],
-  templateUrl: './messages.component.html',
-  styleUrls: ['./messages.component.scss']
+  templateUrl: './messages.html',
+  styleUrls: ['./messages.scss']
 })
-export class MessagesComponent implements OnInit, OnDestroy {
+export class Messages implements OnInit, OnDestroy {
   currentUser: User | null = null;
   activeTab = signal<TabType>('conversations');
   searchQuery = signal('');

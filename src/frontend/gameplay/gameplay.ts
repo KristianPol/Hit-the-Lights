@@ -50,10 +50,10 @@ interface ShatterShard {
   selector: 'app-gameplay',
   standalone: true,
   imports: [CommonModule],
-  templateUrl: './gameplay.component.html',
-  styleUrls: ['./gameplay.component.scss']
+  templateUrl: './gameplay.html',
+  styleUrls: ['./gameplay.scss']
 })
-export class GameplayComponent implements AfterViewInit, OnDestroy {
+export class Gameplay implements AfterViewInit, OnDestroy {
   @ViewChild('gameCanvas') canvasRef!: ElementRef<HTMLCanvasElement>;
 
   private readonly defaultSongUrl = '/assets/music/SpearOfJustice.mp3';
@@ -177,10 +177,11 @@ export class GameplayComponent implements AfterViewInit, OnDestroy {
   readonly noteSize = 80;
   readonly hitAreaRadius = 40;
   readonly hitWindow = 130;
-  readonly perfectWindow = 55;
-  readonly shinningWindow = 90;
-  readonly fallingSpeed = 1.7;
-  readonly earlyBuffer = 100; // ms before note where presses are ignored (ghost hit)
+  readonly okayWindow = 80;
+  readonly perfectWindow = 25;
+  readonly shinningWindow = 50;
+  readonly fallingSpeed = 1.0;
+  readonly earlyBuffer = 300; // ms before note where presses are ignored (adjusted for note/hitzone size)
 
   constructor(
     private router: Router,
@@ -440,8 +441,9 @@ export class GameplayComponent implements AfterViewInit, OnDestroy {
 
     const audioTime = this.getAudioTimeMs();
 
-    // Note: No automatic miss detection. Misses are only counted when player actively presses at wrong time.
-    // Ghost hits (pressing empty lane) do not count as misses.
+    // Check for notes that have passed the hit zone without being judged
+    this.updateMissedNotes(audioTime);
+
     this.render(audioTime);
 
     this.animationFrameId = requestAnimationFrame(this.gameLoop);
@@ -449,6 +451,28 @@ export class GameplayComponent implements AfterViewInit, OnDestroy {
 
   private getAudioTimeMs(): number {
     return this.audio.currentTime * 1000;
+  }
+
+  private updateMissedNotes(audioTime: number): void {
+    for (const note of this.notes) {
+      if (note.judged) {
+        continue;
+      }
+
+      const timeSinceNote = audioTime - note.time;
+
+      // If the note has passed the hit window and wasn't judged, mark it as missed
+      if (timeSinceNote > this.hitWindow) {
+        note.judged = true;
+        note.missed = true;
+        this.stats.update(stats => ({
+          ...stats,
+          miss: stats.miss + 1,
+          combo: 0
+        }));
+        this.updateAccuracy();
+      }
+    }
   }
 
 
@@ -473,14 +497,16 @@ export class GameplayComponent implements AfterViewInit, OnDestroy {
     }
 
     const timeSinceNote = audioTime - nextNote.time;
+    const timingDelta = Math.abs(timeSinceNote);
 
-    // Presses way too early (before earlyBuffer) are treated like ghost hits - just ignore them
+    // Presses way too early are treated like ghost hits - just ignore them
     if (timeSinceNote < -this.earlyBuffer) {
       return;
     }
 
-    // Presses outside the valid hit window (but not too early) = miss
-    if (timeSinceNote < 0 || timeSinceNote > this.hitWindow) {
+    // Presses outside the circular hit-zone alignment window are ignored here
+    // (late notes will still be auto-missed once they pass the hit window)
+    if (timingDelta > this.okayWindow) {
       nextNote.judged = true;
       nextNote.missed = true;
       this.stats.update(stats => ({
@@ -503,14 +529,17 @@ export class GameplayComponent implements AfterViewInit, OnDestroy {
     const color = this.laneColors[lane];
     this.spawnShatter(laneCenterX, hitZoneY, color);
 
-    if (timeSinceNote <= this.perfectWindow) {
-      this.scoreUnits += 3;
+    // Award points based on proximity to 0ms (perfect timing)
+    // Max 3 points for hitting at 0ms, decreases linearly to 1 point at the edge of the okay window
+    const pointMultiplier = Math.max(1, Math.round((1 - (timingDelta / this.okayWindow)) * 3));
+    this.scoreUnits += pointMultiplier;
+
+    // Determine judgment based on windows
+    if (timingDelta <= this.perfectWindow) {
       this.stats.update(stats => ({ ...stats, perfect: stats.perfect + 1 }));
-    } else if (timeSinceNote <= this.shinningWindow) {
-      this.scoreUnits += 2;
+    } else if (timingDelta <= this.shinningWindow) {
       this.stats.update(stats => ({ ...stats, good: stats.good + 1 }));
     } else {
-      this.scoreUnits += 1;
       this.stats.update(stats => ({ ...stats, glimmer: stats.glimmer + 1 }));
     }
 
@@ -933,132 +962,32 @@ export class GameplayComponent implements AfterViewInit, OnDestroy {
 
   private drawLightbulb(x: number, y: number, radius: number, color: string, isGlowing: boolean) {
     const ctx = this.ctx;
-    const w = radius * 1.35;      // bulb width
-    const h = radius * 2.6;       // total bulb height
-    const glassH = h * 0.72;      // glass portion
-    const baseH = h * 0.28;       // metal base portion
-    const baseW = w * 0.42;       // base width
-    const glassBottom = y - h / 2 + glassH;
 
     ctx.save();
 
-    // ─── Glow for falling notes ───
+    // Glow for falling notes
     if (isGlowing) {
       ctx.shadowColor = color;
       ctx.shadowBlur = 28;
     }
 
-    // ─── Glass Bulb Body ───
+    // Outer circle (main body)
     ctx.beginPath();
-    // Top center
-    ctx.moveTo(x, y - h / 2);
-    // Right dome (bulbous top)
-    ctx.bezierCurveTo(
-      x + w * 0.55, y - h / 2,
-      x + w * 0.6, y - h * 0.15,
-      x + w * 0.38, y + glassH * 0.45 - h / 2
-    );
-    // Right taper to neck
-    ctx.bezierCurveTo(
-      x + w * 0.32, y + glassH * 0.75 - h / 2,
-      x + baseW * 0.55, glassBottom - baseH * 0.15,
-      x + baseW * 0.5, glassBottom
-    );
-    // Bottom glass curve
-    ctx.quadraticCurveTo(x, glassBottom + baseH * 0.08, x - baseW * 0.5, glassBottom);
-    // Left taper up
-    ctx.bezierCurveTo(
-      x - baseW * 0.55, glassBottom - baseH * 0.15,
-      x - w * 0.32, y + glassH * 0.75 - h / 2,
-      x - w * 0.38, y + glassH * 0.45 - h / 2
-    );
-    // Left dome
-    ctx.bezierCurveTo(
-      x - w * 0.6, y - h * 0.15,
-      x - w * 0.55, y - h / 2,
-      x, y - h / 2
-    );
-    ctx.closePath();
-
-    // Fill
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
     ctx.fillStyle = isGlowing ? color : color;
     ctx.globalAlpha = isGlowing ? 0.85 : 0.18;
     ctx.fill();
     ctx.globalAlpha = 1;
 
-    // Glass highlight (subtle reflection on left side)
-    ctx.beginPath();
-    ctx.ellipse(
-      x - w * 0.18, y - h * 0.15,
-      w * 0.1, h * 0.18,
-      -0.2, 0, Math.PI * 2
-    );
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
-    ctx.fill();
-
-    // ─── Outline ───
-    ctx.beginPath();
-    ctx.moveTo(x, y - h / 2);
-    ctx.bezierCurveTo(x + w * 0.55, y - h / 2, x + w * 0.6, y - h * 0.15, x + w * 0.38, y + glassH * 0.45 - h / 2);
-    ctx.bezierCurveTo(x + w * 0.32, y + glassH * 0.75 - h / 2, x + baseW * 0.55, glassBottom - baseH * 0.15, x + baseW * 0.5, glassBottom);
-    ctx.quadraticCurveTo(x, glassBottom + baseH * 0.08, x - baseW * 0.5, glassBottom);
-    ctx.bezierCurveTo(x - baseW * 0.55, glassBottom - baseH * 0.15, x - w * 0.32, y + glassH * 0.75 - h / 2, x - w * 0.38, y + glassH * 0.45 - h / 2);
-    ctx.bezierCurveTo(x - w * 0.6, y - h * 0.15, x - w * 0.55, y - h / 2, x, y - h / 2);
-    ctx.closePath();
+    // Border
     ctx.strokeStyle = isGlowing ? 'rgba(255, 255, 255, 0.9)' : color;
     ctx.lineWidth = isGlowing ? 2.5 : 3;
     ctx.stroke();
 
-    // ─── Filament (inside the glass) ───
-    if (isGlowing) {
-      ctx.beginPath();
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-      ctx.lineWidth = 1.5;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-      const fy = y - h * 0.12;
-      const fh = h * 0.22;
-      ctx.moveTo(x - w * 0.08, fy + fh / 2);
-      ctx.lineTo(x - w * 0.04, fy - fh / 2);
-      ctx.lineTo(x, fy + fh / 2);
-      ctx.lineTo(x + w * 0.04, fy - fh / 2);
-      ctx.lineTo(x + w * 0.08, fy + fh / 2);
-      ctx.stroke();
-    }
-
-    // ─── Metal Screw Base ───
-    const baseTop = glassBottom;
-    const baseBottom = baseTop + baseH;
-
-    // Base body
-    ctx.fillStyle = isGlowing ? 'rgba(90, 90, 90, 0.9)' : 'rgba(55, 55, 55, 0.7)';
+    // Inner highlight circle (subtle reflection)
     ctx.beginPath();
-    ctx.moveTo(x + baseW * 0.5, baseTop);
-    ctx.lineTo(x + baseW * 0.45, baseBottom);
-    ctx.quadraticCurveTo(x, baseBottom + 3, x - baseW * 0.45, baseBottom);
-    ctx.lineTo(x - baseW * 0.5, baseTop);
-    ctx.closePath();
-    ctx.fill();
-    ctx.strokeStyle = isGlowing ? 'rgba(255, 255, 255, 0.5)' : 'rgba(255, 255, 255, 0.25)';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-
-    // Screw threads (horizontal lines)
-    ctx.strokeStyle = isGlowing ? 'rgba(255, 255, 255, 0.35)' : 'rgba(255, 255, 255, 0.15)';
-    ctx.lineWidth = 1;
-    for (let i = 1; i <= 3; i++) {
-      const ty = baseTop + (baseH * i / 4);
-      const tw = baseW * (0.5 - i * 0.03); // slightly narrower as we go down
-      ctx.beginPath();
-      ctx.moveTo(x - tw, ty);
-      ctx.lineTo(x + tw, ty);
-      ctx.stroke();
-    }
-
-    // ─── Bottom contact ───
-    ctx.beginPath();
-    ctx.fillStyle = isGlowing ? 'rgba(120, 120, 120, 0.95)' : 'rgba(80, 80, 80, 0.8)';
-    ctx.arc(x, baseBottom + 2, baseW * 0.18, 0, Math.PI * 2);
+    ctx.arc(x - radius * 0.3, y - radius * 0.3, radius * 0.3, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
     ctx.fill();
 
     ctx.restore();

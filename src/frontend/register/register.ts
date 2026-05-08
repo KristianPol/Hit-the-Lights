@@ -2,7 +2,7 @@ import { Component } from '@angular/core';
 import { NgOptimizedImage } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink, Router } from '@angular/router';
-import { LoginComponent } from '../login/login.component';
+import { Login } from '../login/login';
 import { AuthService } from '../../app/services/auth.service';
 
 @Component({
@@ -16,7 +16,7 @@ import { AuthService } from '../../app/services/auth.service';
   templateUrl: './register.html',
   styleUrl: './register.scss',
 })
-export class Register extends LoginComponent {
+export class Register extends Login {
   constructor(
     formBuilder: FormBuilder,
     authService: AuthService,
