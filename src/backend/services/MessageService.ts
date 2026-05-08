@@ -1,5 +1,11 @@
 import { Unit } from '../database/unit';
 
+function getLocalTimestamp(): string {
+  const now = new Date();
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+}
+
 export interface SendMessageRequest {
   senderId: number;
   receiverId: number;
@@ -65,12 +71,12 @@ export class MessageService {
 
     const insertStmt = this.unit.prepare<
       { id: number },
-      { senderId: number; receiverId: number; content: string }
+      { senderId: number; receiverId: number; content: string; createdAt: string }
     >(
       `INSERT INTO Message (sender_id, receiver_id, content, created_at, is_read)
-       VALUES ($senderId, $receiverId, $content, CURRENT_TIMESTAMP, 0)
+       VALUES ($senderId, $receiverId, $content, $createdAt, 0)
        RETURNING id`,
-      { senderId: request.senderId, receiverId: request.receiverId, content: request.content.trim() }
+      { senderId: request.senderId, receiverId: request.receiverId, content: request.content.trim(), createdAt: getLocalTimestamp() }
     );
     const result = insertStmt.get();
     if (!result) {
@@ -212,12 +218,12 @@ export class MessageService {
 
     const insertStmt = this.unit.prepare<
       { id: number },
-      { senderId: number; receiverId: number; content: string }
+      { senderId: number; receiverId: number; content: string; createdAt: string }
     >(
       `INSERT INTO Message (sender_id, receiver_id, content, created_at, is_read)
-       VALUES ($senderId, $receiverId, $content, CURRENT_TIMESTAMP, 0)
+       VALUES ($senderId, $receiverId, $content, $createdAt, 0)
        RETURNING id`,
-      { senderId, receiverId, content: content.trim() }
+      { senderId, receiverId, content: content.trim(), createdAt: getLocalTimestamp() }
     );
     const result = insertStmt.get();
     if (!result) {
