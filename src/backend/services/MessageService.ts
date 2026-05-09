@@ -159,7 +159,7 @@ export class MessageService {
       otherUserId: row.other_user_id,
       otherUsername: row.other_username,
       otherUserProfilePictureUrl: row.other_profile_picture
-        ? `http://localhost:3000/api/auth/profile-picture/${row.other_user_id}?t=${Date.now()}`
+        ? `/api/auth/profile-picture/${row.other_user_id}?t=${Date.now()}`
         : undefined,
       lastMessage: {
         id: row.last_message_id,

@@ -70,8 +70,8 @@ songRouter.post('/add', (req: Request, res: Response) => {
     const audioFilename = saveBase64File(audioBase64, audioMimeType || 'audio/mpeg', AUDIO_DIR);
     const coverFilename = saveBase64File(coverBase64, coverMimeType || 'image/jpeg', COVER_DIR);
 
-    const songUrl = `http://localhost:3000/uploads/audio/${audioFilename}`;
-    const coverUrl = `http://localhost:3000/uploads/covers/${coverFilename}`;
+    const songUrl = `/uploads/audio/${audioFilename}`;
+    const coverUrl = `/uploads/covers/${coverFilename}`;
 
     const songService = new SongService(unit);
     const result = songService.addSong({

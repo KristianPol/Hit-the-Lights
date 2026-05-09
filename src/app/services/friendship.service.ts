@@ -45,7 +45,7 @@ export interface PendingRequestsResponse {
   providedIn: 'root'
 })
 export class FriendshipService {
-  private apiUrl = 'http://localhost:3000/api/friends';
+  private apiUrl = '/api/friends';
 
   constructor(private http: HttpClient) {}
 

@@ -56,7 +56,7 @@ export class HTLService {
       username: user.username,
       joinDate: user.joinDate,
       profilePictureUrl: user.profilePicture
-        ? `http://localhost:3000/api/auth/profile-picture/${user.id}?t=${Date.now()}`
+        ? `/api/auth/profile-picture/${user.id}?t=${Date.now()}`
         : undefined,
       // include cumulative playtime so front-end always receives the total
       playtimeSeconds: typeof (user as any).playtimeSeconds === 'number' ? (user as any).playtimeSeconds : 0

@@ -41,7 +41,7 @@ export interface AuthResponse {
   providedIn: 'root'
 })
 export class AuthService {
-  private apiUrl = 'http://localhost:3000/api/auth';
+  private apiUrl = '/api/auth';
   private readonly currentUserSignal = signal<User | null>(null);
   readonly currentUser$ = toObservable(this.currentUserSignal);
   private readonly loggedInSignal = computed(() => this.currentUserSignal() !== null);

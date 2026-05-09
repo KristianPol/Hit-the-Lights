@@ -106,7 +106,7 @@ export class UserService {
 
       return {
         success: true,
-        profilePictureUrl: `http://localhost:3000/api/auth/profile-picture/${request.userId}`
+        profilePictureUrl: `/api/auth/profile-picture/${request.userId}`
       };
     } catch (error: any) {
       console.error('Error in updateProfilePicture:', error);
@@ -159,7 +159,7 @@ export class UserService {
       joinDate: result.joinDate,
       playtimeSeconds: typeof result.playtime_seconds === 'number' ? result.playtime_seconds : 0,
       profilePictureUrl: result.profilePicture
-        ? `http://localhost:3000/api/auth/profile-picture/${result.id}?t=${Date.now()}`
+        ? `/api/auth/profile-picture/${result.id}?t=${Date.now()}`
         : undefined
     };
   }

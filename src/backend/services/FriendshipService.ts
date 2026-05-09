@@ -64,7 +64,7 @@ export class FriendshipService {
         id: row.id,
         username: row.username,
         profilePictureUrl: row.profilePicture
-          ? `http://localhost:3000/api/auth/profile-picture/${row.id}?t=${Date.now()}`
+          ? `/api/auth/profile-picture/${row.id}?t=${Date.now()}`
           : undefined
       }));
     } else {
@@ -84,7 +84,7 @@ export class FriendshipService {
         id: row.id,
         username: row.username,
         profilePictureUrl: row.profilePicture
-          ? `http://localhost:3000/api/auth/profile-picture/${row.id}?t=${Date.now()}`
+          ? `/api/auth/profile-picture/${row.id}?t=${Date.now()}`
           : undefined
       }));
     }
@@ -362,7 +362,7 @@ export class FriendshipService {
         id: user?.id ?? otherUserId,
         username: user?.username ?? 'Unknown',
         profilePictureUrl: user?.profilePicture
-          ? `http://localhost:3000/api/auth/profile-picture/${user.id}?t=${Date.now()}`
+          ? `/api/auth/profile-picture/${user.id}?t=${Date.now()}`
           : undefined
       }
     };

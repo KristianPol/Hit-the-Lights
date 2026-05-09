@@ -180,7 +180,7 @@ export interface GetDifficultyChartResponse {
   providedIn: 'root'
 })
 export class SongService {
-  private apiUrl = 'http://localhost:3000/api/songs';
+  private apiUrl = '/api/songs';
 
   constructor(private http: HttpClient) {}
 

@@ -136,7 +136,7 @@ authRouter.post('/profile-picture', (req: Request, res: Response) => {
       unit.complete(true);
       console.log('Transaction committed, sending success response');
       // Add cache-busting timestamp to the URL
-      const profilePictureUrl = `http://localhost:3000/api/auth/profile-picture/${parseInt(userId.toString(), 10)}?t=${Date.now()}`;
+      const profilePictureUrl = `/api/auth/profile-picture/${parseInt(userId.toString(), 10)}?t=${Date.now()}`;
       res.status(200).json({
         success: true,
         profilePictureUrl: profilePictureUrl,
