@@ -5,7 +5,8 @@ import { authRouter, songRouter, friendshipRouter, messageRouter } from "../rout
 
 const app = express();
 const PORT = Number(process.env['PORT']) || 3000;
-const FRONTEND_DIST = path.resolve(process.cwd(), 'dist', 'Hit-The-Lights');
+const PROJECT_ROOT = path.resolve(process.cwd(), '..', '..');
+const FRONTEND_DIST = path.resolve(PROJECT_ROOT, 'dist', 'Hit-The-Lights');
 
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
