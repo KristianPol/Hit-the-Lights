@@ -5,10 +5,12 @@ import { authRouter, songRouter, friendshipRouter, messageRouter } from "../rout
 
 const app = express();
 const PORT = Number(process.env['PORT']) || 3000;
+const FRONTEND_DIST = path.resolve(process.cwd(), 'dist', 'Hit-The-Lights');
 
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use('/uploads', express.static(path.resolve(process.cwd(), 'uploads')));
+app.use(express.static(FRONTEND_DIST));
 
 app.use('/api/auth', authRouter);
 app.use('/api/songs', songRouter);
@@ -20,6 +22,18 @@ app.get('/api/health', (_req: any, res: any) => {
     status: 'OK',
     timestamp: new Date().toISOString()
   });
+});
+
+app.get('*', (req: any, res: any) => {
+  if (req.path.startsWith('/api/')) {
+    res.status(404).json({
+      error: 'Not Found',
+      message: 'The requested resource was not found'
+    });
+    return;
+  }
+
+  res.sendFile(path.join(FRONTEND_DIST, 'index.html'));
 });
 
 app.use((_req: any, res: any) => {
