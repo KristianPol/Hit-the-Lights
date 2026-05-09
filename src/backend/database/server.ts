@@ -24,7 +24,7 @@ app.get('/api/health', (_req: any, res: any) => {
   });
 });
 
-app.get('*', (req: any, res: any) => {
+app.use((req: any, res: any) => {
   if (req.path.startsWith('/api/')) {
     res.status(404).json({
       error: 'Not Found',
@@ -34,13 +34,6 @@ app.get('*', (req: any, res: any) => {
   }
 
   res.sendFile(path.join(FRONTEND_DIST, 'index.html'));
-});
-
-app.use((_req: any, res: any) => {
-  res.status(404).json({
-    error: 'Not Found',
-    message: 'The requested resource was not found'
-  });
 });
 
 app.use((err: any, _req: any, res: any, _next: any) => {
