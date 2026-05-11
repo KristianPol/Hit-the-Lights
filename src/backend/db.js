@@ -7,6 +7,26 @@ if (typeof dns.setDefaultResultOrder === 'function') {
   dns.setDefaultResultOrder('ipv4first');
 }
 
+const originalLookup = dns.lookup.bind(dns);
+dns.lookup = function patchedLookup(hostname, options, callback) {
+  const isSupabaseHost = typeof hostname === 'string' && hostname.toLowerCase().includes('supabase.co');
+
+  if (isSupabaseHost) {
+    if (typeof options === 'function') {
+      callback = options;
+      options = {};
+    }
+
+    const ipv4Options = typeof options === 'object' && options !== null
+      ? { ...options, family: 4, all: false }
+      : { family: 4, all: false };
+
+    return originalLookup(hostname, ipv4Options, callback);
+  }
+
+  return originalLookup(hostname, options, callback);
+};
+
 const postgres = require('postgres');
 
 // Use DATABASE_URL from environment (Render / Supabase style connection string)
@@ -17,9 +37,9 @@ const connectionString = process.env.DATABASE_URL;
 const opts = {};
 if (connectionString) {
   // If user explicitly set PGSSLMODE=disable, don't override.
-  const sslEnv = process.env.PGSSLMODE || process.env.PGSSLMODE;
+  const sslEnv = process.env.PGSSLMODE;
   if (!sslEnv || sslEnv.toLowerCase() !== 'disable') {
-	opts.ssl = { rejectUnauthorized: false };
+    opts.ssl = { rejectUnauthorized: false };
   }
 }
 
