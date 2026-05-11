@@ -7,6 +7,16 @@ if (typeof dns.setDefaultResultOrder === 'function') {
   dns.setDefaultResultOrder('ipv4first');
 }
 
+// Use public DNS resolvers for A-record lookups so Render's local resolver
+// cannot force an IPv6 answer first.
+if (typeof dns.setServers === 'function') {
+  try {
+    dns.setServers(['1.1.1.1', '8.8.8.8']);
+  } catch (e) {
+    // ignore if the runtime disallows changing resolvers
+  }
+}
+
 const postgres = require('postgres');
 
 const { URL } = require('url');
