@@ -9,10 +9,10 @@ const PROJECT_ROOT = path.resolve(process.cwd(), '..', '..');
 const FRONTEND_DIST = path.resolve(PROJECT_ROOT, 'dist', 'Hit-The-Lights', 'browser');
 
 // Log database mode
-const DB_MODE = process.env.DATABASE_URL ? 'Postgres' : 'SQLite';
+const DB_MODE = process.env['DATABASE_URL'] ? 'Postgres' : 'SQLite';
 console.log(`🗄️  Database Mode: ${DB_MODE}`);
-if (process.env.DATABASE_URL) {
-  console.log(`📍 Postgres Host: ${process.env.DATABASE_URL.split('@')?.[1]?.split(':')?.[0] || 'unknown'}`);
+if (process.env['DATABASE_URL']) {
+  console.log(`📍 Postgres Host: ${process.env['DATABASE_URL'].split('@')?.[1]?.split(':')?.[0] || 'unknown'}`);
 }
 
 app.use(cors());

@@ -1,7 +1,7 @@
 import BetterSqlite3, { Database } from "better-sqlite3";
 
 const dbFileName = "htl.db";
-const USE_POSTGRES = !!process.env.DATABASE_URL;
+const USE_POSTGRES = !!process.env['DATABASE_URL'];
 
 // Lazy import of Postgres client only if DATABASE_URL is set
 let sql: any;
