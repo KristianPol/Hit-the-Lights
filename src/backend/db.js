@@ -22,6 +22,28 @@ async function resolveSupabaseIPv4(hostname) {
     const records = await dns.promises.resolve4(hostname);
     return records && records.length > 0 ? records[0] : hostname;
   } catch (err) {
+    try {
+      const url = `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(hostname)}&type=A`;
+      const response = await fetch(url, {
+        headers: {
+          Accept: 'application/dns-json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const answer = Array.isArray(data?.Answer)
+          ? data.Answer.find((item) => item && item.type === 1 && typeof item.data === 'string')
+          : undefined;
+
+        if (answer && answer.data) {
+          return answer.data;
+        }
+      }
+    } catch (dohErr) {
+      // ignore and fall back to hostname
+    }
+
     return hostname;
   }
 }
