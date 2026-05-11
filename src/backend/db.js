@@ -1,4 +1,12 @@
 ﻿// Use CommonJS so it works with the backend's "type": "commonjs"
+const dns = require('dns');
+
+// Prefer IPv4 when resolving hostnames. This avoids Supabase AAAA records on
+// environments that cannot reach IPv6 (Render instances often hit ENETUNREACH).
+if (typeof dns.setDefaultResultOrder === 'function') {
+  dns.setDefaultResultOrder('ipv4first');
+}
+
 const postgres = require('postgres');
 
 // Use DATABASE_URL from environment (Render / Supabase style connection string)
