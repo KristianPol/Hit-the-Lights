@@ -7,44 +7,63 @@ if (typeof dns.setDefaultResultOrder === 'function') {
   dns.setDefaultResultOrder('ipv4first');
 }
 
-const originalLookup = dns.lookup.bind(dns);
-dns.lookup = function patchedLookup(hostname, options, callback) {
-  const isSupabaseHost = typeof hostname === 'string' && hostname.toLowerCase().includes('supabase.co');
-
-  if (isSupabaseHost) {
-    if (typeof options === 'function') {
-      callback = options;
-      options = {};
-    }
-
-    const ipv4Options = typeof options === 'object' && options !== null
-      ? { ...options, family: 4, all: false }
-      : { family: 4, all: false };
-
-    return originalLookup(hostname, ipv4Options, callback);
-  }
-
-  return originalLookup(hostname, options, callback);
-};
-
 const postgres = require('postgres');
 
-// Use DATABASE_URL from environment (Render / Supabase style connection string)
-const connectionString = process.env.DATABASE_URL;
+const { URL } = require('url');
 
-// Configure ssl for hosted Postgres providers (Supabase requires TLS).
-// We set rejectUnauthorized=false to avoid issues with some platforms; rotate/adjust for production security.
-const opts = {};
-if (connectionString) {
-  // If user explicitly set PGSSLMODE=disable, don't override.
-  const sslEnv = process.env.PGSSLMODE;
-  if (!sslEnv || sslEnv.toLowerCase() !== 'disable') {
-    opts.ssl = { rejectUnauthorized: false };
+// Prefer the Supabase pooler URL when provided; it is more reliable on cloud hosts.
+// Fallback to DATABASE_URL for local/dev setups.
+const connectionString = process.env.DATABASE_URL_POOLER || process.env.DATABASE_URL;
+
+let clientPromise;
+
+async function resolveSupabaseIPv4(hostname) {
+  try {
+    const records = await dns.promises.resolve4(hostname);
+    return records && records.length > 0 ? records[0] : hostname;
+  } catch (err) {
+    return hostname;
   }
 }
 
-const sql = postgres(connectionString, opts);
+async function createClient() {
+  if (!connectionString) {
+    throw new Error('DATABASE_URL is required');
+  }
 
-module.exports = sql;
+  const parsed = new URL(connectionString);
+  const originalHost = parsed.hostname;
+  const resolvedHost = originalHost.toLowerCase().includes('supabase.co')
+    ? await resolveSupabaseIPv4(originalHost)
+    : originalHost;
+
+  const opts = {
+    host: resolvedHost,
+    port: Number(parsed.port || (originalHost.toLowerCase().includes('pooler') ? 6543 : 5432)),
+    database: parsed.pathname.replace(/^\//, ''),
+    username: decodeURIComponent(parsed.username),
+    password: decodeURIComponent(parsed.password),
+  };
+
+  const sslEnv = process.env.PGSSLMODE;
+  if (!sslEnv || sslEnv.toLowerCase() !== 'disable') {
+    opts.ssl = {
+      rejectUnauthorized: false,
+      servername: originalHost,
+    };
+  }
+
+  return postgres(opts);
+}
+
+async function getClient() {
+  if (!clientPromise) {
+    clientPromise = createClient();
+  }
+  return clientPromise;
+}
+
+module.exports = getClient;
+module.exports.getClient = getClient;
 
 

@@ -4,7 +4,7 @@
  * This is used as an alternative to the synchronous SQLite Unit class.
  */
 
-const sql = require('../../db');
+const getSql = require('../../db');
 
 export class PostgresDB {
   /**
@@ -14,6 +14,7 @@ export class PostgresDB {
    */
   static async query<T>(query: string, params: any[] = []): Promise<T[]> {
     try {
+      const sql = await getSql();
       const result = await sql.unsafe(query, params);
       return result as T[];
     } catch (err) {
@@ -27,6 +28,7 @@ export class PostgresDB {
    */
   static async queryOne<T>(query: string, params: any[] = []): Promise<T | undefined> {
     try {
+      const sql = await getSql();
       const result = await sql.unsafe(query, params);
       return result?.[0] as T | undefined;
     } catch (err) {
@@ -40,6 +42,7 @@ export class PostgresDB {
    */
   static async execute(query: string, params: any[] = []): Promise<{ rowCount: number }> {
     try {
+      const sql = await getSql();
       const result = await sql.unsafe(query, params);
       return { rowCount: result?.length || 0 };
     } catch (err) {
@@ -53,6 +56,7 @@ export class PostgresDB {
    */
   static async insertReturning<T extends { id: number }>(query: string, params: any[] = []): Promise<T | undefined> {
     try {
+      const sql = await getSql();
       const result = await sql.unsafe(query, params);
       return result?.[0] as T | undefined;
     } catch (err) {

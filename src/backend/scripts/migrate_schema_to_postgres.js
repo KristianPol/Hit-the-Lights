@@ -8,7 +8,7 @@ try {
   // ignore if dotenv not installed; user can set env manually
 }
 
-const sql = require('../db');
+const getSql = require('../db');
 
 async function run() {
   const dbUrl = process.env.DATABASE_URL;
@@ -19,8 +19,12 @@ async function run() {
 
   console.log('Connecting to Postgres and creating tables (no data will be copied)...');
 
+  let sql;
+
   try {
     // Create tables mirroring the SQLite schema but adapted for Postgres types.
+    sql = await getSql();
+
     await sql`CREATE TABLE IF NOT EXISTS "Song" (
       id SERIAL PRIMARY KEY,
       name TEXT NOT NULL,
@@ -97,7 +101,9 @@ async function run() {
     process.exitCode = 2;
   } finally {
     try {
-      await sql.end({ timeout: 1000 });
+      if (sql && typeof sql.end === 'function') {
+        await sql.end({ timeout: 1000 });
+      }
     } catch (e) {
       // ignore
     }
