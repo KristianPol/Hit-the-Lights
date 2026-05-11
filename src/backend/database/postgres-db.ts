@@ -4,7 +4,7 @@
  * This is used as an alternative to the synchronous SQLite Unit class.
  */
 
-const sql = require('../db');
+const sql = require('../../db');
 
 export class PostgresDB {
   /**

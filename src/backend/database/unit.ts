@@ -7,7 +7,7 @@ const USE_POSTGRES = !!process.env['DATABASE_URL'];
 let sql: any;
 function getPostgresClient() {
   if (!sql && USE_POSTGRES) {
-    sql = require('../db');
+    sql = require('../../db');
   }
   return sql;
 }
