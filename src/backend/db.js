@@ -1,5 +1,6 @@
 ﻿// Use CommonJS so it works with the backend's "type": "commonjs"
 const dns = require('dns');
+const net = require('net');
 
 // Prefer IPv4 when resolving hostnames. This avoids Supabase AAAA records on
 // environments that cannot reach IPv6 (Render instances often hit ENETUNREACH).
@@ -27,7 +28,20 @@ const connectionString = process.env.DATABASE_URL_POOLER || process.env.DATABASE
 
 let clientPromise;
 
-async function resolveSupabaseIPv4(hostname) {
+async function resolveIPv4(hostname) {
+  if (net.isIP(hostname) === 4) {
+    return hostname;
+  }
+
+  try {
+    const lookup = await dns.promises.lookup(hostname, { family: 4 });
+    if (lookup?.address) {
+      return lookup.address;
+    }
+  } catch (err) {
+    // fall through to resolve4 and DoH
+  }
+
   try {
     const records = await dns.promises.resolve4(hostname);
     return records && records.length > 0 ? records[0] : hostname;
@@ -65,9 +79,7 @@ async function createClient() {
 
   const parsed = new URL(connectionString);
   const originalHost = parsed.hostname;
-  const resolvedHost = originalHost.toLowerCase().includes('supabase.co')
-    ? await resolveSupabaseIPv4(originalHost)
-    : originalHost;
+  const resolvedHost = await resolveIPv4(originalHost);
 
   const opts = {
     host: resolvedHost,
@@ -110,5 +122,4 @@ module.exports.query = async function query(...args) {
   if (typeof client.unsafe === 'function') return client.unsafe(...args);
   throw new Error('Postgres client does not support query/unsafe');
 };
-
 

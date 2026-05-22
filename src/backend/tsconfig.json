@@ -12,8 +12,9 @@
     "resolveJsonModule": true,
     "moduleResolution": "node",
     "types": ["node"],
-    "noImplicitAny": false
+    "noImplicitAny": false,
+    "allowJs": true
   },
-  "include": ["**/*.ts"],
+  "include": ["**/*.ts", "db.js"],
   "exclude": ["node_modules", "dist"]
 }
