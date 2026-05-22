@@ -1,6 +1,7 @@
 ﻿// Use CommonJS so it works with the backend's "type": "commonjs"
 const dns = require('dns');
 const net = require('net');
+const https = require('https');
 
 // Prefer IPv4 when resolving hostnames. This avoids Supabase AAAA records on
 // environments that cannot reach IPv6 (Render instances often hit ENETUNREACH).
@@ -46,30 +47,63 @@ async function resolveIPv4(hostname) {
     const records = await dns.promises.resolve4(hostname);
     return records && records.length > 0 ? records[0] : hostname;
   } catch (err) {
+    // fall through to DoH
+  }
+
+  const dohUrls = [
+    `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(hostname)}&type=A`,
+    `https://dns.google/resolve?name=${encodeURIComponent(hostname)}&type=A`,
+  ];
+
+  for (const url of dohUrls) {
     try {
-      const url = `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(hostname)}&type=A`;
-      const response = await fetch(url, {
-        headers: {
-          Accept: 'application/dns-json'
-        }
-      });
+      const data = await fetchDnsJson(url);
+      const answer = Array.isArray(data?.Answer)
+        ? data.Answer.find((item) => item && item.type === 1 && typeof item.data === 'string')
+        : undefined;
 
-      if (response.ok) {
-        const data = await response.json();
-        const answer = Array.isArray(data?.Answer)
-          ? data.Answer.find((item) => item && item.type === 1 && typeof item.data === 'string')
-          : undefined;
-
-        if (answer && answer.data) {
-          return answer.data;
-        }
+      if (answer && answer.data) {
+        return answer.data;
       }
     } catch (dohErr) {
-      // ignore and fall back to hostname
+      // ignore and try next resolver
     }
-
-    return hostname;
   }
+
+  return hostname;
+}
+
+function fetchDnsJson(url) {
+  if (typeof fetch === 'function') {
+    return fetch(url, { headers: { Accept: 'application/dns-json' } })
+      .then((response) => (response.ok ? response.json() : undefined))
+      .catch(() => undefined);
+  }
+
+  return new Promise((resolve) => {
+    const req = https.get(url, { headers: { Accept: 'application/dns-json' } }, (res) => {
+      if (!res || !res.statusCode || res.statusCode < 200 || res.statusCode >= 300) {
+        res?.resume?.();
+        resolve(undefined);
+        return;
+      }
+
+      let body = '';
+      res.on('data', (chunk) => {
+        body += chunk;
+      });
+      res.on('end', () => {
+        try {
+          resolve(JSON.parse(body));
+        } catch (parseErr) {
+          resolve(undefined);
+        }
+      });
+    });
+
+    req.on('error', () => resolve(undefined));
+    req.end();
+  });
 }
 
 async function createClient() {
@@ -122,4 +156,3 @@ module.exports.query = async function query(...args) {
   if (typeof client.unsafe === 'function') return client.unsafe(...args);
   throw new Error('Postgres client does not support query/unsafe');
 };
-
