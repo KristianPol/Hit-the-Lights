@@ -95,7 +95,20 @@ async function getClient() {
   return clientPromise;
 }
 
+
 module.exports = getClient;
 module.exports.getClient = getClient;
+
+module.exports.unsafe = async function unsafe(...args) {
+  const client = await getClient();
+  return client.unsafe(...args);
+};
+
+module.exports.query = async function query(...args) {
+  const client = await getClient();
+  if (typeof client.query === 'function') return client.query(...args);
+  if (typeof client.unsafe === 'function') return client.unsafe(...args);
+  throw new Error('Postgres client does not support query/unsafe');
+};
 
 
