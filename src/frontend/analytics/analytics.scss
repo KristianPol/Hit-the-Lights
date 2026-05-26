@@ -1,0 +1,28 @@
+﻿.analytics-page { padding: 16px; }
+
+.analytics-card {
+  max-width: 600px;
+  margin: 0 auto;
+  border-radius: 6px;
+  padding: 12px;
+  /* default light theme look */
+  background: #fff;
+  border: 1px solid #ddd;
+  color: #111;
+}
+
+.analytics-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+.analytics-row { padding:6px 0; border-bottom:1px solid #f3f3f3; }
+.analytics-loading, .analytics-error { padding:12px; color:#666; }
+
+/* Dark theme adjustments so text remains visible on dark backgrounds */
+@media (prefers-color-scheme: dark) {
+  .analytics-card {
+	background: rgba(255,255,255,0.03);
+	border: 1px solid rgba(255,255,255,0.06);
+	color: #eee;
+  }
+  .analytics-row { border-bottom: 1px solid rgba(255,255,255,0.04); }
+  .analytics-loading, .analytics-error { color: #ccc; }
+}
+

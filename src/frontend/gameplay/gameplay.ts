@@ -902,6 +902,7 @@ export class Gameplay implements AfterViewInit, OnDestroy {
     }
 
     const currentStats = this.stats();
+    // Submit leaderboard highscore (may update user's best per difficulty)
     this.songService.submitDifficultyHighscore(songId, difficultyId, {
       userId,
       score: currentStats.score,
@@ -918,6 +919,29 @@ export class Gameplay implements AfterViewInit, OnDestroy {
         console.warn('Failed to submit leaderboard score:', error);
       }
     });
+
+    // Also submit per-run breakdown to aggregate analytics on the server
+    try {
+      this.authService.submitRunStats(userId, {
+        perfect: currentStats.perfect,
+        good: currentStats.good,
+        glimmer: currentStats.glimmer,
+        miss: currentStats.miss,
+        score: currentStats.score,
+        accuracy: currentStats.accuracy,
+        date: new Date().toISOString()
+      }).subscribe({
+        next: resp => {
+          if (!resp.success) {
+            console.warn('Failed to submit run stats:', resp.error);
+          }
+        },
+        error: err => console.warn('Failed to submit run stats:', err)
+      });
+    } catch (e) {
+      // ignore errors submitting analytics
+      console.warn('Error while sending run stats:', e);
+    }
   }
 
   private createInitialStats(): GameStats {

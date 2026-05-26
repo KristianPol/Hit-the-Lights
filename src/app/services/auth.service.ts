@@ -208,6 +208,28 @@ export class AuthService {
     );
   }
 
+  /**
+   * Submit per-run gameplay statistics for the given user
+   */
+  submitRunStats(userId: number, payload: { perfect?: number; good?: number; glimmer?: number; miss?: number; score?: number; accuracy?: number; date?: string }) {
+    return this.http.post<{ success: boolean; error?: string }>(`${this.apiUrl}/user/${userId}/run`, payload).pipe(
+      catchError(error => {
+        return throwError(() => new Error(error.error?.error || 'Failed to submit run stats'));
+      })
+    );
+  }
+
+  /**
+   * Fetch aggregated analytics for a user
+   */
+  getAnalytics(userId: number) {
+    return this.http.get<{ success: boolean; analytics?: any; error?: string }>(`${this.apiUrl}/user/${userId}/analytics`).pipe(
+      catchError(error => {
+        return throwError(() => new Error(error.error?.error || 'Failed to fetch analytics'));
+      })
+    );
+  }
+
   private normalizeUser(user: User): User {
     return {
       ...user,

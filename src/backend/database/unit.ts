@@ -274,7 +274,39 @@ class DB {
       connection.exec('ALTER TABLE User ADD COLUMN settings_json TEXT');
     }
 
+    // Add analytics / cumulative counters for gameplay runs
+    if (!userColumnNames.has('perfect_total')) {
+      connection.exec('ALTER TABLE User ADD COLUMN perfect_total INTEGER NOT NULL DEFAULT 0');
+    }
+    if (!userColumnNames.has('good_total')) {
+      connection.exec('ALTER TABLE User ADD COLUMN good_total INTEGER NOT NULL DEFAULT 0');
+    }
+    if (!userColumnNames.has('glimmer_total')) {
+      connection.exec('ALTER TABLE User ADD COLUMN glimmer_total INTEGER NOT NULL DEFAULT 0');
+    }
+    if (!userColumnNames.has('miss_total')) {
+      connection.exec('ALTER TABLE User ADD COLUMN miss_total INTEGER NOT NULL DEFAULT 0');
+    }
+    if (!userColumnNames.has('total_score')) {
+      connection.exec('ALTER TABLE User ADD COLUMN total_score INTEGER NOT NULL DEFAULT 0');
+    }
+    if (!userColumnNames.has('total_accuracy')) {
+      connection.exec('ALTER TABLE User ADD COLUMN total_accuracy REAL NOT NULL DEFAULT 0');
+    }
+    if (!userColumnNames.has('runs_count')) {
+      connection.exec('ALTER TABLE User ADD COLUMN runs_count INTEGER NOT NULL DEFAULT 0');
+    }
+
     connection.exec("UPDATE User SET joinDate = CURRENT_TIMESTAMP WHERE joinDate IS NULL OR TRIM(joinDate) = ''");
+
+    // Ensure any NULL analytics columns are zeroed for legacy users
+    connection.exec('UPDATE User SET perfect_total = 0 WHERE perfect_total IS NULL');
+    connection.exec('UPDATE User SET good_total = 0 WHERE good_total IS NULL');
+    connection.exec('UPDATE User SET glimmer_total = 0 WHERE glimmer_total IS NULL');
+    connection.exec('UPDATE User SET miss_total = 0 WHERE miss_total IS NULL');
+    connection.exec('UPDATE User SET total_score = 0 WHERE total_score IS NULL');
+    connection.exec('UPDATE User SET total_accuracy = 0 WHERE total_accuracy IS NULL');
+    connection.exec('UPDATE User SET runs_count = 0 WHERE runs_count IS NULL');
 
      connection.exec(`
               CREATE TABLE IF NOT EXISTS Difficulty (
