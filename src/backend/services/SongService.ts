@@ -424,6 +424,21 @@ export class SongService {
         return { success: false, error: 'Only the uploader can delete this song' };
       }
 
+      this.unit.prepare<unknown, { songId: number }>(
+        'DELETE FROM Note WHERE difficulty_id IN (SELECT id FROM Difficulty WHERE song_id = $songId)',
+        { songId }
+      ).run();
+
+      this.unit.prepare<unknown, { songId: number }>(
+        'DELETE FROM Highscore WHERE difficulty_id IN (SELECT id FROM Difficulty WHERE song_id = $songId)',
+        { songId }
+      ).run();
+
+      this.unit.prepare<unknown, { songId: number }>(
+        'DELETE FROM Difficulty WHERE song_id = $songId',
+        { songId }
+      ).run();
+
       const stmt = this.unit.prepare<{ changes: number }, { id: number }>(
         'DELETE FROM Song WHERE id = $id',
         { id: songId }
