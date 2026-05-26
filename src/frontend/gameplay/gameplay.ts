@@ -7,6 +7,16 @@ import { AuthService } from '../../app/services/auth.service';
 import { GameSettingsService, formatBindingLabel, formatBindingList, normalizeBindingKey } from '../../app/services/game-settings.service';
 
 
+interface HitFeedback {
+  lane: number;
+  y: number;
+  text: string;
+  color: string;
+  life: number;
+  maxLife: number;
+  vy: number;
+}
+
 interface ChartNote {
   time: number;
   lane: number;
@@ -63,6 +73,7 @@ export class Gameplay implements AfterViewInit, OnDestroy {
   private readonly laneCount = 4;
 
   private shatterShards: ShatterShard[] = [];
+  private hitFeedbacks: HitFeedback[] = [];
   private readonly shardGravity = 0.15;
   private canvas!: HTMLCanvasElement;
   private ctx!: CanvasRenderingContext2D;
@@ -471,6 +482,7 @@ export class Gameplay implements AfterViewInit, OnDestroy {
           combo: 0
         }));
         this.updateAccuracy();
+        this.spawnHitFeedback(note.lane, 'Shattered', '#ff9ea8');
       }
     }
   }
@@ -515,6 +527,7 @@ export class Gameplay implements AfterViewInit, OnDestroy {
         combo: 0
       }));
       this.updateAccuracy();
+      this.spawnHitFeedback(lane, 'Shattered', '#ff9ea8');
       return;
     }
 
@@ -532,16 +545,26 @@ export class Gameplay implements AfterViewInit, OnDestroy {
     // Determine judgment based on windows and award integer points so
     // 'perfect' always yields full credit (3), 'good' yields 2, 'glimmer' yields 1.
     let points: number;
+    let feedbackText: string;
+    let feedbackColour: string;
     if (timingDelta <= this.perfectWindow) {
       this.stats.update(stats => ({ ...stats, perfect: stats.perfect + 1 }));
       points = 3;
+      feedbackText = 'Radiant';
+      feedbackColour = '#ffd700';
     } else if (timingDelta <= this.shinningWindow) {
       this.stats.update(stats => ({ ...stats, good: stats.good + 1 }));
       points = 2;
+      feedbackText = 'Shinning';
+      feedbackColour = '#78dcff';
     } else {
       this.stats.update(stats => ({ ...stats, glimmer: stats.glimmer + 1 }));
       points = 1;
+      feedbackText = 'Glimmer';
+      feedbackColour = '#d2c7ff';
     }
+
+    this.spawnHitFeedback(lane, feedbackText, feedbackColour);
 
     this.scoreUnits += points;
 
@@ -646,6 +669,7 @@ export class Gameplay implements AfterViewInit, OnDestroy {
     this.drawFlashes(hitZoneY, geometry);
     this.drawNotes(audioTime, width, height);
     this.updateAndDrawShatters();
+    this.updateAndDrawHitFeedbacks(geometry);
     this.drawLaneLabels(height);
   }
 
@@ -830,6 +854,7 @@ export class Gameplay implements AfterViewInit, OnDestroy {
     this.scoreUnits = 0;
     this.keyStates = [false, false, false, false]; // Reset key states
     this.notes = this.cloneNotes(this.chartNotes);
+    this.hitFeedbacks = [];
     this.gameStarted.set(false);
     this.gameRunning.set(false);
     this.gameFinished.set(false);
@@ -1165,6 +1190,59 @@ export class Gameplay implements AfterViewInit, OnDestroy {
       ctx.fill();
 
       ctx.restore();
+    }
+  }
+
+  private spawnHitFeedback(lane: number, text: string, color: string): void {
+    const hitZoneY = this.getHitZoneY(this.canvas.height);
+    this.hitFeedbacks.push({
+      lane,
+      y: hitZoneY - 55,
+      text,
+      color,
+      life: 1,
+      maxLife: 0.75,
+      vy: -1.8,
+    });
+  }
+
+  private updateAndDrawHitFeedbacks(
+    geometry: { leftMargin: number; laneWidth: number; gap: number }
+  ): void {
+    for (let i = this.hitFeedbacks.length - 1; i >= 0; i--) {
+      const fb = this.hitFeedbacks[i];
+      fb.life -= 1 / (fb.maxLife * 60);
+      fb.y += fb.vy;
+
+      if (fb.life <= 0) {
+        this.hitFeedbacks.splice(i, 1);
+        continue;
+      }
+
+      const x = this.getLaneCenterX(fb.lane, geometry);
+      const alpha = fb.life;
+      const progress = 1 - fb.life;
+      const scale = 1 + Math.sin(progress * Math.PI) * 0.2;
+
+      this.ctx.save();
+      this.ctx.globalAlpha = alpha;
+      this.ctx.translate(x, fb.y);
+      this.ctx.scale(scale, scale);
+
+      this.ctx.font = 'bold 24px Arial, sans-serif';
+      this.ctx.textAlign = 'center';
+      this.ctx.textBaseline = 'middle';
+
+      this.ctx.strokeStyle = 'rgba(0, 0, 0, 0.75)';
+      this.ctx.lineWidth = 4;
+      this.ctx.strokeText(fb.text, 0, 0);
+
+      this.ctx.fillStyle = fb.color;
+      this.ctx.shadowColor = fb.color;
+      this.ctx.shadowBlur = 14;
+      this.ctx.fillText(fb.text, 0, 0);
+
+      this.ctx.restore();
     }
   }
 }
