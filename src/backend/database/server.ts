@@ -8,12 +8,7 @@ const PORT = Number(process.env['PORT']) || 3000;
 const PROJECT_ROOT = path.resolve(process.cwd(), '..', '..');
 const FRONTEND_DIST = path.resolve(PROJECT_ROOT, 'dist', 'Hit-The-Lights', 'browser');
 
-// Log database mode
-const DB_MODE = process.env['DATABASE_URL'] ? 'Postgres' : 'SQLite';
-console.log(`🗄️  Database Mode: ${DB_MODE}`);
-if (process.env['DATABASE_URL']) {
-  console.log(`📍 Postgres Host: ${process.env['DATABASE_URL'].split('@')?.[1]?.split(':')?.[0] || 'unknown'}`);
-}
+console.log('🗄️  Database Mode: SQLite');
 
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
@@ -29,7 +24,7 @@ app.get('/api/health', (_req: any, res: any) => {
   res.json({
     status: 'OK',
     timestamp: new Date().toISOString(),
-    database: DB_MODE
+    database: 'SQLite'
   });
 });
 
@@ -53,7 +48,7 @@ app.use((err: any, _req: any, res: any, _next: any) => {
   });
 });
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
   console.log(`API endpoints:`);
   console.log(`  POST http://localhost:${PORT}/api/auth/register`);
@@ -72,3 +67,33 @@ app.listen(PORT, () => {
   console.log(`  GET  http://localhost:${PORT}/api/messages/conversations/:userId`);
   console.log(`  GET  http://localhost:${PORT}/api/health`);
 });
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (err: Error) => {
+  console.error('❌ Uncaught Exception:', err);
+  process.exit(1);
+});
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (reason: any, promise: Promise<any>) => {
+  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+  process.exit(1);
+});
+
+// Handle graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, shutting down gracefully');
+  server.close(() => {
+    console.log('Server closed');
+    process.exit(0);
+  });
+});
+
+process.on('SIGINT', () => {
+  console.log('SIGINT received, shutting down gracefully');
+  server.close(() => {
+    console.log('Server closed');
+    process.exit(0);
+  });
+});
+

@@ -47,14 +47,15 @@ export class RegistrationService {
       // Hash password before storing
       const hashedPassword = PasswordHasher.hash(user.password);
 
-      // Insert new user
-      const stmt = this.unit.prepare<{ id: number }, { username: string; password: string }>(
-        'INSERT INTO User (username, password, joinDate) VALUES ($username, $password, CURRENT_TIMESTAMP) RETURNING id',
+      // Insert new user using SQLite-safe insert + last_insert_rowid()
+      const insertStmt = this.unit.prepare<unknown, { username: string; password: string }>(
+        'INSERT INTO User (username, password, joinDate) VALUES ($username, $password, CURRENT_TIMESTAMP)',
         { username: user.username, password: hashedPassword }
       );
+      insertStmt.run();
 
-      const result = stmt.get();
-      if (!result) {
+      const userId = this.unit.getLastRowId();
+      if (!userId) {
         return {
           success: false,
           error: 'Failed to create user'
@@ -63,8 +64,8 @@ export class RegistrationService {
 
       return {
         success: true,
-        userId: result.id,
-        user: this.findUserById(result.id)
+        userId,
+        user: this.findUserById(userId)
       };
     } catch (error: any) {
       return {

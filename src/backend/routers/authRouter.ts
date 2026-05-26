@@ -1,7 +1,8 @@
 import { Router, Request, Response } from 'express';
 import { HTLService } from '../services/HTLService';
-import { RegistrationServiceAsync } from '../services/RegistrationServiceAsync';
-import { AuthenticationServiceAsync } from '../services/AuthenticationServiceAsync';
+import { RegistrationService } from '../services/RegistrationService';
+import { AuthenticationService } from '../services/AuthenticationService';
+import { Unit } from '../database/unit';
 
 export const authRouter = Router();
 
@@ -17,8 +18,10 @@ authRouter.post('/register', async (req: Request, res: Response) => {
       return;
     }
 
-    const registrationService = new RegistrationServiceAsync();
-    const result = await registrationService.register({ username, password });
+    const unit = new Unit(false);
+    const registrationService = new RegistrationService(unit);
+    const result = registrationService.register({ username, password });
+    unit.complete(true);
 
     if (result.success) {
       const htlService = new HTLService(null as any);
@@ -57,8 +60,10 @@ authRouter.post('/login', async (req: Request, res: Response) => {
       return;
     }
 
-    const authService = new AuthenticationServiceAsync();
-    const result = await authService.login({ username, password });
+    const unit = new Unit(true);
+    const authService = new AuthenticationService(unit);
+    const result = authService.login({ username, password });
+    unit.complete();
 
     if (result.success) {
       // Return user without password

@@ -195,22 +195,18 @@ export class SongService {
         return { success: false, error: 'Private songs require an owner' };
       }
 
-      const stmt = this.unit.prepare<
-        { id: number },
-        {
-          name: string;
-          author: string;
-          bpm: number;
-          length: string;
-          songUrl: string;
-          coverUrl: string;
-          ownerId: number | null;
-          isPublic: number;
-        }
-      >(
+      const insertStmt = this.unit.prepare<unknown, {
+        name: string;
+        author: string;
+        bpm: number;
+        length: string;
+        songUrl: string;
+        coverUrl: string;
+        ownerId: number | null;
+        isPublic: number;
+      }>(
         `INSERT INTO Song (name, author, bpm, length, songUrl, coverUrl, ownerId, isPublic)
-         VALUES ($name, $author, $bpm, $length, $songUrl, $coverUrl, $ownerId, $isPublic)
-         RETURNING id`,
+         VALUES ($name, $author, $bpm, $length, $songUrl, $coverUrl, $ownerId, $isPublic)`,
         {
           name: request.name.trim(),
           author: request.author.trim(),
@@ -222,16 +218,16 @@ export class SongService {
           isPublic: isPublic ? 1 : 0
         }
       );
+      insertStmt.run();
 
-      const result = stmt.get();
-
-      if (!result) {
+      const songId = this.unit.getLastRowId();
+      if (!songId) {
         return { success: false, error: 'Failed to insert song' };
       }
 
       return {
         success: true,
-        songId: result.id,
+        songId,
         songUrl: request.songUrl,
         coverUrl: request.coverUrl,
         ownerId,
@@ -316,15 +312,15 @@ export class SongService {
         return { success: false, error: 'This difficulty already exists for the selected song' };
       }
 
-      const insertDifficulty = this.unit.prepare<{ id: number }, { songId: number; difficulty: number; noteCount: number }>(
+      const insertDifficulty = this.unit.prepare<unknown, { songId: number; difficulty: number; noteCount: number }>(
         `INSERT INTO Difficulty (song_id, difficulty, note_count)
-         VALUES ($songId, $difficulty, $noteCount)
-         RETURNING id`,
+         VALUES ($songId, $difficulty, $noteCount)`,
         { songId, difficulty, noteCount: notes.length }
       );
+      insertDifficulty.run();
 
-      const inserted = insertDifficulty.get();
-      if (!inserted) {
+      const difficultyId = this.unit.getLastRowId();
+      if (!difficultyId) {
         return { success: false, error: 'Failed to create difficulty' };
       }
 
@@ -333,7 +329,7 @@ export class SongService {
           `INSERT INTO Note (difficulty_id, time_ms, lane, type, duration_ms)
            VALUES ($difficultyId, $timeMs, $lane, $type, $durationMs)`,
           {
-            difficultyId: inserted.id,
+            difficultyId,
             timeMs: Math.round(note.time),
             lane: note.lane,
             type: Number.isInteger(note.type) ? note.type : 1,
@@ -345,7 +341,7 @@ export class SongService {
       return {
         success: true,
         difficulty: {
-          id: inserted.id,
+          id: difficultyId,
           difficulty,
           noteCount: notes.length
         }

@@ -1,7 +1,9 @@
 import BetterSqlite3, { Database } from "better-sqlite3";
 
 const dbFileName = "htl.db";
-const USE_POSTGRES = !!process.env['DATABASE_URL'];
+// REVERTED: Force SQLite mode regardless of DATABASE_URL
+// Previous attempt to support Postgres broke synchronous services
+const USE_POSTGRES = false;
 
 // Lazy import of Postgres client only if DATABASE_URL is set
 let sql: any;
@@ -89,11 +91,12 @@ export class Unit {
     this.completed = false;
     this.isPostgres = USE_POSTGRES;
 
-    // Force Postgres mode only - no SQLite fallback for production Render deployment
-    if (!USE_POSTGRES) {
-      throw new Error(
-        'DATABASE_URL is required. Set it in your environment to use Postgres (required for Render deployment).'
-      );
+    if (!this.isPostgres) {
+      this.db = DB.createDBConnection();
+      // Begin a transaction if this is not a read-only unit
+      if (!readOnly) {
+        DB.beginTransaction(this.db);
+      }
     }
   }
 
