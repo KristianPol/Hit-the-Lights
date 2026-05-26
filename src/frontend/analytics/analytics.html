@@ -5,19 +5,28 @@
       <button (click)="goBack()">Back</button>
     </div>
 
-    <div *ngIf="loading()" class="analytics-loading">Loading...</div>
-    <div *ngIf="error()" class="analytics-error">{{ error() }}</div>
+    @if(loading()){
+      <div class="analytics-loading">Loading...</div>
+    }
+    @if(error()){
+      <div class="analytics-error">{{ error() }}</div>
+    }
 
-    <div *ngIf="!loading() && !error() && analytics()" class="analytics-body">
-      <div class="analytics-row"><strong>Runs:</strong> {{ analytics().runs }}</div>
-      <div class="analytics-row"><strong>Average final score:</strong> {{ analytics().averageScore }}</div>
-      <div class="analytics-row"><strong>Average accuracy:</strong> {{ analytics().averageAccuracy }}%</div>
-      <div class="analytics-row"><strong>Perfect notes (total):</strong> {{ analytics().perfectTotal }}</div>
-      <div class="analytics-row"><strong>Good notes (total):</strong> {{ analytics().goodTotal }}</div>
-      <div class="analytics-row"><strong>Okay notes (total):</strong> {{ analytics().okayTotal }}</div>
-      <div class="analytics-row"><strong>Miss notes (total):</strong> {{ analytics().missTotal }}</div>
-      <div class="analytics-row"><strong>Playtime (s):</strong> {{ analytics().playtimeSeconds }}</div>
-    </div>
+    @if(!loading()
+      && !error()
+      && analytics()){
+      <div  class="analytics-body">
+        <div class="analytics-row"><strong>Runs:</strong> {{ analytics().runs }}</div>
+        <div class="analytics-row"><strong>Average final score:</strong> {{ analytics().averageScore }}</div>
+        <div class="analytics-row"><strong>Average accuracy:</strong> {{ analytics().averageAccuracy }}%</div>
+        <div class="analytics-row"><strong>Perfect notes (total):</strong> {{ analytics().perfectTotal }}</div>
+        <div class="analytics-row"><strong>Good notes (total):</strong> {{ analytics().goodTotal }}</div>
+        <div class="analytics-row"><strong>Okay notes (total):</strong> {{ analytics().okayTotal }}</div>
+        <div class="analytics-row"><strong>Miss notes (total):</strong> {{ analytics().missTotal }}</div>
+        <div class="analytics-row"><strong>Playtime (s):</strong> {{ analytics().playtimeSeconds }}</div>
+      </div>
+    }
+
   </div>
 </div>
 
