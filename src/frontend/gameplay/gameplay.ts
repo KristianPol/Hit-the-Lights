@@ -1,9 +1,10 @@
-﻿import { AfterViewInit, Component, ElementRef, HostListener, OnDestroy, ViewChild, computed, signal } from '@angular/core';
+﻿import { AfterViewInit, Component, ElementRef, HostListener, OnDestroy, ViewChild, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { Song, SongService } from '../../app/services/song.service';
 import { AuthService } from '../../app/services/auth.service';
+import { GameSettingsService, formatBindingLabel, formatBindingList, normalizeBindingKey } from '../../app/services/game-settings.service';
 
 
 interface ChartNote {
@@ -56,8 +57,8 @@ interface ShatterShard {
 export class Gameplay implements AfterViewInit, OnDestroy {
   @ViewChild('gameCanvas') canvasRef!: ElementRef<HTMLCanvasElement>;
 
+  private readonly gameSettingsService = inject(GameSettingsService);
   private readonly defaultSongUrl = '/assets/music/SpearOfJustice.mp3';
-  private readonly laneLabels = ['D', 'F', 'J', 'K'];
   private readonly laneColors = ['#ff6b6b', '#4ecdc4', '#4d96ff', '#ff9f43'];
   private readonly laneCount = 4;
 
@@ -105,7 +106,7 @@ export class Gameplay implements AfterViewInit, OnDestroy {
     if (this.gameStarted()) {
       return 'Keep the rhythm going';
     }
-    return 'Press D, F, J, or K to start';
+    return `Press ${formatBindingList(this.gameSettingsService.laneBindings().map(binding => formatBindingLabel(binding)))} to start`;
   });
   readonly accuracyLabelText = computed(() => `${this.stats().accuracy.toFixed(1)}%`);
   readonly totalJudgedCount = computed(() => {
@@ -180,7 +181,6 @@ export class Gameplay implements AfterViewInit, OnDestroy {
   readonly okayWindow = 80;
   readonly perfectWindow = 25;
   readonly shinningWindow = 50;
-  readonly fallingSpeed = 1.0;
   readonly earlyBuffer = 300; // ms before note where presses are ignored (adjusted for note/hitzone size)
 
   constructor(
@@ -403,14 +403,14 @@ export class Gameplay implements AfterViewInit, OnDestroy {
   }
 
   private keyToLane(key: string): number | null {
-    const mapping: Record<string, number> = {
-      d: 0, D: 0,
-      f: 1, F: 1,
-      j: 2, J: 2,
-      k: 3, K: 3
-    };
+    const normalizedKey = normalizeBindingKey(key);
+    if (!normalizedKey) {
+      return null;
+    }
 
-    return mapping[key] ?? null;
+    const bindings = this.gameSettingsService.laneBindings();
+    const lane = bindings.findIndex(binding => normalizeBindingKey(binding) === normalizedKey);
+    return lane >= 0 ? lane : null;
   }
 
   private startGame(): void {
@@ -796,6 +796,14 @@ export class Gameplay implements AfterViewInit, OnDestroy {
       const xPos = this.getLaneCenterX(lane, geometry);
       this.ctx.fillText(this.laneLabels[lane], xPos, labelY);
     }
+  }
+
+  private get laneLabels(): string[] {
+    return this.gameSettingsService.laneBindings().map(binding => formatBindingLabel(binding));
+  }
+
+  private get fallingSpeed(): number {
+    return this.gameSettingsService.noteSpeed();
   }
 
   private getLaneCenterX(lane: number, geometry: { leftMargin: number; laneWidth: number; gap: number }): number {

@@ -129,3 +129,64 @@ authRouter.post('/playtime', (_req: Request, res: Response) => {
   });
 });
 
+// Per-user settings endpoints
+authRouter.get('/user/:userId/settings', (req: Request, res: Response) => {
+  try {
+    const userId = Number(req.params['userId']);
+    if (!Number.isFinite(userId) || userId <= 0) {
+      res.status(400).json({ success: false, error: 'Invalid userId' });
+      return;
+    }
+
+    const unit = new Unit(true);
+    const userService = new (require('../services/UserService').UserService)(unit);
+    const settingsJson = userService.getUserSettings(userId);
+    unit.complete();
+
+    if (settingsJson === undefined) {
+      res.status(404).json({ success: false, error: 'User not found' });
+      return;
+    }
+
+    let settings = null;
+    try {
+      settings = settingsJson ? JSON.parse(settingsJson) : null;
+    } catch {
+      settings = null;
+    }
+
+    res.status(200).json({ success: true, settings });
+  } catch (err: any) {
+    console.error('GET settings error', err);
+    res.status(500).json({ success: false, error: err.message || 'Internal error' });
+  }
+});
+
+authRouter.post('/user/:userId/settings', (req: Request, res: Response) => {
+  try {
+    const userId = Number(req.params['userId']);
+    if (!Number.isFinite(userId) || userId <= 0) {
+      res.status(400).json({ success: false, error: 'Invalid userId' });
+      return;
+    }
+
+    const settings = req.body?.settings ?? null;
+    const settingsJson = settings ? JSON.stringify(settings) : null;
+
+    const unit = new Unit(false);
+    const userService = new (require('../services/UserService').UserService)(unit);
+    const result = userService.updateUserSettings(userId, settingsJson ?? '');
+    unit.complete(true);
+
+    if (!result.success) {
+      res.status(400).json({ success: false, error: result.error });
+      return;
+    }
+
+    res.status(200).json({ success: true });
+  } catch (err: any) {
+    console.error('POST settings error', err);
+    res.status(500).json({ success: false, error: err.message || 'Internal error' });
+  }
+});
+

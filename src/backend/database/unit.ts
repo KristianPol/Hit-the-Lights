@@ -269,6 +269,11 @@ class DB {
       connection.exec('ALTER TABLE User ADD COLUMN playtime_seconds INTEGER NOT NULL DEFAULT 0');
     }
 
+    // Add settings_json column to store per-user preferences as JSON text
+    if (!userColumnNames.has('settings_json')) {
+      connection.exec('ALTER TABLE User ADD COLUMN settings_json TEXT');
+    }
+
     connection.exec("UPDATE User SET joinDate = CURRENT_TIMESTAMP WHERE joinDate IS NULL OR TRIM(joinDate) = ''");
 
      connection.exec(`

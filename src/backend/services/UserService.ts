@@ -165,6 +165,44 @@ export class UserService {
   }
 
   /**
+   * Get stored settings JSON string for a user (may be null)
+   */
+  public getUserSettings(userId: number): string | null | undefined {
+    const stmt = this.unit.prepare<{ settings_json: string | null }, { userId: number }>(
+      'SELECT settings_json FROM User WHERE id = $userId',
+      { userId }
+    );
+    const result = stmt.get();
+    return result ? result.settings_json ?? null : undefined;
+  }
+
+  /**
+   * Update stored settings JSON for a user
+   */
+  public updateUserSettings(userId: number, settingsJson: string): { success: boolean; error?: string } {
+    if (!userId || userId <= 0) {
+      return { success: false, error: 'Invalid user ID' };
+    }
+
+    try {
+      const checkStmt = this.unit.prepare<{ id: number }, { userId: number }>('SELECT id FROM User WHERE id = $userId', { userId });
+      const user = checkStmt.get();
+      if (!user) {
+        return { success: false, error: 'User not found' };
+      }
+
+      const updateStmt = this.unit.prepare<unknown, { settingsJson: string; userId: number }>(
+        'UPDATE User SET settings_json = $settingsJson WHERE id = $userId',
+        { settingsJson: settingsJson, userId }
+      );
+      updateStmt.run();
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error.message || 'Database error' };
+    }
+  }
+
+  /**
    * Adds playtime seconds to a user's total playtime and returns the new total
    */
   public addPlaytime(userId: number, seconds: number): { success: boolean; playtimeSeconds?: number; error?: string } {

@@ -215,8 +215,15 @@ export class MenuComponent implements OnInit, OnDestroy {
 
   setActive(item: string) {
     this.activeItem = item;
+    const menuItem = this.menuItems.find(entry => entry.label === item);
+
     if (item === 'Logout') {
       this.logout();
+      return;
+    }
+
+    if (menuItem?.route) {
+      void this.router.navigate([menuItem.route]);
     }
   }
 

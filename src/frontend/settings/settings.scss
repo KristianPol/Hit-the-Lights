@@ -1,0 +1,180 @@
+﻿:host {
+  display: block;
+  min-height: 100vh;
+  font-family: Arial, sans-serif;
+}
+
+.settings-page {
+  min-height: 100vh;
+  padding: 2rem;
+  background: #0f0f0f;
+  color: #f2f2f2;
+}
+
+.settings-card {
+  max-width: 760px;
+  margin: 0 auto;
+  background: #181818;
+  border: 1px solid #2e2e2e;
+  border-radius: 16px;
+  padding: 1.5rem;
+}
+
+.settings-header {
+  margin-bottom: 1.5rem;
+
+  h1 {
+    margin: 0.75rem 0 0.25rem;
+    font-size: 2rem;
+  }
+
+  p {
+    margin: 0;
+    color: #b5b5b5;
+  }
+}
+
+.back-button,
+.binding-button,
+.primary-button,
+.secondary-button {
+  border: 1px solid #3a3a3a;
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  background: #222;
+  color: #f2f2f2;
+  cursor: pointer;
+}
+
+.back-button:hover,
+.binding-button:hover,
+.primary-button:hover,
+.secondary-button:hover {
+  border-color: #666;
+}
+
+.message {
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.message-error {
+  background: #3a1616;
+  border: 1px solid #743232;
+  color: #ffb4b4;
+}
+
+.section {
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid #2e2e2e;
+
+  h2 {
+    margin: 0 0 0.35rem;
+    font-size: 1.15rem;
+  }
+}
+
+.section-hint,
+.footer-note {
+  color: #b5b5b5;
+  font-size: 0.95rem;
+}
+
+.binding-list {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.binding-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: #202020;
+  border: 1px solid #2f2f2f;
+  border-radius: 12px;
+}
+
+.binding-name,
+.binding-current {
+  display: block;
+}
+
+.binding-current {
+  margin-top: 0.2rem;
+  color: #b5b5b5;
+  font-size: 0.9rem;
+}
+
+.binding-button.active {
+  border-color: #a6c8ff;
+  background: #24344d;
+}
+
+.speed-control {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.speed-control input[type='range'] {
+  flex: 1;
+}
+
+.speed-value {
+  min-width: 64px;
+  text-align: right;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.primary-button {
+  background: #3d5afe;
+  border-color: #3d5afe;
+}
+
+.secondary-button {
+  background: transparent;
+}
+
+.footer-note {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.binding-summary {
+  font-size: 0.85rem;
+}
+
+@media (max-width: 640px) {
+  .settings-page {
+    padding: 1rem;
+  }
+
+  .binding-row,
+  .speed-control,
+  .actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .actions {
+    justify-content: stretch;
+  }
+
+  .speed-value {
+    text-align: left;
+  }
+}
+
