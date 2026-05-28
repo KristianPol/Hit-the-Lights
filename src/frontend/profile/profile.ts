@@ -1,10 +1,10 @@
-import { Component, OnInit, NgZone } from '@angular/core';
-import { RouterModule, Router } from '@angular/router';
+import { Component, OnInit, NgZone, ChangeDetectorRef } from '@angular/core';
+import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService, User } from '../../app/services/auth.service';
 import { SongService } from '../../app/services/song.service';
 import { MessageService } from '../../app/services/message.service';
-import { catchError, of, tap, finalize } from 'rxjs';
+import { catchError, of, tap, finalize, take } from 'rxjs';
 
 @Component({
   selector: 'app-profile',
@@ -19,6 +19,8 @@ export class ProfileComponent implements OnInit {
   error: string | null = null;
   uploadedSongCount = 0;
   unreadMessageCount = 0;
+  isOwnProfile = true;
+  viewedUserId: number | null = null;
 
   // Edit profile modal state
   showEditModal = false;
@@ -32,21 +34,52 @@ export class ProfileComponent implements OnInit {
   constructor(
     private authService: AuthService,
     private router: Router,
+    private route: ActivatedRoute,
     private songService: SongService,
     private messageService: MessageService,
-    private ngZone: NgZone
+    private ngZone: NgZone,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
     this.loading = true;
     this.error = null;
+    this.imageError = false;
 
+    this.route.paramMap.pipe(take(1)).subscribe(params => {
+      this.loading = true;
+      this.error = null;
+      this.imageError = false;
+
+      const paramUserId = params.get('userId');
+      if (paramUserId) {
+        const parsedId = Number(paramUserId);
+        if (Number.isFinite(parsedId) && parsedId > 0) {
+          this.viewedUserId = parsedId;
+          const currentUser = this.authService.currentUser;
+          this.isOwnProfile = currentUser?.id === parsedId;
+
+          if (this.isOwnProfile) {
+            this.loadOwnProfile();
+          } else {
+            this.loadOtherProfile(parsedId);
+          }
+          return;
+        }
+      }
+
+      this.isOwnProfile = true;
+      this.viewedUserId = null;
+      this.loadOwnProfile();
+    });
+  }
+
+  private loadOwnProfile(): void {
     this.authService.currentUser$.pipe(
       tap(user => {
-        console.log('ProfileComponent: User updated:', user);
         this.ngZone.run(() => {
           this.user = user;
-          this.imageError = false; // Reset image error when user updates
+          this.imageError = false;
           this.loading = false;
         });
 
@@ -75,6 +108,44 @@ export class ProfileComponent implements OnInit {
     ).subscribe();
   }
 
+  private loadOtherProfile(userId: number): void {
+    console.log('Profile: loading other profile', userId);
+    const timeoutId = window.setTimeout(() => {
+      if (this.loading) {
+        console.warn('Profile: forcing loading off after timeout');
+        this.loading = false;
+        this.cdr.detectChanges();
+      }
+    }, 5000);
+
+    this.authService.getUserById(userId).subscribe({
+      next: response => {
+        console.log('Profile: getUserById response', response);
+        window.clearTimeout(timeoutId);
+        this.loading = false;
+        if (response.success && response.user) {
+          this.user = response.user;
+          this.imageError = false;
+          this.error = null;
+          this.loadUploadedSongCount(userId);
+          this.unreadMessageCount = 0;
+        } else {
+          this.error = response.error || 'User not found';
+          this.user = null;
+        }
+        this.cdr.detectChanges();
+      },
+      error: err => {
+        console.error('Profile: getUserById error', err);
+        window.clearTimeout(timeoutId);
+        this.loading = false;
+        this.error = err.message || 'Failed to load user profile';
+        this.user = null;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
   logout(): void {
     this.authService.logout();
     this.router.navigate(['/login']);
@@ -82,6 +153,12 @@ export class ProfileComponent implements OnInit {
 
   goToMenu(): void {
     this.router.navigate(['/menu']);
+  }
+
+  goToMessages(): void {
+    if (this.user) {
+      this.router.navigate(['/messages']);
+    }
   }
 
   get formattedJoinDate(): string {
@@ -230,7 +307,8 @@ export class ProfileComponent implements OnInit {
   }
 
   private loadUploadedSongCount(userId: number): void {
-    this.songService.getUploadedSongCount(userId, userId).subscribe({
+    const viewerId = this.authService.currentUser?.id ?? undefined;
+    this.songService.getUploadedSongCount(userId, viewerId).subscribe({
       next: response => {
         this.ngZone.run(() => {
           this.uploadedSongCount = response.success ? response.count : 0;

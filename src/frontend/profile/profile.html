@@ -20,7 +20,7 @@
   @if (!loading && !error) {
     <div class="profile-header">
       <button class="btn btn-secondary back-to-menu" (click)="goToMenu()">Back to Menu</button>
-      <h1>Profile</h1>
+      <h1>{{ isOwnProfile ? 'Profile' : 'User Profile' }}</h1>
     </div>
 
     @if (user) {
@@ -93,14 +93,23 @@
           </div>
         </div>
 
-        <!-- Edit and Logout buttons-->
+        <!-- Action buttons -->
         <div class="action-buttons">
-          <button class="btn btn-primary" (click)="editProfile()">
-            Edit Profile
-          </button>
-          <button class="btn btn-secondary" (click)="logout()">
-            Logout
-          </button>
+          @if (isOwnProfile) {
+            <button class="btn btn-primary" (click)="editProfile()">
+              Edit Profile
+            </button>
+            <button class="btn btn-secondary" (click)="logout()">
+              Logout
+            </button>
+          } @else {
+            <button class="btn btn-primary" (click)="goToMessages()">
+              Message
+            </button>
+            <button class="btn btn-secondary" (click)="goToMenu()">
+              Back to Menu
+            </button>
+          }
         </div>
       </div>
     } @else {
