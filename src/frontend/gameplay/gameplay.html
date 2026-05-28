@@ -135,7 +135,82 @@
 
         <div class="results-actions">
           <button type="button" class="menu-button play-again" (click)="restartSong()">Play Again</button>
+          @if (authService.isLoggedIn) {
+            <button type="button" class="menu-button send-score" (click)="openSendScoreModal()">Send to Friends</button>
+          }
           <button type="button" class="menu-button" (click)="returnToMenu()">Back to Menu</button>
+        </div>
+      </div>
+    </div>
+  }
+
+  @if (showSendScoreModal()) {
+    <div class="send-score-overlay" (click)="closeSendScoreModal()">
+      <div class="send-score-card" (click)="$event.stopPropagation()">
+        <div class="send-score-header">
+          <h3>Send Score to Friends</h3>
+          <button class="modal-close" (click)="closeSendScoreModal()">✕</button>
+        </div>
+
+        <div class="send-score-preview">
+          <p class="preview-label">Message preview:</p>
+          <p class="preview-text">
+            Map: {{ displayTitleText() }}, difficulty: {{ difficultyName() }}, score: {{ stats().score.toLocaleString() }}, accuracy: {{ stats().accuracy.toFixed(1) }}%, rank: {{ resultRank() }}
+          </p>
+        </div>
+
+        <div class="send-score-body">
+          @if (loadingFriends()) {
+            <div class="loading-state"><div class="spinner"></div><p>Loading friends...</p></div>
+          } @else if (friendsList().length === 0) {
+            <div class="empty-state">
+              <span class="empty-icon">👥</span>
+              <p>No friends yet</p>
+              <span class="empty-hint">Add friends from the Messages page to share scores</span>
+            </div>
+          } @else {
+            <div class="friends-list">
+              @for (friend of friendsList(); track friend.id) {
+                <label class="friend-item">
+                  <input
+                    type="checkbox"
+                    [checked]="selectedFriendIds().has(friend.otherUser.id)"
+                    (change)="toggleFriendSelection(friend.otherUser.id)"
+                  />
+                  <div class="friend-avatar">
+                    @if (friend.otherUser.profilePictureUrl) {
+                      <img [src]="friend.otherUser.profilePictureUrl" alt="" />
+                    } @else {
+                      <span>{{ friend.otherUser.username.charAt(0).toUpperCase() }}</span>
+                    }
+                  </div>
+                  <span class="friend-name">{{ friend.otherUser.username }}</span>
+                </label>
+              }
+            </div>
+          }
+        </div>
+
+        @if (sendScoreError()) {
+          <div class="send-score-error">{{ sendScoreError() }}</div>
+        }
+        @if (sendScoreSuccess()) {
+          <div class="send-score-success">Score sent successfully!</div>
+        }
+
+        <div class="send-score-footer">
+          <button class="btn-cancel" (click)="closeSendScoreModal()">Cancel</button>
+          <button
+            class="btn-submit"
+            [disabled]="sendingScore() || selectedFriendIds().size === 0 || friendsList().length === 0"
+            (click)="sendScoreToFriends()"
+          >
+            @if (sendingScore()) {
+              <span>Sending...</span>
+            } @else {
+              <span>Send ({{ selectedFriendIds().size }})</span>
+            }
+          </button>
         </div>
       </div>
     </div>

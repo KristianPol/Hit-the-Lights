@@ -2,8 +2,6 @@ import { Router, Request, Response } from 'express';
 import { Unit } from '../database/unit';
 import { MessageService } from '../services';
 import { FriendshipService } from '../services';
-import MessageServiceAsync from '../services/MessageServiceAsync';
-import FriendshipServiceAsync from '../services/FriendshipServiceAsync';
 
 export const messageRouter = Router();
 
@@ -23,6 +21,7 @@ messageRouter.post('/send', async (req: Request, res: Response) => {
     }
 
     if (usePostgres) {
+      const FriendshipServiceAsync = require('../services/FriendshipServiceAsync').default;
       const friendshipService = new FriendshipServiceAsync();
       const areFriends = await friendshipService.areFriends(parsedSenderId, parsedReceiverId);
       if (!areFriends) {
@@ -30,6 +29,7 @@ messageRouter.post('/send', async (req: Request, res: Response) => {
         return;
       }
 
+      const MessageServiceAsync = require('../services/MessageServiceAsync').default;
       const messageService = new MessageServiceAsync();
       const result = await messageService.sendMessage({ senderId: parsedSenderId, receiverId: parsedReceiverId, content });
       if (result.success) {
@@ -76,12 +76,14 @@ messageRouter.get('/conversation/:userId/:otherUserId', async (req: Request, res
     }
 
     if (usePostgres) {
+      const FriendshipServiceAsync = require('../services/FriendshipServiceAsync').default;
       const friendshipService = new FriendshipServiceAsync();
       const areFriends = await friendshipService.areFriends(userId, otherUserId);
       if (!areFriends) {
         res.status(403).json({ success: false, error: 'You can only view conversations with your friends' });
         return;
       }
+      const MessageServiceAsync = require('../services/MessageServiceAsync').default;
       const messageService = new MessageServiceAsync();
       const messages = await messageService.getConversation(userId, otherUserId);
       res.status(200).json({ success: true, messages });
@@ -116,6 +118,7 @@ messageRouter.get('/conversations/:userId', async (req: Request, res: Response) 
     }
 
     if (usePostgres) {
+      const MessageServiceAsync = require('../services/MessageServiceAsync').default;
       const messageService = new MessageServiceAsync();
       const conversations = await messageService.getConversations(userId);
       res.status(200).json({ success: true, conversations });
@@ -144,6 +147,7 @@ messageRouter.post('/read', async (req: Request, res: Response) => {
     }
 
     if (usePostgres) {
+      const MessageServiceAsync = require('../services/MessageServiceAsync').default;
       const messageService = new MessageServiceAsync();
       const result = await messageService.markAsRead(messageIds, parsedUserId);
       if (result.success) res.status(200).json(result); else res.status(400).json(result);
@@ -168,6 +172,7 @@ messageRouter.post('/read-conversation', async (req: Request, res: Response) => 
     if (!parsedSenderId || !parsedReceiverId) { if (unit) unit.complete(false); res.status(400).json({ success: false, error: 'senderId and receiverId are required' }); return; }
 
     if (usePostgres) {
+      const MessageServiceAsync = require('../services/MessageServiceAsync').default;
       const messageService = new MessageServiceAsync();
       const result = await messageService.markConversationAsRead(parsedSenderId, parsedReceiverId);
       if (result.success) res.status(200).json(result); else res.status(400).json(result);
@@ -190,6 +195,7 @@ messageRouter.get('/unread/:userId', async (req: Request, res: Response) => {
     if (!userId) { if (unit) unit.complete(); res.status(400).json({ success: false, error: 'Invalid userId' }); return; }
 
     if (usePostgres) {
+      const MessageServiceAsync = require('../services/MessageServiceAsync').default;
       const messageService = new MessageServiceAsync();
       const count = await messageService.getUnreadCount(userId);
       res.status(200).json({ success: true, count });

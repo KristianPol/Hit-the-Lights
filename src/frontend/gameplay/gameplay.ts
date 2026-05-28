@@ -2,9 +2,11 @@
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
-import { Song, SongService } from '../../app/services/song.service';
+import { Song, SongDifficulty, SongService, difficultyNumberToName } from '../../app/services/song.service';
 import { AuthService } from '../../app/services/auth.service';
 import { GameSettingsService, formatBindingLabel, formatBindingList, normalizeBindingKey } from '../../app/services/game-settings.service';
+import { FriendshipService, FriendshipResult } from '../../app/services/friendship.service';
+import { MessageService } from '../../app/services/message.service';
 
 
 interface HitFeedback {
@@ -90,6 +92,7 @@ export class Gameplay implements AfterViewInit, OnDestroy {
     return Number.isFinite(value) && value > 0 ? value : null;
   })();
   private resolvedDifficultyId: number | null = this.difficultyIdFromState;
+  private virtualAudioStartMs: number | null = null;
 
   private chartNotes: ChartNote[] = [];
   notes: ChartNote[] = [];
@@ -102,6 +105,17 @@ export class Gameplay implements AfterViewInit, OnDestroy {
   readonly gameStarted = signal(false);
   readonly gameRunning = signal(false);
   readonly gameFinished = signal(false);
+
+  readonly resolvedDifficulty = signal<SongDifficulty | null>(null);
+
+  // Send score modal state
+  readonly showSendScoreModal = signal(false);
+  readonly friendsList = signal<FriendshipResult[]>([]);
+  readonly selectedFriendIds = signal<Set<number>>(new Set());
+  readonly sendingScore = signal(false);
+  readonly sendScoreError = signal<string | null>(null);
+  readonly sendScoreSuccess = signal(false);
+  readonly loadingFriends = signal(false);
 
   readonly stats = signal<GameStats>(this.createInitialStats());
   private readonly maxSongScore = 1_000_000;
@@ -180,6 +194,10 @@ export class Gameplay implements AfterViewInit, OnDestroy {
     }
     return 'Solid attempt. Stay in rhythm and try again.';
   });
+  readonly difficultyName = computed(() => {
+    const diff = this.resolvedDifficulty();
+    return diff ? difficultyNumberToName(diff.difficulty) : 'Unknown';
+  });
 
   // FIX: Added key state tracking to prevent held-key spamming
   private keyStates: boolean[] = [false, false, false, false];
@@ -198,7 +216,9 @@ export class Gameplay implements AfterViewInit, OnDestroy {
     private router: Router,
     private route: ActivatedRoute,
     private songService: SongService,
-    private authService: AuthService
+    public authService: AuthService,
+    private friendshipService: FriendshipService,
+    private messageService: MessageService
   ) {}
 
   async ngAfterViewInit(): Promise<void> {
@@ -281,17 +301,17 @@ export class Gameplay implements AfterViewInit, OnDestroy {
   private async initializeGame(): Promise<void> {
     const song = await this.resolveSong();
     this.currentSong.set(song);
-    this.resolvedDifficultyId = this.resolveDifficultyId(song);
+    const diff = this.resolveDifficulty(song);
+    this.resolvedDifficultyId = diff?.id ?? null;
+    this.resolvedDifficulty.set(diff);
     await Promise.all([this.loadChart(song, this.resolvedDifficultyId), this.configureAudio(song?.songUrl ?? this.defaultSongUrl)]);
   }
 
-  private resolveDifficultyId(song: Song | null): number | null {
+  private resolveDifficulty(song: Song | null): SongDifficulty | null {
     if (this.difficultyIdFromState) {
-      return this.difficultyIdFromState;
+      return song?.difficulties?.find(d => d.id === this.difficultyIdFromState) ?? null;
     }
-
-    const firstDifficulty = song?.difficulties?.[0];
-    return firstDifficulty?.id ?? null;
+    return song?.difficulties?.[0] ?? null;
   }
 
   private async resolveSong(): Promise<Song | null> {
@@ -354,6 +374,7 @@ export class Gameplay implements AfterViewInit, OnDestroy {
       artist: 'Hit the Lights',
       bpm: 120
     });
+    this.resolvedDifficulty.set({ id: 0, difficulty: 1, noteCount: 24 });
     this.chartNotes = this.buildFallbackChart();
     this.notes = this.cloneNotes(this.chartNotes);
   }
@@ -434,12 +455,12 @@ export class Gameplay implements AfterViewInit, OnDestroy {
     this.gameFinished.set(false);
     this.loadingError.set(null);
     this.audio.currentTime = 0;
+    this.virtualAudioStartMs = null;
 
     this.audio.play().catch(error => {
-      console.error('Audio playback failed:', error);
-      this.loadingError.set('The song could not be played. Check the audio file path or browser permissions.');
-      this.gameRunning.set(false);
-      this.gameStarted.set(false);
+      console.warn('Audio playback failed, continuing without sound:', error);
+      this.virtualAudioStartMs = performance.now();
+      this.gameLoop();
     });
 
     this.gameLoop();
@@ -455,12 +476,25 @@ export class Gameplay implements AfterViewInit, OnDestroy {
     // Check for notes that have passed the hit zone without being judged
     this.updateMissedNotes(audioTime);
 
+    // If all notes are judged and we've passed the last note, finish the game
+    // (this handles the no-audio fallback mode)
+    if (this.allNotesJudged() && this.chartNotes.length > 0) {
+      const lastNote = this.chartNotes[this.chartNotes.length - 1];
+      if (audioTime > lastNote.time + this.hitWindow + 500) {
+        this.finishGame();
+        return;
+      }
+    }
+
     this.render(audioTime);
 
     this.animationFrameId = requestAnimationFrame(this.gameLoop);
   };
 
   private getAudioTimeMs(): number {
+    if (this.virtualAudioStartMs !== null) {
+      return performance.now() - this.virtualAudioStartMs;
+    }
     return this.audio.currentTime * 1000;
   }
 
@@ -866,6 +900,10 @@ export class Gameplay implements AfterViewInit, OnDestroy {
     }
   }
 
+  private allNotesJudged(): boolean {
+    return this.notes.every(n => n.judged);
+  }
+
   private finishGame(): void {
     if (this.gameFinished()) {
       return;
@@ -966,6 +1004,105 @@ export class Gameplay implements AfterViewInit, OnDestroy {
     } catch (e) {
       // ignore errors submitting analytics
       console.warn('Error while sending run stats:', e);
+    }
+  }
+
+  openSendScoreModal(): void {
+    this.showSendScoreModal.set(true);
+    this.sendScoreError.set(null);
+    this.sendScoreSuccess.set(false);
+    this.selectedFriendIds.set(new Set());
+    this.loadFriends();
+  }
+
+  closeSendScoreModal(): void {
+    this.showSendScoreModal.set(false);
+    this.sendScoreError.set(null);
+    this.sendScoreSuccess.set(false);
+  }
+
+  private loadFriends(): void {
+    const userId = this.authService.currentUser?.id;
+    if (!userId) {
+      this.friendsList.set([]);
+      return;
+    }
+    this.loadingFriends.set(true);
+    this.friendshipService.getFriends(userId).subscribe({
+      next: response => {
+        if (response.success) {
+          this.friendsList.set(response.friends);
+        } else {
+          this.friendsList.set([]);
+        }
+        this.loadingFriends.set(false);
+      },
+      error: err => {
+        this.sendScoreError.set(err.message || 'Failed to load friends');
+        this.friendsList.set([]);
+        this.loadingFriends.set(false);
+      }
+    });
+  }
+
+  toggleFriendSelection(friendId: number): void {
+    this.selectedFriendIds.update(current => {
+      const next = new Set(current);
+      if (next.has(friendId)) {
+        next.delete(friendId);
+      } else {
+        next.add(friendId);
+      }
+      return next;
+    });
+  }
+
+  sendScoreToFriends(): void {
+    const userId = this.authService.currentUser?.id;
+    if (!userId) {
+      this.sendScoreError.set('You must be logged in to send scores');
+      return;
+    }
+    const selectedIds = Array.from(this.selectedFriendIds());
+    if (selectedIds.length === 0) {
+      this.sendScoreError.set('Please select at least one friend');
+      return;
+    }
+
+    const song = this.currentSong();
+    const diff = this.resolvedDifficulty();
+    const stats = this.stats();
+    const mapName = song?.name || this.chartMetadata().title || 'Unknown Map';
+    const diffName = diff ? difficultyNumberToName(diff.difficulty) : 'Unknown';
+    const coverUrl = song?.coverUrl || '';
+    const message = `🎵 Score Share\nMap: ${mapName}\nDifficulty: ${diffName}\nScore: ${stats.score.toLocaleString()}\nAccuracy: ${stats.accuracy.toFixed(1)}%\nRank: ${this.resultRank()}${coverUrl ? '\nCover: ' + coverUrl : ''}`;
+
+    this.sendingScore.set(true);
+    this.sendScoreError.set(null);
+    this.sendScoreSuccess.set(false);
+
+    let completed = 0;
+    let failed = 0;
+    for (const friendId of selectedIds) {
+      this.messageService.sendMessage(userId, friendId, message).subscribe({
+        next: response => {
+          completed++;
+          if (response.success && completed === selectedIds.length && failed === 0) {
+            this.sendingScore.set(false);
+            this.sendScoreSuccess.set(true);
+          } else if (!response.success) {
+            failed++;
+            this.sendingScore.set(false);
+            this.sendScoreError.set(response.error || `Failed to send to friend ${friendId}`);
+          }
+        },
+        error: err => {
+          failed++;
+          completed++;
+          this.sendingScore.set(false);
+          this.sendScoreError.set(err.message || 'Failed to send score');
+        }
+      });
     }
   }
 
