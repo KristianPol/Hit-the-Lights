@@ -14,6 +14,7 @@ export const routes: Routes = [
     {path: 'register', component: Register},
     {path: 'menu' , component : MenuComponent},
     {path: 'profile', component : ProfileComponent},
+    {path: 'profile/:userId', component : ProfileComponent},
     {path: 'messages', component : Messages},
     {path: 'settings', component: SettingsPage},
     {path: 'analytics', component: AnalyticsPage},

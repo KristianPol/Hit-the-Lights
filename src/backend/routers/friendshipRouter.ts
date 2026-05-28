@@ -2,8 +2,6 @@ import { Router, Request, Response } from 'express';
 import { Unit } from '../database/unit';
 import { FriendshipService } from '../services/FriendshipService';
 import { MessageService } from '../services/MessageService';
-import FriendshipServiceAsync from '../services/FriendshipServiceAsync';
-import MessageServiceAsync from '../services/MessageServiceAsync';
 
 export const friendshipRouter = Router();
 
@@ -15,6 +13,7 @@ friendshipRouter.get('/search', async (req: Request, res: Response) => {
     const excludeUserId = req.query['excludeUserId'] ? parseInt(req.query['excludeUserId'] as string, 10) : undefined;
     if (!query || query.trim().length === 0) { if (unit) unit.complete(); res.status(200).json({ success: true, users: [] }); return; }
     if (usePostgres) {
+      const FriendshipServiceAsync = require('../services/FriendshipServiceAsync').default;
       const svc = new FriendshipServiceAsync();
       const users = await svc.searchUsers(query, excludeUserId);
       res.status(200).json({ success: true, users });
@@ -39,10 +38,12 @@ friendshipRouter.post('/request', async (req: Request, res: Response) => {
     const parsedAddresseeId = parseInt(addresseeId, 10);
     if (!parsedRequesterId || !parsedAddresseeId) { if (unit) unit.complete(false); res.status(400).json({ success: false, error: 'Both requesterId and addresseeId are required' }); return; }
     if (usePostgres) {
+      const FriendshipServiceAsync = require('../services/FriendshipServiceAsync').default;
       const svc = new FriendshipServiceAsync();
       const result = await svc.sendFriendRequest(parsedRequesterId, parsedAddresseeId);
       if (result.success) {
         if (initialMessage && typeof initialMessage === 'string' && initialMessage.trim().length > 0) {
+          const MessageServiceAsync = require('../services/MessageServiceAsync').default;
           const messageService = new MessageServiceAsync();
           await messageService.storeMessageDirectly(parsedRequesterId, parsedAddresseeId, initialMessage.trim());
         }
@@ -80,6 +81,7 @@ friendshipRouter.post('/accept', async (req: Request, res: Response) => {
     const parsedUserId = parseInt(userId, 10);
     if (!parsedFriendshipId || !parsedUserId) { if (unit) unit.complete(false); res.status(400).json({ success: false, error: 'friendshipId and userId are required' }); return; }
     if (usePostgres) {
+      const FriendshipServiceAsync = require('../services/FriendshipServiceAsync').default;
       const svc = new FriendshipServiceAsync();
       const result = await svc.acceptFriendRequest(parsedFriendshipId, parsedUserId);
       if (result.success) res.status(200).json(result); else res.status(400).json(result);
@@ -103,6 +105,7 @@ friendshipRouter.post('/decline', async (req: Request, res: Response) => {
     const parsedUserId = parseInt(userId, 10);
     if (!parsedFriendshipId || !parsedUserId) { if (unit) unit.complete(false); res.status(400).json({ success: false, error: 'friendshipId and userId are required' }); return; }
     if (usePostgres) {
+      const FriendshipServiceAsync = require('../services/FriendshipServiceAsync').default;
       const svc = new FriendshipServiceAsync();
       const result = await svc.declineFriendRequest(parsedFriendshipId, parsedUserId);
       if (result.success) res.status(200).json(result); else res.status(400).json(result);
@@ -124,6 +127,7 @@ friendshipRouter.get('/friends/:userId', async (req: Request, res: Response) => 
     const userId = parseInt(req.params['userId'] as string, 10);
     if (!userId) { if (unit) unit.complete(); res.status(400).json({ success: false, error: 'Invalid userId' }); return; }
     if (usePostgres) {
+      const FriendshipServiceAsync = require('../services/FriendshipServiceAsync').default;
       const svc = new FriendshipServiceAsync();
       const friends = await svc.getFriends(userId);
       res.status(200).json({ success: true, friends });
@@ -146,6 +150,7 @@ friendshipRouter.get('/pending/:userId', async (req: Request, res: Response) => 
     const userId = parseInt(req.params['userId'] as string, 10);
     if (!userId) { if (unit) unit.complete(); res.status(400).json({ success: false, error: 'Invalid userId' }); return; }
     if (usePostgres) {
+      const FriendshipServiceAsync = require('../services/FriendshipServiceAsync').default;
       const svc = new FriendshipServiceAsync();
       const requests = await svc.getPendingRequests(userId);
       res.status(200).json({ success: true, requests });
@@ -168,6 +173,7 @@ friendshipRouter.get('/sent/:userId', async (req: Request, res: Response) => {
     const userId = parseInt(req.params['userId'] as string, 10);
     if (!userId) { if (unit) unit.complete(); res.status(400).json({ success: false, error: 'Invalid userId' }); return; }
     if (usePostgres) {
+      const FriendshipServiceAsync = require('../services/FriendshipServiceAsync').default;
       const svc = new FriendshipServiceAsync();
       const requests = await svc.getSentRequests(userId);
       res.status(200).json({ success: true, requests });
@@ -191,6 +197,7 @@ friendshipRouter.delete('/:userId/:friendId', async (req: Request, res: Response
     const friendId = parseInt(req.params['friendId'] as string, 10);
     if (!userId || !friendId) { if (unit) unit.complete(false); res.status(400).json({ success: false, error: 'Invalid userId or friendId' }); return; }
     if (usePostgres) {
+      const FriendshipServiceAsync = require('../services/FriendshipServiceAsync').default;
       const svc = new FriendshipServiceAsync();
       const result = await svc.removeFriend(userId, friendId);
       res.status(200).json(result);
