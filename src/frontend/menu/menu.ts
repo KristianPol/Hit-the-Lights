@@ -13,6 +13,7 @@ interface MenuItem {
   route: string;
   badge?: number;
   isAction?: boolean;
+  isSecluded?: boolean;
 }
 
 interface Song {
@@ -65,6 +66,7 @@ export class MenuComponent implements OnInit, OnDestroy {
   menuItems: MenuItem[] = [
     { label: 'Dashboard', icon: 'fas fa-house', route: '/dashboard' },
     { label: 'Profile', icon: 'fas fa-user', route: '/profile' },
+    { label: 'About', icon: 'fas fa-circle-info', route: '/about', isSecluded: true },
     { label: 'Settings', icon: 'fas fa-gear', route: '/settings' },
     { label: 'Messages', icon: 'fas fa-envelope', route: '/messages' },
     { label: 'Analytics', icon: 'fas fa-chart-line', route: '/analytics' },

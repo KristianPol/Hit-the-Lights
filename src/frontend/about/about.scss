@@ -1,0 +1,141 @@
+﻿.about-page {
+  padding: 24px;
+  max-width: 900px;
+  margin: 0 auto;
+  color: #f2f2f2;
+
+  h1 {
+    margin-bottom: 8px;
+    font-size: 28px;
+  }
+
+  .lead {
+    margin-bottom: 20px;
+    color: #cfcfcf;
+  }
+
+  .team-card {
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    border: 1px solid rgba(255,255,255,0.04);
+    padding: 18px;
+    border-radius: 10px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+    margin-top: 14px;
+  }
+
+  .team-header {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+
+  .team-sub {
+    color: #cfcfcf;
+    margin-bottom: 12px;
+    font-size: 13px;
+  }
+
+  .profiles {
+    display: flex;
+    gap: 18px;
+    justify-content: space-between;
+    align-items: stretch;
+    flex-wrap: nowrap;
+  }
+
+  .profile-card {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.03);
+    padding: 18px;
+    border-radius: 8px;
+    flex: 1 1 240px;
+    max-width: 300px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.45);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    transition: transform 160ms ease, box-shadow 160ms ease;
+  }
+
+  .profile-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+  }
+
+  .profile-header {
+    font-weight: 700;
+    font-size: 18px;
+    margin-bottom: 6px;
+  }
+
+  .profile-avatar {
+    width: 96px;
+    height: 96px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-bottom: 10px;
+    border: 2px solid rgba(255,255,255,0.06);
+  }
+
+  .profile-role {
+    font-size: 13px;
+    color: #bdbdbd;
+    margin-bottom: 10px;
+  }
+
+  .profile-bio {
+    font-size: 13px;
+    color: #d2d2d2;
+    margin-bottom: 12px;
+  }
+
+  .github-link {
+    color: #9ad0ff;
+    text-decoration: none;
+    font-weight: 600;
+    display: inline-flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .github-icon {
+    width: 18px;
+    height: 18px;
+    fill: #9ad0ff;
+    flex: 0 0 18px;
+    transition: transform 180ms ease, filter 180ms ease;
+  }
+
+  .github-link:hover .github-icon,
+  .profile-card:focus .github-icon {
+    transform: translateY(-2px) scale(1.06);
+    filter: drop-shadow(0 6px 10px rgba(154,208,255,0.12));
+  }
+
+  .back-row {
+    margin-top: 20px;
+  }
+
+  .back-button {
+    display: inline-block;
+    color: #fff;
+    background: #2b2b2b;
+    padding: 8px 12px;
+    border-radius: 6px;
+    text-decoration: none;
+  }
+
+  @media (max-width: 920px) {
+    .profiles {
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .profile-card {
+      max-width: 100%;
+      flex: 1 1 300px;
+    }
+  }
+}
+

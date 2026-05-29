@@ -8,6 +8,7 @@ import {Gameplay} from '../frontend/gameplay/gameplay';
 import {Messages} from '../frontend/messages/messages';
 import { SettingsPage } from '../frontend/settings/settings';
 import { AnalyticsPage } from '../frontend/analytics/analytics';
+import { AboutPage } from '../frontend/about/about';
 
 export const routes: Routes = [
     {path: 'login', component: Login},
@@ -18,6 +19,7 @@ export const routes: Routes = [
     {path: 'messages', component : Messages},
     {path: 'settings', component: SettingsPage},
     {path: 'analytics', component: AnalyticsPage},
+    {path: 'about', component: AboutPage},
     {path: 'starterPage', component: Starterpage},
     {path: 'gameplay', component: Gameplay},
     {path: 'gameplay/:songId', component: Gameplay},

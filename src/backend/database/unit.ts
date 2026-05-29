@@ -299,6 +299,19 @@ class DB {
 
     connection.exec("UPDATE User SET joinDate = CURRENT_TIMESTAMP WHERE joinDate IS NULL OR TRIM(joinDate) = ''");
 
+    connection.exec(`
+              CREATE TABLE IF NOT EXISTS UserControls (
+                user_id INTEGER PRIMARY KEY,
+                lane_bindings_json TEXT NOT NULL DEFAULT '["d","f","j","k"]',
+                note_speed REAL NOT NULL DEFAULT 1,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES User(id) ON DELETE CASCADE
+                ) STRICT
+          `);
+
+    DB.migrateLegacyUserControls(connection);
+
     // Ensure any NULL analytics columns are zeroed for legacy users
     connection.exec('UPDATE User SET perfect_total = 0 WHERE perfect_total IS NULL');
     connection.exec('UPDATE User SET good_total = 0 WHERE good_total IS NULL');
@@ -387,6 +400,83 @@ class DB {
 
      connection.exec('CREATE INDEX IF NOT EXISTS idx_message_conversation ON Message(sender_id, receiver_id, created_at)');
      connection.exec('CREATE INDEX IF NOT EXISTS idx_message_receiver ON Message(receiver_id, is_read)');
+  }
+
+  private static migrateLegacyUserControls(connection: Database): void {
+    const userColumns = connection.prepare("PRAGMA table_info(User)").all() as Array<{ name: string }>;
+    const userColumnNames = new Set(userColumns.map(column => column.name));
+
+    const defaultLaneBindings = ['d', 'f', 'j', 'k'];
+    const defaultControlsJson = JSON.stringify({ laneBindings: defaultLaneBindings, noteSpeed: 1 });
+
+    const normalizeControls = (value: unknown): { laneBindings: [string, string, string, string]; noteSpeed: number } => {
+      const fallback: [string, string, string, string] = ['d', 'f', 'j', 'k'];
+      const candidate = value && typeof value === 'object' ? value as { laneBindings?: unknown; noteSpeed?: unknown; lane_bindings?: unknown; note_speed?: unknown } : null;
+      const source = Array.isArray(candidate?.laneBindings)
+        ? candidate?.laneBindings
+        : Array.isArray(candidate?.lane_bindings)
+          ? candidate?.lane_bindings
+          : fallback;
+
+      const laneBindings = fallback.map((defaultBinding, index) => {
+        const raw = source?.[index];
+        const normalized = typeof raw === 'string' ? raw.trim().toLowerCase() : defaultBinding;
+        return normalized || defaultBinding;
+      }) as [string, string, string, string];
+
+      const numericSpeed = Number(candidate?.noteSpeed ?? candidate?.note_speed ?? 1);
+      const noteSpeed = Number.isFinite(numericSpeed) ? Math.min(2.5, Math.max(0.5, Number(numericSpeed.toFixed(2)))) : 1;
+
+      return { laneBindings, noteSpeed };
+    };
+
+    if (userColumnNames.has('settings_json')) {
+      const legacyRows = connection.prepare(
+        `SELECT id, settings_json FROM User WHERE settings_json IS NOT NULL AND TRIM(settings_json) <> ''`
+      ).all() as Array<{ id: number; settings_json: string | null }>;
+
+      const upsertStmt = connection.prepare(
+        `INSERT INTO UserControls (user_id, lane_bindings_json, note_speed, created_at, updated_at)
+         VALUES ($userId, $laneBindingsJson, $noteSpeed, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+         ON CONFLICT(user_id) DO UPDATE SET
+           lane_bindings_json = excluded.lane_bindings_json,
+           note_speed = excluded.note_speed,
+           updated_at = CURRENT_TIMESTAMP`
+      ) as any;
+
+      for (const row of legacyRows) {
+        let parsed: unknown = null;
+        try {
+          parsed = row.settings_json ? JSON.parse(row.settings_json) : null;
+        } catch {
+          parsed = null;
+        }
+
+        const normalized = normalizeControls(parsed);
+        upsertStmt.run({
+          userId: row.id,
+          laneBindingsJson: JSON.stringify({ laneBindings: normalized.laneBindings, noteSpeed: normalized.noteSpeed }),
+          noteSpeed: normalized.noteSpeed
+        });
+      }
+    }
+
+    const missingUsers = connection.prepare(
+      `SELECT id FROM User WHERE id NOT IN (SELECT user_id FROM UserControls)`
+    ).all() as Array<{ id: number }>;
+
+    const insertDefaultStmt = connection.prepare(
+      `INSERT INTO UserControls (user_id, lane_bindings_json, note_speed, created_at, updated_at)
+       VALUES ($userId, $laneBindingsJson, $noteSpeed, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`
+    ) as any;
+
+    for (const row of missingUsers) {
+      insertDefaultStmt.run({
+        userId: row.id,
+        laneBindingsJson: defaultControlsJson,
+        noteSpeed: 1
+      });
+    }
   }
 }
 

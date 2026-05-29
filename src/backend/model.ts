@@ -7,6 +7,13 @@
   playtimeSeconds?: number
 };
 
+export interface UserControls {
+  userId: number;
+  laneBindingsJson: string;
+  noteSpeed: number;
+  updatedAt?: string;
+}
+
 export interface Song {
   id: number;
   name: string;

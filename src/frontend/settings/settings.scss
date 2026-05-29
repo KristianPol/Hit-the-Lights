@@ -19,14 +19,14 @@ $text-muted: #555555;
 :host {
   display: block;
   min-height: 100vh;
-  font-family: var(--app-font-sans, 'Segoe UI', sans-serif);
-  background: $black-primary;
+  font-family: var(--app-font-sans, 'Segoe UI'), sans-serif;
+  background: transparent;
 }
 
 .settings-page {
   min-height: 100vh;
   padding: 2rem;
-  background: linear-gradient(135deg, $black-primary 0%, #0f0f0f 100%);
+  background: transparent;
   color: $text-primary;
   display: flex;
   align-items: center;

@@ -18,13 +18,13 @@ The codebase includes:
 
 ## Tech Stack
 
-| Layer        | Technology                                 |
-| ------------ | ------------------------------------------ |
+| Layer        | Technology                                    |
+| ------------ |-----------------------------------------------|
 | **Frontend** | Angular 21, TypeScript 5.9, SCSS, FontAwesome |
-| **Backend**  | Node.js, Express 5, TypeScript             |
-| **Database** |  better-sqlite3  |
-| **Testing**  | Jest, ts-jest, Vitest, jsdom               |
-| **Tooling**  | Angular CLI 21, Prettier, ESLint           |
+| **Backend**  | Node.js, Express 5, TypeScript                |
+| **Database** | srbetter-sqlite3                              |
+| **Testing**  | Jest, ts-jest, Vitest, jsdom                  |
+| **Tooling**  | Angular CLI 21, Prettier, ESLint              |
 
 ---
 

@@ -27,7 +27,7 @@ $text-muted: #555555;
 // Main container
 .profile-container {
   min-height: 100vh;
-  background: linear-gradient(135deg, $black-primary 0%, #0f0f0f 100%);
+  background: transparent;
   padding: 3rem;
   display: flex;
   flex-direction: column;

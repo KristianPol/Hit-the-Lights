@@ -21,13 +21,13 @@ $text-muted: #555555;
 }
 
 :host {
-  font-family: var(--app-font-sans, 'Segoe UI', sans-serif);
+  font-family: var(--app-font-sans, 'Segoe UI'), sans-serif;
 }
 
 .dashboard-layout {
   display: flex;
   height: 100vh;
-  background: $black-primary;
+  background: transparent;
 }
 
 .menu-container {
