@@ -1,6 +1,5 @@
 import { Component, signal } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { NgOptimizedImage } from '@angular/common';
 import { RouterLink, Router } from '@angular/router';
 import { AuthService } from '../../app/services/auth.service';
 
@@ -10,7 +9,6 @@ import { AuthService } from '../../app/services/auth.service';
   templateUrl: './login.html',
   imports: [
     ReactiveFormsModule,
-    NgOptimizedImage,
     RouterLink
   ],
   styleUrls: ['./login.scss']

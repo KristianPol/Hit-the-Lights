@@ -31,11 +31,6 @@ $error-color: #e74c3c;
   100% { transform: translateX(100%); }
 }
 
-@keyframes rotate {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
 @keyframes borderRotate {
   0% { filter: blur(15px) hue-rotate(0deg); }
   100% { filter: blur(15px) hue-rotate(360deg); }
@@ -66,73 +61,6 @@ $error-color: #e74c3c;
     background: radial-gradient(circle at 30% 30%, rgba(255, 215, 0, 0.03) 0%, transparent 50%),
     radial-gradient(circle at 70% 70%, rgba(255, 215, 0, 0.02) 0%, transparent 50%);
     pointer-events: none;
-  }
-}
-
-.logo-section {
-  @include flex-center;
-  flex-direction: column;
-  margin-bottom: 2.5rem;
-  position: relative;
-
-  .logo {
-    width: 80px;
-    height: 80px;
-    border-radius: 20px;
-    background: linear-gradient(135deg, $yellow-primary, $yellow-bright);
-    border: 3px solid rgba(255, 215, 0, 0.5);
-    @include flex-center;
-    overflow: hidden;
-    box-shadow: 0 0 40px $yellow-glow, inset 0 0 20px rgba(255, 255, 255, 0.2);
-    position: relative;
-    animation: float 3s ease-in-out infinite;
-    margin-bottom: 1.5rem;
-
-    &::before {
-      content: '';
-      position: absolute;
-      inset: -10px;
-      border-radius: 20px;
-      background: conic-gradient(from 0deg, transparent, $yellow-primary, transparent, $yellow-primary, transparent);
-      animation: rotate 3s linear infinite;
-      opacity: 0.5;
-      filter: blur(10px);
-      z-index: -1;
-    }
-
-    img {
-      width: 60%;
-      height: 60%;
-      object-fit: contain;
-      filter: drop-shadow(0 0 10px rgba(0, 0, 0, 0.3));
-    }
-  }
-
-  .beta-badge {
-    font-size: 1.75rem;
-    font-weight: 800;
-    letter-spacing: 0.15em;
-    margin: 0;
-    background: linear-gradient(90deg, $yellow-primary, $yellow-bright);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    text-shadow: 0 0 30px $yellow-glow;
-    position: relative;
-
-    &::selection {
-      color: $text-primary;
-      background-color: gold;
-      -webkit-text-fill-color: $text-primary;
-    }
-
-    &::after {
-      content: '⚡';
-      margin-left: 0.5rem;
-      -webkit-text-fill-color: $yellow-primary;
-      filter: drop-shadow(0 0 10px $yellow-glow);
-      animation: pulse 2s ease-in-out infinite;
-    }
   }
 }
 
@@ -171,27 +99,36 @@ $error-color: #e74c3c;
     animation: scanline 3s linear infinite;
     opacity: 0.6;
   }
+}
+
+.form-header {
+  @include flex-center;
+  flex-direction: column;
+  margin-bottom: 2rem;
+
+  .form-header-icon {
+    font-size: 3.5rem;
+    color: $yellow-primary;
+    filter: drop-shadow(0 0 15px $yellow-glow);
+    margin-bottom: 1rem;
+    animation: float 3s ease-in-out infinite;
+  }
 
   h2 {
     text-align: center;
     color: $text-primary;
     font-size: 1.5rem;
-    margin: 0 0 2rem 0;
+    margin: 0;
     font-weight: 700;
     letter-spacing: 0.05em;
     text-transform: uppercase;
   }
+}
 
-  form {
-    display: flex;
-    flex-direction: column;
-    gap: 1.25rem;
-  }
-
-  ::selection {
-    color: $text-primary;
-    background-color: gold;
-  }
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
 }
 
 .form-group {
@@ -206,34 +143,63 @@ $error-color: #e74c3c;
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.1em;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+
+  .form-label-icon {
+    color: $yellow-primary;
+    font-size: 0.8rem;
+  }
 }
 
-.form-input {
-  padding: 1rem 1.25rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  font-size: 1rem;
-  background: rgba($black-tertiary, 0.6);
-  color: $text-primary;
-  transition: all 0.3s ease;
+.input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
 
-  &::placeholder {
+  .input-icon {
+    position: absolute;
+    left: 1rem;
     color: $text-muted;
+    font-size: 0.9rem;
+    pointer-events: none;
+    transition: color 0.3s ease;
   }
 
-  &:focus {
-    outline: none;
-    border-color: rgba(255, 215, 0, 0.4);
-    background: rgba($black-light, 0.6);
-    box-shadow: 0 0 20px rgba(255, 215, 0, 0.1);
-  }
+  .form-input {
+    width: 100%;
+    padding: 1rem 1.25rem 1rem 2.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    font-size: 1rem;
+    background: rgba($black-tertiary, 0.6);
+    color: $text-primary;
+    transition: all 0.3s ease;
 
-  &.is-invalid {
-    border-color: $error-color;
-    background: rgba(231, 76, 60, 0.05);
+    &::placeholder {
+      color: $text-muted;
+    }
 
     &:focus {
-      box-shadow: 0 0 20px rgba(231, 76, 60, 0.1);
+      outline: none;
+      border-color: rgba(255, 215, 0, 0.4);
+      background: rgba($black-light, 0.6);
+      box-shadow: 0 0 20px rgba(255, 215, 0, 0.1);
+
+      & + .input-icon,
+      & ~ .input-icon {
+        color: $yellow-primary;
+      }
+    }
+
+    &.is-invalid {
+      border-color: $error-color;
+      background: rgba(231, 76, 60, 0.05);
+
+      &:focus {
+        box-shadow: 0 0 20px rgba(231, 76, 60, 0.1);
+      }
     }
   }
 }
@@ -247,8 +213,9 @@ $error-color: #e74c3c;
   align-items: center;
   gap: 0.5rem;
 
-  &::before {
-    content: '⚠';
+  .error-icon {
+    font-size: 0.85rem;
+    flex-shrink: 0;
   }
 }
 
@@ -265,6 +232,8 @@ $error-color: #e74c3c;
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
+  @include flex-center;
+  gap: 0.5rem;
 
   &::after {
     content: '';
@@ -341,12 +310,20 @@ $error-color: #e74c3c;
     text-decoration: none;
     font-weight: 600;
     transition: color 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
 
     &:hover {
       color: $yellow-bright;
       text-decoration: underline;
     }
   }
+}
+
+::selection {
+  color: $text-primary;
+  background-color: gold;
 }
 
 // Scrollbar
@@ -378,13 +355,8 @@ $error-color: #e74c3c;
     padding: 2rem 1.5rem;
   }
 
-  .logo-section .logo {
-    width: 70px;
-    height: 70px;
-  }
-
-  .logo-section .beta-badge {
-    font-size: 1.5rem;
+  .form-header .form-header-icon {
+    font-size: 3rem;
   }
 }
 

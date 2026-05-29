@@ -1,25 +1,29 @@
 <div class="register-container">
-  <div class="logo-section">
-    <img ngSrc="../../../assets/HTL(proj).png" alt="Hit The Lights Logo" class="logo" height="561" width="567" priority>
-    <h1 class="beta-badge">Hit The Lights</h1>
-  </div>
-
   <div class="register-box">
-    <h2>Register</h2>
+    <div class="form-header">
+      <i class="fas fa-user-plus form-header-icon"></i>
+      <h2>Register</h2>
+    </div>
 
     <form [formGroup]="loginForm" (ngSubmit)="onRegister()">
       <div class="form-group">
-        <label for="username" class="form-label">Username</label>
-        <input
-          type="text"
-          id="username"
-          class="form-input"
-          formControlName="username"
-          placeholder="Enter your username"
-          [class.is-invalid]="submitted() && f['username'].errors"
-        >
+        <label for="username" class="form-label">
+          <i class="fas fa-user form-label-icon"></i>Username
+        </label>
+        <div class="input-wrapper">
+          <i class="fas fa-user input-icon"></i>
+          <input
+            type="text"
+            id="username"
+            class="form-input"
+            formControlName="username"
+            placeholder="Enter your username"
+            [class.is-invalid]="submitted() && f['username'].errors"
+          >
+        </div>
         @if (submitted() && f['username'].errors) {
           <div class="error-message">
+            <i class="fas fa-circle-exclamation error-icon"></i>
             @if (f['username'].hasError('required')) {
               <span>Username is required</span>
             }
@@ -30,19 +34,24 @@
         }
       </div>
 
-      <!-- Password Input -->
       <div class="form-group">
-        <label for="password" class="form-label">Password</label>
-        <input
-          type="password"
-          id="password"
-          class="form-input"
-          formControlName="password"
-          placeholder="Enter your password"
-          [class.is-invalid]="submitted() && f['password'].errors"
-        >
+        <label for="password" class="form-label">
+          <i class="fas fa-lock form-label-icon"></i>Password
+        </label>
+        <div class="input-wrapper">
+          <i class="fas fa-lock input-icon"></i>
+          <input
+            type="password"
+            id="password"
+            class="form-input"
+            formControlName="password"
+            placeholder="Enter your password"
+            [class.is-invalid]="submitted() && f['password'].errors"
+          >
+        </div>
         @if (submitted() && f['password'].errors) {
           <div class="error-message">
+            <i class="fas fa-circle-exclamation error-icon"></i>
             @if (f['password'].hasError('required')) {
               <span>Password is required</span>
             }
@@ -54,26 +63,30 @@
       </div>
 
       @if (errorMessage()) {
-        <div class="error-message" style="margin-bottom: 15px; color: #ff4444; text-align: center;">
+        <div class="error-message" style="margin-bottom: 15px; color: #ff4444; text-align: center; justify-content: center;">
+          <i class="fas fa-circle-xmark error-icon"></i>
           {{ errorMessage() }}
         </div>
       }
 
-      <!-- Submit Button -->
       <button type="submit" class="submit-btn" [disabled]="loading()">
         @if (loading()) {
+          <i class="fas fa-spinner fa-spin"></i>
           <span>Loading...</span>
         } @else {
+          <i class="fas fa-user-plus"></i>
           <span>Register</span>
         }
       </button>
 
-      <!-- Reset Button -->
-      <button type="button" class="reset-btn" (click)="resetForm()" [disabled]="loading()">Clear</button>
+      <button type="button" class="reset-btn" (click)="resetForm()" [disabled]="loading()">
+        <i class="fas fa-eraser"></i>
+        <span>Clear</span>
+      </button>
     </form>
     <p class="login-link">
       <span>Already have an account? </span>
-      <a routerLink="/login">Login here</a>
+      <a routerLink="/login"><i class="fas fa-right-to-bracket"></i> Login here</a>
     </p>
   </div>
 </div>
