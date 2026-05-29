@@ -19,8 +19,10 @@ export class ProfileComponent implements OnInit {
   error: string | null = null;
   uploadedSongCount = 0;
   unreadMessageCount = 0;
+  totalGamesPlayed = 0;
   isOwnProfile = true;
   viewedUserId: number | null = null;
+  private songCountLoaded = false;
 
   // Edit profile modal state
   showEditModal = false;
@@ -45,6 +47,9 @@ export class ProfileComponent implements OnInit {
     this.loading = true;
     this.error = null;
     this.imageError = false;
+    this.songCountLoaded = false;
+    this.uploadedSongCount = 0;
+    this.totalGamesPlayed = 0;
 
     this.route.paramMap.pipe(take(1)).subscribe(params => {
       this.loading = true;
@@ -75,6 +80,13 @@ export class ProfileComponent implements OnInit {
   }
 
   private loadOwnProfile(): void {
+    const currentUser = this.authService.currentUser;
+    if (currentUser) {
+      // Load counts immediately
+      this.loadUploadedSongCount(currentUser.id);
+      this.loadUnreadCount(currentUser.id);
+    }
+
     this.authService.currentUser$.pipe(
       tap(user => {
         this.ngZone.run(() => {
@@ -84,12 +96,12 @@ export class ProfileComponent implements OnInit {
         });
 
         if (user) {
-          this.loadUploadedSongCount(user.id);
-          this.loadUnreadCount(user.id);
+          // Update user data in UI
         } else {
           this.ngZone.run(() => {
             this.uploadedSongCount = 0;
             this.unreadMessageCount = 0;
+            this.totalGamesPlayed = 0;
           });
         }
       }),
@@ -129,6 +141,7 @@ export class ProfileComponent implements OnInit {
           this.error = null;
           this.loadUploadedSongCount(userId);
           this.unreadMessageCount = 0;
+          this.totalGamesPlayed = 0;
         } else {
           this.error = response.error || 'User not found';
           this.user = null;
@@ -307,16 +320,19 @@ export class ProfileComponent implements OnInit {
   }
 
   private loadUploadedSongCount(userId: number): void {
+
     const viewerId = this.authService.currentUser?.id ?? undefined;
     this.songService.getUploadedSongCount(userId, viewerId).subscribe({
       next: response => {
         this.ngZone.run(() => {
           this.uploadedSongCount = response.success ? response.count : 0;
+          this.songCountLoaded = true;
         });
       },
       error: () => {
         this.ngZone.run(() => {
           this.uploadedSongCount = 0;
+          this.songCountLoaded = true;
         });
       }
     });
@@ -335,5 +351,15 @@ export class ProfileComponent implements OnInit {
         });
       }
     });
+  }
+
+  /**
+   * Refresh the uploaded song count (useful when a new song is uploaded)
+   */
+  public refreshUploadedSongCount(): void {
+    if (this.user) {
+      this.songCountLoaded = false;
+      this.loadUploadedSongCount(this.user.id);
+    }
   }
 }

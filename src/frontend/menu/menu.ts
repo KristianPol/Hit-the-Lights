@@ -1,4 +1,5 @@
 import { Component, OnInit, OnDestroy, ChangeDetectorRef, NgZone, computed, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService, User } from '../../app/services/auth.service';
@@ -56,18 +57,18 @@ interface LeaderboardState {
 @Component({
   selector: 'app-menu',
   standalone: true,
-  imports: [RouterModule, FormsModule],
+  imports: [CommonModule, RouterModule, FormsModule],
   templateUrl: './menu.html',
   styleUrls: ['./menu.scss']
 })
 export class MenuComponent implements OnInit, OnDestroy {
   menuItems: MenuItem[] = [
-    { label: 'Dashboard', icon: '◆', route: '/dashboard' },
-    { label: 'Profile', icon: '◎', route: '/profile' },
-    { label: 'Settings', icon: '⚙', route: '/settings' },
-    { label: 'Messages', icon: '✉', route: '/messages' },
-    { label: 'Analytics', icon: '◈', route: '/analytics' },
-    { label: 'Logout', icon: '→', route: '/logout', isAction: true }
+    { label: 'Dashboard', icon: 'fas fa-house', route: '/dashboard' },
+    { label: 'Profile', icon: 'fas fa-user', route: '/profile' },
+    { label: 'Settings', icon: 'fas fa-gear', route: '/settings' },
+    { label: 'Messages', icon: 'fas fa-envelope', route: '/messages' },
+    { label: 'Analytics', icon: 'fas fa-chart-line', route: '/analytics' },
+    { label: 'Logout', icon: 'fas fa-right-from-bracket', route: '/logout', isAction: true }
   ];
 
   unreadMessageCount = signal(0);

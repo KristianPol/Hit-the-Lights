@@ -2,7 +2,7 @@
   <!-- Left Sidebar -->
   <div class="sidebar">
     <div class="sidebar-header">
-      <button class="back-btn" (click)="goBack()">← Back</button>
+      <button class="back-btn" (click)="goBack()"><i class="fas fa-arrow-left"></i><span>Back</span></button>
       <h2>Messages</h2>
       @if (unreadCount() > 0) {
         <span class="header-badge">{{ unreadCount() }}</span>
@@ -12,7 +12,7 @@
     <!-- Search -->
     <div class="search-section">
       <div class="search-input-wrapper">
-        <span class="search-icon">🔍</span>
+        <i class="search-icon fas fa-search"></i>
         <input
           type="text"
           class="search-input"
@@ -96,7 +96,7 @@
           <div class="loading-state"><div class="spinner"></div></div>
         } @else if (conversations().length === 0) {
           <div class="empty-state">
-            <span class="empty-icon">💬</span>
+            <i class="empty-icon fas fa-comments"></i>
             <p>No conversations yet</p>
             <span class="empty-hint">Start chatting with a friend!</span>
           </div>
@@ -138,12 +138,12 @@
       @if (activeTab() === 'friends') {
         @if (loadingFriends()) {
           <div class="loading-state"><div class="spinner"></div></div>
-        } @else if (friends().length === 0) {
-          <div class="empty-state">
-            <span class="empty-icon">👥</span>
-            <p>No friends yet</p>
-            <span class="empty-hint">Search for users to add friends</span>
-          </div>
+         } @else if (friends().length === 0) {
+           <div class="empty-state">
+             <i class="empty-icon fas fa-users"></i>
+             <p>No friends yet</p>
+             <span class="empty-hint">Search for users to add friends</span>
+           </div>
         } @else {
           <div class="list">
             @for (friend of friends(); track friend.id) {
@@ -170,7 +170,7 @@
                   (click)="removeFriend(friend.otherUser.id); $event.stopPropagation()"
                   title="Remove friend"
                 >
-                  ✕
+                  <i class="fas fa-user-minus"></i>
                 </button>
               </div>
             }
@@ -200,15 +200,15 @@
                     </div>
                     <div class="list-item-bottom">
                       @if (req.initialMessage) {
-                        <span class="list-item-preview request-preview">💬 "{{ req.initialMessage }}"</span>
+                        <span class="list-item-preview request-preview"><i class="fas fa-comment-dots"></i> "{{ req.initialMessage }}"</span>
                       } @else {
                         <span class="list-item-preview">Wants to be friends</span>
                       }
                     </div>
                   </div>
                   <div class="request-actions">
-                    <button class="btn-accept" (click)="acceptRequest(req.id)">✓</button>
-                    <button class="btn-decline" (click)="declineRequest(req.id)">✕</button>
+                    <button class="btn-accept" (click)="acceptRequest(req.id)"><i class="fas fa-check"></i></button>
+                    <button class="btn-decline" (click)="declineRequest(req.id)"><i class="fas fa-xmark"></i></button>
                   </div>
                 </div>
               }
@@ -240,12 +240,12 @@
             </div>
           }
 
-          @if (pendingRequests().length === 0 && sentRequests().length === 0) {
-            <div class="empty-state">
-              <span class="empty-icon">📭</span>
-              <p>No pending requests</p>
-            </div>
-          }
+           @if (pendingRequests().length === 0 && sentRequests().length === 0) {
+             <div class="empty-state">
+               <i class="empty-icon fas fa-inbox"></i>
+               <p>No pending requests</p>
+             </div>
+           }
         }
       }
     </div>
@@ -269,7 +269,7 @@
                 <span class="request-user-hint">Send a message request to start chatting</span>
               </div>
             </div>
-            <button class="btn-close-chat" (click)="closeRequestForm()">✕</button>
+            <button class="btn-close-chat" (click)="closeRequestForm()"><i class="fas fa-xmark"></i></button>
           </div>
           <div class="request-body">
             <textarea
@@ -320,7 +320,7 @@
           <div class="loading-state"><div class="spinner"></div></div>
         } @else if (chatMessages().length === 0) {
           <div class="empty-chat">
-            <span class="empty-icon">💬</span>
+            <i class="empty-icon fas fa-comments"></i>
             <p>No messages yet</p>
             <span class="empty-hint">Say hello to {{ selectedOtherUserName }}!</span>
           </div>
@@ -351,13 +351,13 @@
                 }
                 <div class="message-meta">
                   <span class="message-time">{{ formatTime(msg.createdAt) }}</span>
-                  @if (msg.senderId === currentUser?.id) {
-                    @if (msg.isRead) {
-                      <span class="read-status">✓✓</span>
-                    } @else {
-                      <span class="read-status">✓</span>
-                    }
-                  }
+                        @if (msg.senderId === currentUser?.id) {
+                                @if (msg.isRead) {
+                                  <span class="read-status"><i class="fas fa-check-double"></i></span>
+                                } @else {
+                                  <span class="read-status"><i class="fas fa-check"></i></span>
+                                }
+                              }
                 </div>
               </div>
             }
@@ -388,16 +388,16 @@
             @if (sendingMessage()) {
               <span class="send-spinner"></span>
             } @else {
-              <span>➤</span>
+              <i class="fas fa-paper-plane"></i>
             }
           </button>
         </div>
       </div>
     } @else {
       <!-- Empty Chat State -->
-      <div class="empty-chat-area">
+          <div class="empty-chat-area">
         <div class="empty-chat-content">
-          <span class="empty-chat-icon">✉</span>
+          <i class="empty-chat-icon fas fa-envelope"></i>
           <h3>Your Messages</h3>
           <p>Select a conversation or friend to start chatting</p>
         </div>

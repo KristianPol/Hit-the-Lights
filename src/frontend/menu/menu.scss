@@ -66,6 +66,9 @@ $text-muted: #555555;
       color: $yellow-primary;
       filter: drop-shadow(0 0 10px $yellow-glow);
       animation: pulse 2s ease-in-out infinite;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .logo-text {
@@ -140,6 +143,9 @@ $text-muted: #555555;
     transition: transform 0.3s ease;
     z-index: 2;
     position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 
     &.has-notification::after {
       content: '';
@@ -430,11 +436,17 @@ $text-muted: #555555;
   .empty-icon {
     font-size: 2.5rem;
     opacity: 0.6;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .error-icon {
     font-size: 2.5rem;
     opacity: 0.8;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
 
   p {
@@ -495,6 +507,9 @@ $text-muted: #555555;
 
     .delete-icon {
       font-size: 1rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
     }
   }
 
@@ -561,6 +576,10 @@ $text-muted: #555555;
 
         .meta-icon {
           opacity: 0.7;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 1em;
         }
       }
     }
@@ -848,6 +867,10 @@ $text-muted: #555555;
     &:active {
       transform: translateY(0);
     }
+
+    i {
+      font-size: 0.95em;
+    }
   }
 
   .visibility-toggle-btn {
@@ -1032,6 +1055,10 @@ $text-muted: #555555;
       font-size: 0.85rem;
       transition: all 0.2s ease;
 
+      i {
+        line-height: 1;
+      }
+
       &:hover {
         border-color: rgba(255, 215, 0, 0.4);
         color: $yellow-primary;
@@ -1120,6 +1147,11 @@ $text-muted: #555555;
     color: $yellow-primary;
     background: rgba(255, 215, 0, 0.05);
     box-shadow: 0 0 12px rgba(255, 215, 0, 0.1);
+  }
+
+  i {
+    width: 1.1em;
+    text-align: center;
   }
 }
 

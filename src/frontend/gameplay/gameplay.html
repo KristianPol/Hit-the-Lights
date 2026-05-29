@@ -149,7 +149,7 @@
       <div class="send-score-card" (click)="$event.stopPropagation()">
         <div class="send-score-header">
           <h3>Send Score to Friends</h3>
-          <button class="modal-close" (click)="closeSendScoreModal()">✕</button>
+          <button class="modal-close" (click)="closeSendScoreModal()"><i class="fas fa-xmark"></i></button>
         </div>
 
         <div class="send-score-preview">
@@ -164,7 +164,7 @@
             <div class="loading-state"><div class="spinner"></div><p>Loading friends...</p></div>
           } @else if (friendsList().length === 0) {
             <div class="empty-state">
-              <span class="empty-icon">👥</span>
+              <i class="empty-icon fas fa-users"></i>
               <p>No friends yet</p>
               <span class="empty-hint">Add friends from the Messages page to share scores</span>
             </div>

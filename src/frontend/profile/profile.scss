@@ -298,9 +298,16 @@ $text-muted: #555555;
     .info-icon {
       font-size: 1.5rem;
       margin-bottom: 0.75rem;
-      display: block;
+      display: flex;
+      justify-content: center;
+      align-items: center;
       transition: all 0.3s ease;
       color: $text-secondary;
+      height: 30px;
+
+      i {
+        font-size: 1.3rem;
+      }
     }
 
     .info-label {
@@ -383,11 +390,14 @@ $text-muted: #555555;
 
       .stat-icon {
         position: absolute;
-        top: 0.5rem;
-        right: 0.5rem;
-        font-size: 0.875rem;
-        opacity: 0.3;
+        top: 0.75rem;
+        right: 0.75rem;
+        font-size: 1.3rem;
+        opacity: 0.4;
         color: $yellow-primary;
+        display: flex;
+        align-items: center;
+        justify-content: center;
       }
     }
   }
@@ -498,6 +508,13 @@ $text-muted: #555555;
     font-size: 4rem;
     margin-bottom: 1rem;
     opacity: 0.5;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    i {
+      color: #ff6b6b;
+    }
   }
 
   p {
@@ -702,10 +719,6 @@ $text-muted: #555555;
     color: #ff6b6b;
     font-size: 0.875rem;
     margin-bottom: 1rem;
-
-    .error-icon {
-      font-size: 1rem;
-    }
   }
 
   .success-message {
@@ -719,10 +732,6 @@ $text-muted: #555555;
     color: #00ff88;
     font-size: 0.875rem;
     margin-bottom: 1rem;
-
-    .success-icon {
-      font-size: 1rem;
-    }
   }
 }
 

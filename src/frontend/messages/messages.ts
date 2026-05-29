@@ -480,7 +480,7 @@ export class Messages implements OnInit, OnDestroy {
   }
 
   isScoreShareMessage(content: string): boolean {
-    return content.startsWith('🎵 Score Share');
+    return content.startsWith('Score Share');
   }
 
   parseScoreShare(content: string): { lines: string[]; coverUrl: string | null } {

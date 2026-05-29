@@ -412,6 +412,10 @@
     line-height: 1;
     transition: all 0.2s ease;
 
+    i {
+      line-height: 1;
+    }
+
     &:hover {
       color: #ffd700;
       transform: rotate(90deg);
@@ -472,6 +476,12 @@
       font-size: 2rem;
       display: block;
       margin-bottom: 8px;
+
+      &.fa-users {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
     }
 
     p {

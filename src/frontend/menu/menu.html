@@ -3,7 +3,7 @@
   <div class="menu-container">
     <div class="menu-header">
       <div class="logo">
-        <span class="logo-icon">⚡</span>
+        <i class="logo-icon fas fa-bolt"></i>
         <span class="logo-text">Hit The Lights</span>
       </div>
       <div class="glow-line"></div>
@@ -16,8 +16,8 @@
               [class.active]="activeItem === item.label"
               [class.action-item]="item.isAction"
               (click)="setActive(item.label)">
-<a [routerLink]="item.route" class="menu-link">
-              <span class="item-icon" [class.has-notification]="item.label === 'Messages' && unreadMessageCount() > 0">{{ item.icon }}</span>
+            <a [routerLink]="item.route" class="menu-link">
+              <i class="item-icon" [ngClass]="item.icon" [class.has-notification]="item.label === 'Messages' && unreadMessageCount() > 0"></i>
               <span class="item-label">{{ item.label }}</span>
               @if (item.label === 'Messages' && unreadMessageCount() > 0) {
                 <span class="badge">{{ unreadMessageCount() }}</span>
@@ -64,12 +64,12 @@
       <div class="songs-list">
         @if (loadingError) {
           <div class="error-message">
-            <span class="error-icon">⚠️</span>
+            <i class="error-icon fas fa-exclamation-circle"></i>
             <p>{{ loadingError }}</p>
           </div>
         } @else if (songs.length === 0) {
           <div class="empty-message">
-            <span class="empty-icon">🎵</span>
+            <i class="empty-icon fas fa-music"></i>
             <p>No tracks available. Add one to get started!</p>
           </div>
         }
@@ -91,25 +91,25 @@
 
             <div class="song-meta">
               <div class="meta-item">
-                <span class="meta-icon">⏱</span>
+                <i class="meta-icon fas fa-hourglass-end"></i>
                 <span class="meta-value">{{ song.length }}</span>
               </div>
               <div class="meta-item">
-                <span class="meta-icon">🥁</span>
+                <i class="meta-icon fas fa-drum"></i>
                 <span class="meta-value">{{ song.bpm }} BPM</span>
               </div>
               <div class="meta-item visibility-pill" [class.private-track]="!song.isPublic">
-                <span class="meta-icon">{{ song.isPublic ? '🌍' : '🔒' }}</span>
+                <i class="meta-icon" [ngClass]="song.isPublic ? 'fas fa-globe' : 'fas fa-lock'"></i>
                 <span class="meta-value">{{ song.isPublic ? 'Public' : 'Private' }}</span>
               </div>
             </div>
 
             </div>
-            @if (canManageSong(song)) {
-              <button class="delete-song-btn-square-red" title="Delete Song" (click)="requestDeleteSong(song); $event.stopPropagation()">
-                <span class="delete-icon">🗑️</span>
-              </button>
-            }
+             @if (canManageSong(song)) {
+               <button class="delete-song-btn-square-red" title="Delete Song" (click)="requestDeleteSong(song); $event.stopPropagation()">
+                 <i class="delete-icon fas fa-trash"></i>
+               </button>
+             }
 
             <div class="selection-indicator">
               <div class="indicator-bar"></div>
@@ -147,7 +147,7 @@
                    <span class="stat-label">Difficulty</span>
                    <span class="stat-value clickable">
                      {{ getSelectedDifficultyLevel() }}
-                     <span class="dropdown-indicator">▼</span>
+                      <i class="dropdown-indicator fas fa-chevron-down"></i>
                    </span>
                  </div>
                  <div class="stat-box visibility-box">
@@ -163,8 +163,9 @@
                </div>
 
                <div class="detail-actions">
-                 <button class="play-track-btn" type="button" (click)="launchGameplay()">
-                   ▶ Play Track
+                  <button class="play-track-btn" type="button" (click)="launchGameplay()">
+                    <i class="fas fa-play"></i>
+                    Play Track
                  </button>
                  @if (isSelectedSongOwnedByCurrentUser) {
                    <button class="visibility-toggle-btn" type="button" (click)="toggleSelectedSongVisibility()">
@@ -225,8 +226,8 @@
            <div class="detail-glow"></div>
          </div>
        } @else {
-         <div class="empty-state">
-           <div class="empty-icon">♪</div>
+          <div class="empty-state">
+            <i class="empty-icon fas fa-music"></i>
            <p>Select a track to view details</p>
            <div class="empty-glow"></div>
          </div>
@@ -242,7 +243,7 @@
 
       <div class="modal-header">
         <h2>Add New Track</h2>
-        <button class="modal-close" (click)="closeAddTrackForm()">✕</button>
+        <button class="modal-close" (click)="closeAddTrackForm()"><i class="fas fa-xmark"></i></button>
       </div>
 
       <div class="modal-body">
@@ -269,18 +270,18 @@
           </select>
         </div>
 
-        <div class="form-group">
-          <label>Song File</label>
-          <button class="file-btn" (click)="fileInput.click()">
-            🎵 {{ pendingSong.audioFile ? 'Audio Selected' : 'Choose MP3 File' }}
-          </button>
-          <input #fileInput type="file" accept=".mp3,audio/mpeg" style="display: none" (change)="onFileSelected($event)" />
-        </div>
+         <div class="form-group">
+           <label>Song File</label>
+           <button class="file-btn" (click)="fileInput.click()">
+             <i class="fas fa-music"></i> {{ pendingSong.audioFile ? 'Audio Selected' : 'Choose MP3 File' }}
+           </button>
+           <input #fileInput type="file" accept=".mp3,audio/mpeg" style="display: none" (change)="onFileSelected($event)" />
+         </div>
 
         <div class="form-group">
           <label>Cover Image</label>
           <button class="file-btn" (click)="coverInput.click()">
-            🖼️ {{ pendingSong.coverFile ? 'Cover Selected' : 'Choose Cover Image' }}
+            <i class="fas fa-image"></i> {{ pendingSong.coverFile ? 'Cover Selected' : 'Choose Cover Image' }}
           </button>
           <input #coverInput type="file" accept=".png,.jpg,.jpeg,image/png,image/jpeg" style="display: none" (change)="onCoverSelected($event)" />
         </div>
@@ -301,7 +302,7 @@
     <div class="modal delete-modal" (click)="$event.stopPropagation()">
       <div class="modal-header">
         <h2>Delete Track</h2>
-        <button class="modal-close" (click)="cancelDelete()">✕</button>
+        <button class="modal-close" (click)="cancelDelete()"><i class="fas fa-xmark"></i></button>
       </div>
       <div class="modal-body">
          <!-- Song Preview -->
@@ -327,7 +328,7 @@
     <div class="modal difficulty-modal" (click)="$event.stopPropagation()">
       <div class="modal-header">
         <h2>Select Difficulty</h2>
-        <button class="modal-close" (click)="closeDifficultyPicker()">✕</button>
+        <button class="modal-close" (click)="closeDifficultyPicker()"><i class="fas fa-xmark"></i></button>
       </div>
       <div class="modal-body">
         @if (!difficultyPickerState().showUploadForm) {
@@ -379,8 +380,8 @@
             </div>
             <div class="form-group">
               <label>Chart File (JSON)</label>
-              <button class="file-btn" (click)="chartFileInput.click()">
-                📄 {{ difficultyPickerState().uploadChartFile ? 'Chart Selected' : 'Choose JSON File' }}
+                  <button class="file-btn" (click)="chartFileInput.click()">
+                        <i class="fas fa-file-code"></i> {{ difficultyPickerState().uploadChartFile ? 'Chart Selected' : 'Choose JSON File' }}
               </button>
               <input #chartFileInput type="file" accept=".json,application/json" style="display: none" (change)="onChartFileSelected($event)" />
             </div>

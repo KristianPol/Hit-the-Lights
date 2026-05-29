@@ -7,10 +7,10 @@
     </div>
   }
 
-  <!-- Big bad-->
+  <!-- Error State -->
   @if (error && !loading) {
     <div class="error-state">
-      <div class="error-icon">⚠</div>
+      <div class="error-icon"><i class="fas fa-exclamation-circle"></i></div>
       <p>{{ error }}</p>
       <button class="btn btn-primary" (click)="retry()">Retry</button>
     </div>
@@ -50,23 +50,23 @@
 
         <div class="info-grid">
           <div class="info-item">
-            <span class="info-icon">👤</span>
+            <div class="info-icon"><i class="fas fa-user"></i></div>
             <span class="info-label">Username</span>
             <span class="info-value">{{ user.username }}</span>
           </div>
           <div class="info-item">
-            <span class="info-icon">🆔</span>
+            <div class="info-icon"><i class="fas fa-id-card"></i></div>
             <span class="info-label">User ID</span>
             <span class="info-value">#{{ user.id }}</span>
           </div>
           <div class="info-item">
-            <span class="info-icon">📅</span>
+            <div class="info-icon"><i class="fas fa-calendar"></i></div>
             <span class="info-label">Member Since</span>
             <span class="info-value">{{ formattedJoinDate }}</span>
           </div>
           <div class="info-item">
-            <span class="info-icon">✉</span>
-            <span class="info-label">Messages</span>
+            <div class="info-icon"><i class="fas fa-envelope"></i></div>
+            <span class="info-label">Unread Messages</span>
             <span class="info-value">{{ unreadMessageCount }}</span>
           </div>
         </div>
@@ -74,21 +74,22 @@
         <!-- User's stats -->
         <div class="stats-section">
           <div class="stats-header">Activity Stats</div>
+          <!-- Activity Stats -->
           <div class="stats-grid">
             <div class="stat-box">
-              <span class="stat-icon">♪</span>
+              <div class="stat-icon"><i class="fas fa-music"></i></div>
               <span class="stat-value">{{ uploadedSongCount }}</span>
               <span class="stat-label">Uploaded Tracks</span>
             </div>
             <div class="stat-box">
-              <span class="stat-icon">⏱</span>
+              <div class="stat-icon"><i class="fas fa-hourglass-end"></i></div>
               <span class="stat-value">{{ formattedPlaytime }}</span>
               <span class="stat-label">Playtime</span>
             </div>
             <div class="stat-box">
-              <span class="stat-icon">★</span>
-              <span class="stat-value">PRO</span>
-              <span class="stat-label">Status</span>
+              <div class="stat-icon"><i class="fas fa-gamepad"></i></div>
+              <span class="stat-value">{{ totalGamesPlayed }}</span>
+              <span class="stat-label">Games Played</span>
             </div>
           </div>
         </div>
@@ -113,9 +114,9 @@
         </div>
       </div>
     } @else {
-      <!-- If the user's a guest -->
+      <!-- No User Data -->
       <div class="profile-card error-state">
-        <div class="error-icon">👤</div>
+        <div class="error-icon"><i class="fas fa-user-slash"></i></div>
         <p>No user data found</p>
         <button class="btn btn-primary" routerLink="/login">Go to Login</button>
       </div>
@@ -129,7 +130,7 @@
     <div class="modal" (click)="$event.stopPropagation()">
       <div class="modal-header">
         <h2>Edit Profile</h2>
-        <button class="modal-close" (click)="closeEditModal()">✕</button>
+        <button class="modal-close" (click)="closeEditModal()">×</button>
       </div>
 
       <div class="modal-body">
@@ -169,27 +170,25 @@
             #profilePictureInput
             (change)="onProfilePictureSelected($event)"
           >
-          <button class="file-btn" (click)="profilePictureInput.click()">
-            🖼️ {{ selectedProfilePicture ? selectedProfilePicture.name : 'Choose Profile Picture' }}
-          </button>
+           <button class="file-btn" (click)="profilePictureInput.click()">
+             <i class="fas fa-image"></i> {{ selectedProfilePicture ? selectedProfilePicture.name : 'Choose Profile Picture' }}
+           </button>
           <small class="file-hint">Max 5MB. JPEG, PNG, GIF, or WebP.</small>
         </div>
 
-        <!-- Error Message -->
-        @if (updateError) {
-          <div class="error-message">
-            <span class="error-icon">⚠️</span>
-            {{ updateError }}
-          </div>
-        }
+         <!-- Error Message -->
+         @if (updateError) {
+           <div class="error-message">
+             {{ updateError }}
+           </div>
+         }
 
-        <!-- Success Message -->
-        @if (updateSuccess) {
-          <div class="success-message">
-            <span class="success-icon">✅</span>
-            Profile picture updated successfully!
-          </div>
-        }
+         <!-- Success Message -->
+         @if (updateSuccess) {
+           <div class="success-message">
+             Profile picture updated successfully!
+           </div>
+         }
       </div>
 
       <div class="modal-footer">

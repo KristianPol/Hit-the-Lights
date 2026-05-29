@@ -1075,7 +1075,7 @@ export class Gameplay implements AfterViewInit, OnDestroy {
     const mapName = song?.name || this.chartMetadata().title || 'Unknown Map';
     const diffName = diff ? difficultyNumberToName(diff.difficulty) : 'Unknown';
     const coverUrl = song?.coverUrl || '';
-    const message = `🎵 Score Share\nMap: ${mapName}\nDifficulty: ${diffName}\nScore: ${stats.score.toLocaleString()}\nAccuracy: ${stats.accuracy.toFixed(1)}%\nRank: ${this.resultRank()}${coverUrl ? '\nCover: ' + coverUrl : ''}`;
+    const message = `Score Share\nMap: ${mapName}\nDifficulty: ${diffName}\nScore: ${stats.score.toLocaleString()}\nAccuracy: ${stats.accuracy.toFixed(1)}%\nRank: ${this.resultRank()}${coverUrl ? '\nCover: ' + coverUrl : ''}`;
 
     this.sendingScore.set(true);
     this.sendScoreError.set(null);
