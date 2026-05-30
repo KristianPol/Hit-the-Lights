@@ -42,22 +42,6 @@
     <aside class="stats-column right-column">
 
       <button type="button" class="menu-button" (click)="returnToMenu()">Back to Menu</button>
-      <div class="stat-card highlight">
-        <span class="label">Radiant</span>
-        <span class="value">{{ stats().perfect }}</span>
-      </div>
-      <div class="stat-card highlight">
-        <span class="label">Shinning</span>
-        <span class="value">{{ stats().good }}</span>
-      </div>
-      <div class="stat-card highlight">
-        <span class="label">Glimmer</span>
-        <span class="value">{{ stats().glimmer }}</span>
-      </div>
-      <div class="stat-card highlight miss-card">
-        <span class="label">Shatterred</span>
-        <span class="value">{{ stats().miss }}</span>
-      </div>
       @if (!isLoading() && !gameFinished()) {
         <div class="status-badge">{{ statusMessageText() }}</div>
       }

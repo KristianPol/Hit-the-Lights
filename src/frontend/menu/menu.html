@@ -222,12 +222,14 @@
                      @for (entry of leaderboardState().entries; track entry.position + '-' + entry.userId) {
                        <div class="leaderboard-row" [class.current-user]="entry.isCurrentUser">
                          <div class="leaderboard-rank">#{{ entry.position }}</div>
-                         <div class="leaderboard-user-block">
-                           <div class="leaderboard-user-name">{{ entry.username }}</div>
-                           @if (entry.isCurrentUser) {
-                             <span class="leaderboard-you">You</span>
-                           }
-                         </div>
+                          <a class="leaderboard-user-block user-link"
+                             [routerLink]="entry.isCurrentUser ? '/profile' : ['/profile', entry.userId]"
+                             (click)="$event.stopPropagation()">
+                            <div class="leaderboard-user-name">{{ entry.username }}</div>
+                            @if (entry.isCurrentUser) {
+                              <span class="leaderboard-you">You</span>
+                            }
+                          </a>
                          <div class="leaderboard-score-block">
                            <div class="leaderboard-score">{{ entry.score }}</div>
                            <div class="leaderboard-stats">
@@ -269,12 +271,12 @@
       <div class="modal-body">
         <div class="form-group">
           <label for="trackName">Track Name</label>
-          <input id="trackName" type="text" [(ngModel)]="pendingSong.name" placeholder="Enter track name" />
+          <input id="trackName" type="text" [(ngModel)]="pendingSong.name" placeholder="Enter track name" maxlength="40" />
         </div>
 
         <div class="form-group">
           <label for="trackArtist">Artist</label>
-          <input id="trackArtist" type="text" [(ngModel)]="pendingSong.author" placeholder="Enter artist name" />
+          <input id="trackArtist" type="text" [(ngModel)]="pendingSong.author" placeholder="Enter artist name" maxlength="40" />
         </div>
 
         <div class="form-group">
