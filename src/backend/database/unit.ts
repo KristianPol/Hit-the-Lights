@@ -132,6 +132,13 @@ class DB {
       connection.exec('UPDATE Song SET isPublic = 1 WHERE isPublic IS NULL');
     }
 
+    if (!columnNames.has('genre')) {
+      connection.exec('ALTER TABLE Song ADD COLUMN genre TEXT');
+    }
+
+    if (!columnNames.has('play_count')) {
+      connection.exec('ALTER TABLE Song ADD COLUMN play_count INTEGER NOT NULL DEFAULT 0');
+    }
 
     connection.exec(`
             CREATE TABLE IF NOT EXISTS User (
@@ -321,6 +328,21 @@ class DB {
           `);
 
       connection.exec('CREATE INDEX IF NOT EXISTS idx_comment_song ON Comment(song_id, created_at)');
+
+      // Song likes: many-to-many between users and songs
+      connection.exec(`
+              CREATE TABLE IF NOT EXISTS SongLike (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                song_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                UNIQUE(song_id, user_id),
+                CONSTRAINT fk_song_like_song FOREIGN KEY (song_id) REFERENCES Song(id) ON DELETE CASCADE,
+                CONSTRAINT fk_song_like_user FOREIGN KEY (user_id) REFERENCES User(id) ON DELETE CASCADE
+                ) STRICT
+          `);
+
+      connection.exec('CREATE INDEX IF NOT EXISTS idx_song_like_song ON SongLike(song_id)');
+      connection.exec('CREATE INDEX IF NOT EXISTS idx_song_like_user ON SongLike(user_id)');
   }
 
   private static migrateLegacyUserControls(connection: Database): void {

@@ -1,4 +1,4 @@
-﻿import { Injectable } from '@angular/core';
+import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { HttpParams } from '@angular/common/http';
 import { Observable, catchError, throwError } from 'rxjs';
@@ -13,6 +13,10 @@ export interface Song {
   coverUrl: string;
   ownerId?: number | null;
   isPublic?: boolean;
+  genre?: string | null;
+  playCount?: number;
+  likeCount?: number;
+  isLikedByUser?: boolean;
   difficulties?: SongDifficulty[];
 }
 
@@ -64,6 +68,7 @@ export interface AddSongRequest {
   coverMimeType: string;
   ownerId?: number | null;
   isPublic?: boolean;
+  genre?: string | null;
 }
 
 export interface AddSongResponse {
@@ -226,16 +231,53 @@ export class SongService {
     );
   }
 
-  getAllSongs(viewerId?: number): Observable<GetSongsResponse> {
+  getAllSongs(viewerId?: number, options?: { search?: string; genre?: string; sort?: string }): Observable<GetSongsResponse> {
     const endpoint = `${this.apiUrl}/all`;
+    let params = this.buildViewerParams(viewerId);
+    if (options?.search) {
+      params = params.set('search', options.search);
+    }
+    if (options?.genre) {
+      params = params.set('genre', options.genre);
+    }
+    if (options?.sort) {
+      params = params.set('sort', options.sort);
+    }
     console.log(`🌐 SongService: Fetching songs from ${endpoint}`);
-    return this.http.get<GetSongsResponse>(endpoint, { params: this.buildViewerParams(viewerId) }).pipe(
+    return this.http.get<GetSongsResponse>(endpoint, { params }).pipe(
       catchError(error => {
         console.error(`❌ SongService: Failed to fetch songs from ${endpoint}`, error);
         return throwError(
           () => new Error(error.error?.error || 'Failed to fetch songs')
         );
       })
+    );
+  }
+
+  likeSong(songId: number, userId: number): Observable<{ success: boolean; message?: string; error?: string }> {
+    return this.http.post<{ success: boolean; message?: string; error?: string }>(
+      `${this.apiUrl}/${songId}/like`,
+      { userId }
+    ).pipe(
+      catchError(error => throwError(() => new Error(error.error?.error || 'Failed to like song')))
+    );
+  }
+
+  unlikeSong(songId: number, userId: number): Observable<{ success: boolean; message?: string; error?: string }> {
+    return this.http.delete<{ success: boolean; message?: string; error?: string }>(
+      `${this.apiUrl}/${songId}/like`,
+      { params: new HttpParams().set('userId', userId.toString()) }
+    ).pipe(
+      catchError(error => throwError(() => new Error(error.error?.error || 'Failed to unlike song')))
+    );
+  }
+
+  incrementPlayCount(songId: number): Observable<{ success: boolean; message?: string; error?: string }> {
+    return this.http.post<{ success: boolean; message?: string; error?: string }>(
+      `${this.apiUrl}/${songId}/play`,
+      {}
+    ).pipe(
+      catchError(error => throwError(() => new Error(error.error?.error || 'Failed to increment play count')))
     );
   }
 

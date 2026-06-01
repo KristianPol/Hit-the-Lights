@@ -1,4 +1,4 @@
-﻿export type User = {
+export type User = {
   id : number,
   username: string,
   password: string,
@@ -24,5 +24,9 @@ export interface Song {
   length: string;
   ownerId?: number | null;
   isPublic?: boolean;
+  genre?: string | null;
+  playCount?: number;
+  likeCount?: number;
+  isLikedByUser?: boolean;
 }
 // TODO add more types for DB Entities

@@ -81,6 +81,40 @@
         <button class="add-track-btn" (click)="openAddTrackForm()">+ Add Track</button>
       </div>
 
+      <div class="filter-bar">
+        <div class="search-box">
+          <i class="fas fa-search search-icon"></i>
+          <input
+            type="text"
+            [(ngModel)]="searchQuery"
+            (input)="onSearchInput()"
+            placeholder="Search tracks or artists..."
+            class="search-input"
+          />
+          @if (searchQuery) {
+            <button class="search-clear" (click)="clearSearch()" title="Clear search">
+              <i class="fas fa-xmark"></i>
+            </button>
+          }
+        </div>
+        <div class="filter-row">
+          <select [(ngModel)]="sortOption" (change)="onSortChange()" class="filter-select">
+            <option value="newest">Newest</option>
+            <option value="most_liked">Most Liked</option>
+            <option value="least_liked">Least Liked</option>
+            <option value="most_played">Most Played</option>
+            <option value="bpm_asc">BPM Low → High</option>
+            <option value="bpm_desc">BPM High → Low</option>
+          </select>
+          <select [(ngModel)]="selectedGenre" (change)="onGenreChange()" class="filter-select">
+            <option value="">All Genres</option>
+            @for (g of genres; track g) {
+              <option [value]="g">{{ g }}</option>
+            }
+          </select>
+        </div>
+      </div>
+
       <div class="songs-list">
         @if (loadingError) {
           <div class="error-message">
@@ -109,20 +143,36 @@
                 <span class="song-author">{{ song.author }}</span>
               </div>
 
-            <div class="song-meta">
-              <div class="meta-item">
-                <i class="meta-icon fas fa-hourglass-end"></i>
-                <span class="meta-value">{{ song.length }}</span>
+              <div class="song-meta">
+                <div class="meta-item">
+                  <i class="meta-icon fas fa-hourglass-end"></i>
+                  <span class="meta-value">{{ song.length }}</span>
+                </div>
+                <div class="meta-item">
+                  <i class="meta-icon fas fa-drum"></i>
+                  <span class="meta-value">{{ song.bpm }} BPM</span>
+                </div>
+                @if (song.genre) {
+                  <div class="meta-item genre-pill">
+                    <span class="meta-value">{{ song.genre }}</span>
+                  </div>
+                }
+                <div class="meta-item visibility-pill" [class.private-track]="!song.isPublic">
+                  <i class="meta-icon" [ngClass]="song.isPublic ? 'fas fa-globe' : 'fas fa-lock'"></i>
+                  <span class="meta-value">{{ song.isPublic ? 'Public' : 'Private' }}</span>
+                </div>
               </div>
-              <div class="meta-item">
-                <i class="meta-icon fas fa-drum"></i>
-                <span class="meta-value">{{ song.bpm }} BPM</span>
+
+              <div class="song-stats-row">
+                <button class="like-btn" [class.liked]="song.isLikedByUser" (click)="toggleLike(song, $event)" title="Like">
+                  <i [ngClass]="song.isLikedByUser ? 'fas fa-heart' : 'far fa-heart'"></i>
+                  <span class="like-count">{{ song.likeCount ?? 0 }}</span>
+                </button>
+                <div class="play-stat" title="Plays">
+                  <i class="fas fa-play"></i>
+                  <span>{{ song.playCount ?? 0 }}</span>
+                </div>
               </div>
-              <div class="meta-item visibility-pill" [class.private-track]="!song.isPublic">
-                <i class="meta-icon" [ngClass]="song.isPublic ? 'fas fa-globe' : 'fas fa-lock'"></i>
-                <span class="meta-value">{{ song.isPublic ? 'Public' : 'Private' }}</span>
-              </div>
-            </div>
 
             </div>
              @if (canManageSong(song)) {
@@ -163,6 +213,12 @@
                    <span class="stat-label">Tempo</span>
                    <span class="stat-value">{{ selectedSong.bpm }} <small>BPM</small></span>
                  </div>
+                 @if (selectedSong.genre) {
+                   <div class="stat-box">
+                     <span class="stat-label">Genre</span>
+                     <span class="stat-value">{{ selectedSong.genre }}</span>
+                   </div>
+                 }
                  <div class="stat-box difficulty-stat-box" (click)="openDifficultyPicker()" style="cursor: pointer;">
                    <span class="stat-label">Difficulty</span>
                    <span class="stat-value clickable">
@@ -173,6 +229,14 @@
                  <div class="stat-box visibility-box">
                    <span class="stat-label">Visibility</span>
                    <span class="stat-value">{{ selectedSongVisibility || (selectedSong.isPublic ? 'Public' : 'Private') }}</span>
+                 </div>
+                 <div class="stat-box">
+                   <span class="stat-label">Likes</span>
+                   <span class="stat-value">{{ selectedSong.likeCount ?? 0 }}</span>
+                 </div>
+                 <div class="stat-box">
+                   <span class="stat-label">Plays</span>
+                   <span class="stat-value">{{ selectedSong.playCount ?? 0 }}</span>
                  </div>
                </div>
 
@@ -187,6 +251,16 @@
                     <i class="fas fa-play"></i>
                     Play Track
                  </button>
+                 @if (currentUser) {
+                   <button
+                     class="like-detail-btn"
+                     [class.liked]="selectedSong.isLikedByUser"
+                     type="button"
+                     (click)="toggleLike(selectedSong, $event)">
+                     <i [ngClass]="selectedSong.isLikedByUser ? 'fas fa-heart' : 'far fa-heart'"></i>
+                     {{ selectedSong.isLikedByUser ? 'Liked' : 'Like' }} ({{ selectedSong.likeCount ?? 0 }})
+                   </button>
+                 }
                  @if (isSelectedSongOwnedByCurrentUser) {
                    <button class="visibility-toggle-btn" type="button" (click)="toggleSelectedSongVisibility()">
                      {{ selectedSong.isPublic ? 'Make Private' : 'Make Public' }}
@@ -375,6 +449,16 @@
           <select id="trackVisibility" [(ngModel)]="pendingSong.visibility" class="visibility-select">
             <option value="public">Public - visible to everyone</option>
             <option value="private">Private - only visible to you</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="trackGenre">Genre</label>
+          <select id="trackGenre" [(ngModel)]="pendingSong.genre" class="visibility-select">
+            <option [ngValue]="undefined">Select a genre...</option>
+            @for (g of genres; track g) {
+              <option [ngValue]="g">{{ g }}</option>
+            }
           </select>
         </div>
 

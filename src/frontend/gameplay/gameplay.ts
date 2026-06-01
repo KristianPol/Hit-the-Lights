@@ -94,6 +94,7 @@ export class Gameplay implements AfterViewInit, OnDestroy {
   })();
   private resolvedDifficultyId: number | null = this.difficultyIdFromState;
   private virtualAudioStartMs: number | null = null;
+  private playCountReported = false;
 
   private chartNotes: ChartNote[] = [];
   notes: ChartNote[] = [];
@@ -301,6 +302,24 @@ export class Gameplay implements AfterViewInit, OnDestroy {
   }
 
   private async initializeGame(): Promise<void> {
+    const state = window.history.state;
+    const testChart = state?.chartTest as boolean | undefined;
+    const testChartData = state?.chart as { metadata: ChartMetadata; notes: { time: number; lane: number }[] } | undefined;
+    const stateSong = state?.song as Song | undefined;
+
+    if (testChart && testChartData && testChartData.notes) {
+      this.currentSong.set(stateSong ?? null);
+      this.chartMetadata.set(testChartData.metadata ?? {});
+      this.chartNotes = testChartData.notes
+        .map(note => ({ ...note, judged: false, missed: false }))
+        .sort((a, b) => a.time - b.time);
+      this.notes = this.cloneNotes(this.chartNotes);
+      this.resolvedDifficulty.set({ id: 0, difficulty: 1, noteCount: this.chartNotes.length });
+      this.resolvedDifficultyId = 0;
+      await this.configureAudio(stateSong?.songUrl ?? this.defaultSongUrl);
+      return;
+    }
+
     const song = await this.resolveSong();
     this.currentSong.set(song);
     const diff = this.resolveDifficulty(song);
@@ -458,6 +477,15 @@ export class Gameplay implements AfterViewInit, OnDestroy {
     this.loadingError.set(null);
     this.audio.currentTime = 0;
     this.virtualAudioStartMs = null;
+
+    // Report play count once per session for real songs
+    const song = this.currentSong();
+    if (song?.id && !this.playCountReported) {
+      this.playCountReported = true;
+      this.songService.incrementPlayCount(song.id).subscribe({
+        error: err => console.warn('Failed to increment play count:', err)
+      });
+    }
 
     this.audio.play().catch(error => {
       console.warn('Audio playback failed, continuing without sound:', error);
@@ -894,6 +922,7 @@ export class Gameplay implements AfterViewInit, OnDestroy {
     this.gameStarted.set(false);
     this.gameRunning.set(false);
     this.gameFinished.set(false);
+    this.playCountReported = false;
     this.audio.pause();
     this.audio.currentTime = 0;
     if (this.animationFrameId !== null) {

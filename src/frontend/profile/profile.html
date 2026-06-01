@@ -97,6 +97,30 @@
           </div>
         </div>
 
+        <!-- Pinned Achievements -->
+        @if (pinnedAchievements.length > 0) {
+          <div class="pinned-achievements-section">
+            <div class="pinned-header">
+              <i class="fas fa-thumbtack"></i>
+              <span>Pinned Achievements</span>
+            </div>
+            <div class="pinned-list">
+              @for (a of pinnedAchievements; track a.id) {
+                <div class="pinned-card">
+                  <div class="pinned-cover" [ngClass]="a.category.toLowerCase()">
+                    <span>{{ a.category.charAt(0) }}</span>
+                  </div>
+                  <div class="pinned-info">
+                    <div class="pinned-title">{{ a.name }}</div>
+                    <div class="pinned-desc">{{ a.description }}</div>
+                    <div class="pinned-category">{{ a.category }}</div>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        }
+
         <!-- Action buttons -->
         <div class="action-buttons">
           @if (isOwnProfile) {

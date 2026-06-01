@@ -489,7 +489,7 @@ export class AchievementService {
     }
   }
 
-  private loadBaseDefinitions(): Achievement[] {
+  public loadBaseDefinitions(): Achievement[] {
     const list: Achievement[] = [
       // Skill
       { id: 'skill.warmup_riff', name: 'Warm-Up Riff', description: 'Start your climb — land a steady combo and feel the groove.', criteria: 'Hit a 50-note combo in a single song without breaking the combo.', category: 'Skill', target: 50, progress: 0 },

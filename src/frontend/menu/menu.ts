@@ -6,7 +6,18 @@ import { AuthService, User } from '../../app/services/auth.service';
 import { SongService, SongDifficulty, DifficultyLevel, LeaderboardEntry, difficultyNumberToName, difficultyNameToNumber } from '../../app/services/song.service';
 import { MessageService } from '../../app/services/message.service';
 import { AchievementService } from '../../app/services/achievement.service';
-import { tap, filter } from 'rxjs/operators';
+import { tap, filter, debounceTime } from 'rxjs/operators';
+import { Subscription, Subject } from 'rxjs';
+
+const GENRES = [
+  'Electronic', 'House', 'Techno', 'Trance', 'Dubstep', 'Drum & Bass', 'Hardstyle',
+  'Future Bass', 'Synthwave', 'Vaporwave', 'Hyperpop', 'Phonk', 'EDM', 'Trap',
+  'Hip Hop', 'Pop', 'Rock', 'Metal', 'Jazz', 'Classical', 'Funk', 'R&B',
+  'K-Pop', 'J-Pop', 'Anime', 'Game', 'Chiptune', '8-bit', 'Orchestral',
+  'Ambient', 'Lo-Fi', 'Downtempo', 'Experimental', 'Industrial', 'Speedcore',
+  'Happy Hardcore', 'UK Garage', 'Breakbeat', 'Jungle', 'Folk', 'Country',
+  'Blues', 'Soul', 'Reggae', 'Latin', 'Afrobeat', 'World', 'Other'
+];
 
 interface MenuItem {
   label: string;
@@ -27,6 +38,10 @@ interface Song {
   songUrl: string;
   ownerId?: number | string | null;
   isPublic?: boolean | number | string;
+  genre?: string | null;
+  playCount?: number;
+  likeCount?: number;
+  isLikedByUser?: boolean;
   difficulties?: SongDifficulty[];
 }
 
@@ -37,6 +52,7 @@ interface AddSongFormData {
   audioFile?: File;
   coverFile?: File;
   visibility?: 'public' | 'private';
+  genre?: string;
 }
 
 interface DifficultyPickerState {
@@ -77,6 +93,7 @@ export class MenuComponent implements OnInit, OnDestroy {
   menuItems: MenuItem[] = [
     { label: 'Dashboard', icon: 'fas fa-house', route: '/dashboard' },
     { label: 'Profile', icon: 'fas fa-user', route: '/profile' },
+    { label: 'Chart Maker', icon: 'fas fa-pen-ruler', route: '/chart-maker' },
     { label: 'About', icon: 'fas fa-circle-info', route: '/about', isSecluded: true },
     { label: 'Settings', icon: 'fas fa-gear', route: '/settings' },
     { label: 'Messages', icon: 'fas fa-envelope', route: '/messages' },
@@ -98,10 +115,6 @@ export class MenuComponent implements OnInit, OnDestroy {
   private audio = new Audio();
 
   private readonly allSongsSignal = signal<Song[]>([]);
-  readonly visibleSongs = computed(() => {
-    const viewerId = this.currentUser?.id;
-    return this.allSongsSignal().filter(song => this.isSongPublic(song) || this.isSongOwnedByViewer(song, viewerId));
-  });
   private loadingErrorSignal = signal<string | null>(null);
   get loadingError(): string | null { return this.loadingErrorSignal(); }
   set loadingError(v: string | null) { this.loadingErrorSignal.set(v); }
@@ -109,6 +122,23 @@ export class MenuComponent implements OnInit, OnDestroy {
   private isLoadingSignal = signal<boolean>(true);
   get isLoading(): boolean { return this.isLoadingSignal(); }
   set isLoading(v: boolean) { this.isLoadingSignal.set(v); }
+
+  // Search, filter, sort state
+  readonly genres = GENRES;
+  private searchQuerySignal = signal<string>('');
+  get searchQuery(): string { return this.searchQuerySignal(); }
+  set searchQuery(v: string) { this.searchQuerySignal.set(v); }
+
+  private selectedGenreSignal = signal<string>('');
+  get selectedGenre(): string { return this.selectedGenreSignal(); }
+  set selectedGenre(v: string) { this.selectedGenreSignal.set(v); }
+
+  private sortOptionSignal = signal<string>('newest');
+  get sortOption(): string { return this.sortOptionSignal(); }
+  set sortOption(v: string) { this.sortOptionSignal.set(v); }
+
+  private searchSubject = new Subject<string>();
+  private searchSubscription?: Subscription;
 
   private selectedSongSignal = signal<Song | null>(null);
   get selectedSong(): Song | null { return this.selectedSongSignal(); }
@@ -182,7 +212,7 @@ export class MenuComponent implements OnInit, OnDestroy {
   }
 
   get songs(): Song[] {
-    return this.visibleSongs();
+    return this.allSongsSignal();
   }
 
   ngOnInit() {
@@ -203,6 +233,13 @@ export class MenuComponent implements OnInit, OnDestroy {
       filter(event => event instanceof NavigationEnd),
       tap(() => this.loadUnreadCount())
     ).subscribe();
+
+    // Debounced search: wait 300ms after user stops typing
+    this.searchSubscription = this.searchSubject.pipe(
+      debounceTime(300)
+    ).subscribe(() => {
+      this.ngZone.run(() => this.loadSongsFromDatabase());
+    });
 
     setTimeout(() => {
       this.loadSongsFromDatabase();
@@ -228,8 +265,13 @@ export class MenuComponent implements OnInit, OnDestroy {
     this.isLoading = true;
     this.loadingError = null;
     const viewerId = this.currentUser?.id;
+    const options = {
+      search: this.searchQuery.trim() || undefined,
+      genre: this.selectedGenre || undefined,
+      sort: this.sortOption || undefined
+    };
 
-    this.songService.getAllSongs(viewerId ?? undefined).subscribe({
+    this.songService.getAllSongs(viewerId ?? undefined, options).subscribe({
       next: response => {
         console.log('✅ MenuComponent: Received response from getAllSongs()', response);
         if (response.success) {
@@ -261,6 +303,7 @@ export class MenuComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     this.stopAudio();
+    this.searchSubscription?.unsubscribe();
   }
 
   private stopAudio() {
@@ -268,6 +311,70 @@ export class MenuComponent implements OnInit, OnDestroy {
       this.audio.pause();
       this.audio.currentTime = 0;
       this.audio.src = '';
+    }
+  }
+
+  onSearchInput(): void {
+    this.searchSubject.next(this.searchQuery);
+  }
+
+  clearSearch(): void {
+    this.searchQuery = '';
+    this.loadSongsFromDatabase();
+  }
+
+  onGenreChange(): void {
+    this.loadSongsFromDatabase();
+  }
+
+  onSortChange(): void {
+    this.loadSongsFromDatabase();
+  }
+
+  toggleLike(song: Song, event: MouseEvent): void {
+    event.stopPropagation();
+    const userId = this.currentUser?.id;
+    if (!userId) {
+      alert('Please log in to like songs');
+      return;
+    }
+
+    if (song.isLikedByUser) {
+      this.songService.unlikeSong(song.id, userId).subscribe({
+        next: () => {
+          this.allSongsSignal.update(songs =>
+            songs.map(s =>
+              s.id === song.id
+                ? { ...s, isLikedByUser: false, likeCount: (s.likeCount ?? 1) - 1 }
+                : s
+            )
+          );
+          if (this.selectedSong?.id === song.id) {
+            this.selectedSongSignal.update(s =>
+              s ? { ...s, isLikedByUser: false, likeCount: (s.likeCount ?? 1) - 1 } : s
+            );
+          }
+        },
+        error: err => console.error('Failed to unlike song', err)
+      });
+    } else {
+      this.songService.likeSong(song.id, userId).subscribe({
+        next: () => {
+          this.allSongsSignal.update(songs =>
+            songs.map(s =>
+              s.id === song.id
+                ? { ...s, isLikedByUser: true, likeCount: (s.likeCount ?? 0) + 1 }
+                : s
+            )
+          );
+          if (this.selectedSong?.id === song.id) {
+            this.selectedSongSignal.update(s =>
+              s ? { ...s, isLikedByUser: true, likeCount: (s.likeCount ?? 0) + 1 } : s
+            );
+          }
+        },
+        error: err => console.error('Failed to like song', err)
+      });
     }
   }
 
@@ -569,7 +676,7 @@ export class MenuComponent implements OnInit, OnDestroy {
   }
 
   submitTrack(): void {
-    const { name, author, bpm, audioFile, coverFile, visibility = 'public' } = this.pendingSong;
+    const { name, author, bpm, audioFile, coverFile, visibility = 'public', genre } = this.pendingSong;
 
     if (!name || !author || !bpm || !audioFile || !coverFile) {
       alert('Please fill in all fields.');
@@ -600,7 +707,8 @@ export class MenuComponent implements OnInit, OnDestroy {
           coverBase64,
           coverMimeType: coverFile.type,
           ownerId,
-          isPublic
+          isPublic,
+          genre: genre || null
         }).subscribe({
           next: response => {
             if (response.success) {
@@ -613,7 +721,8 @@ export class MenuComponent implements OnInit, OnDestroy {
                 songUrl: response.songUrl ?? '',
                 coverUrl: response.coverUrl ?? '',
                 ownerId: response.ownerId ?? ownerId,
-                isPublic: response.isPublic ?? isPublic
+                isPublic: response.isPublic ?? isPublic,
+                genre: genre || null
               }]);
               this.loadSongsFromDatabase();
               this.closeAddTrackForm();

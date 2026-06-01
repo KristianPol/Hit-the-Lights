@@ -1,4 +1,4 @@
-﻿import { Unit } from '../database/unit';
+import { Unit } from '../database/unit';
 import { HTLService } from './HTLService';
 
 export interface AddSongRequest {
@@ -10,6 +10,7 @@ export interface AddSongRequest {
   coverUrl: string;
   ownerId?: number | null;
   isPublic?: boolean | number | string;
+  genre?: string | null;
 }
 
 export interface AddSongResponse {
@@ -32,6 +33,8 @@ export interface SongRecord {
   coverUrl: string;
   ownerId: number | null;
   isPublic: number | boolean | string;
+  genre?: string | null;
+  play_count?: number;
 }
 
 export interface SongResponse {
@@ -44,6 +47,10 @@ export interface SongResponse {
   coverUrl: string;
   ownerId: number | null;
   isPublic: boolean;
+  genre?: string | null;
+  playCount: number;
+  likeCount: number;
+  isLikedByUser: boolean;
   difficulties: SongDifficultyResponse[];
 }
 
@@ -233,6 +240,8 @@ export class SongService {
         return { success: false, error: 'Private songs require an owner' };
       }
 
+      const genre = request.genre?.trim() || null;
+
       const insertStmt = this.unit.prepare<unknown, {
         name: string;
         author: string;
@@ -242,9 +251,10 @@ export class SongService {
         coverUrl: string;
         ownerId: number | null;
         isPublic: number;
+        genre: string | null;
       }>(
-        `INSERT INTO Song (name, author, bpm, length, songUrl, coverUrl, ownerId, isPublic)
-         VALUES ($name, $author, $bpm, $length, $songUrl, $coverUrl, $ownerId, $isPublic)`,
+        `INSERT INTO Song (name, author, bpm, length, songUrl, coverUrl, ownerId, isPublic, genre)
+         VALUES ($name, $author, $bpm, $length, $songUrl, $coverUrl, $ownerId, $isPublic, $genre)`,
         {
           name: request.name.trim(),
           author: request.author.trim(),
@@ -253,7 +263,8 @@ export class SongService {
           songUrl: request.songUrl,
           coverUrl: request.coverUrl,
           ownerId,
-          isPublic: isPublic ? 1 : 0
+          isPublic: isPublic ? 1 : 0,
+          genre
         }
       );
       insertStmt.run();
@@ -276,15 +287,79 @@ export class SongService {
     }
   }
 
-  public getAllSongs(viewerId?: number): SongResponse[] {
-    const stmt = this.unit.prepare<SongRecord>(
-      'SELECT id, name, author, bpm, length, songUrl, coverUrl, ownerId, isPublic FROM Song ORDER BY id'
-    );
+  public getAllSongs(
+    viewerId?: number,
+    searchQuery?: string,
+    genreFilter?: string,
+    sortBy?: string
+  ): SongResponse[] {
+    const conditions: string[] = [];
+    const params: Record<string, unknown> = {};
 
-    return stmt
-      .all()
-      .filter(song => this.isPublicSong(song.isPublic) || song.ownerId === viewerId)
-      .map(song => this.toResponse(song));
+    // Visibility filter
+    if (viewerId != null) {
+      conditions.push('(s.isPublic = 1 OR s.ownerId = $viewerId)');
+      params.viewerId = viewerId;
+    } else {
+      conditions.push('s.isPublic = 1');
+    }
+
+    // Search filter (name or author)
+    if (searchQuery && searchQuery.trim().length > 0) {
+      conditions.push('(LOWER(s.name) LIKE $search OR LOWER(s.author) LIKE $search)');
+      params.search = `%${searchQuery.trim().toLowerCase()}%`;
+    }
+
+    // Genre filter
+    if (genreFilter && genreFilter.trim().length > 0) {
+      conditions.push('s.genre = $genre');
+      params.genre = genreFilter.trim();
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    // Sort mapping
+    let orderBy = 's.id DESC'; // default newest
+    switch (sortBy) {
+      case 'most_liked':
+        orderBy = 'likeCount DESC, s.id DESC';
+        break;
+      case 'least_liked':
+        orderBy = 'likeCount ASC, s.id DESC';
+        break;
+      case 'most_played':
+        orderBy = 's.play_count DESC, s.id DESC';
+        break;
+      case 'bpm_asc':
+        orderBy = 's.bpm ASC, s.id DESC';
+        break;
+      case 'bpm_desc':
+        orderBy = 's.bpm DESC, s.id DESC';
+        break;
+      case 'newest':
+      default:
+        orderBy = 's.id DESC';
+        break;
+    }
+
+    const sql = `
+      SELECT
+        s.id, s.name, s.author, s.bpm, s.length, s.songUrl, s.coverUrl, s.ownerId, s.isPublic, s.genre, s.play_count,
+        (SELECT COUNT(*) FROM SongLike WHERE song_id = s.id) as likeCount,
+        EXISTS(SELECT 1 FROM SongLike WHERE song_id = s.id AND user_id = $viewerId) as isLikedByUser
+      FROM Song s
+      ${whereClause}
+      ORDER BY ${orderBy}
+    `;
+
+    interface EnrichedSongRecord extends SongRecord {
+      likeCount: number;
+      isLikedByUser: number;
+    }
+
+    const stmt = this.unit.prepare<EnrichedSongRecord>(sql, params);
+
+    return stmt.all().map(song => this.toResponse(song, song.likeCount, !!song.isLikedByUser));
   }
 
   public getSongDifficulties(songId: number, viewerId?: number): SongDifficultyResponse[] | undefined {
@@ -392,9 +467,19 @@ export class SongService {
   public getSongById(
     songId: number
   , viewerId?: number): SongResponse | undefined {
-    const stmt = this.unit.prepare<SongRecord, { id: number }>(
-      'SELECT id, name, author, bpm, length, songUrl, coverUrl, ownerId, isPublic FROM Song WHERE id = $id',
-      { id: songId }
+    interface EnrichedSongRecord extends SongRecord {
+      likeCount: number;
+      isLikedByUser: number;
+    }
+
+    const stmt = this.unit.prepare<EnrichedSongRecord, { id: number; viewerId: number | null }>(
+      `SELECT
+        s.id, s.name, s.author, s.bpm, s.length, s.songUrl, s.coverUrl, s.ownerId, s.isPublic, s.genre, s.play_count,
+        (SELECT COUNT(*) FROM SongLike WHERE song_id = s.id) as likeCount,
+        EXISTS(SELECT 1 FROM SongLike WHERE song_id = s.id AND user_id = $viewerId) as isLikedByUser
+      FROM Song s
+      WHERE s.id = $id`,
+      { id: songId, viewerId: viewerId ?? null }
     );
 
     const song = stmt.get();
@@ -406,7 +491,7 @@ export class SongService {
       return undefined;
     }
 
-    return this.toResponse(song);
+    return this.toResponse(song, song.likeCount, !!song.isLikedByUser);
   }
 
   public updateSongVisibility(
@@ -801,7 +886,7 @@ export class SongService {
 
     private getRawSongById(songId: number): SongRecord | undefined {
      const stmt = this.unit.prepare<SongRecord, { id: number }>(
-       'SELECT id, name, author, bpm, length, songUrl, coverUrl, ownerId, isPublic FROM Song WHERE id = $id',
+       'SELECT id, name, author, bpm, length, songUrl, coverUrl, ownerId, isPublic, genre, play_count FROM Song WHERE id = $id',
        { id: songId }
      );
 
@@ -817,7 +902,73 @@ export class SongService {
     return stmt.get();
   }
 
-  private toResponse(song: SongRecord): SongResponse {
+  public likeSong(songId: number, userId: number): { success: boolean; error?: string } {
+    try {
+      if (!Number.isInteger(songId) || songId <= 0) {
+        return { success: false, error: 'Invalid song ID' };
+      }
+      if (!Number.isInteger(userId) || userId <= 0) {
+        return { success: false, error: 'Invalid user ID' };
+      }
+
+      const song = this.getRawSongById(songId);
+      if (!song) {
+        return { success: false, error: 'Song not found' };
+      }
+      if (!this.isPublicSong(song.isPublic)) {
+        return { success: false, error: 'Cannot like private songs' };
+      }
+
+      this.unit.prepare<unknown, { songId: number; userId: number }>(
+        `INSERT INTO SongLike (song_id, user_id) VALUES ($songId, $userId)
+         ON CONFLICT(song_id, user_id) DO NOTHING`,
+        { songId, userId }
+      ).run();
+
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error.message || 'Failed to like song' };
+    }
+  }
+
+  public unlikeSong(songId: number, userId: number): { success: boolean; error?: string } {
+    try {
+      if (!Number.isInteger(songId) || songId <= 0) {
+        return { success: false, error: 'Invalid song ID' };
+      }
+      if (!Number.isInteger(userId) || userId <= 0) {
+        return { success: false, error: 'Invalid user ID' };
+      }
+
+      this.unit.prepare<unknown, { songId: number; userId: number }>(
+        'DELETE FROM SongLike WHERE song_id = $songId AND user_id = $userId',
+        { songId, userId }
+      ).run();
+
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error.message || 'Failed to unlike song' };
+    }
+  }
+
+  public incrementPlayCount(songId: number): { success: boolean; error?: string } {
+    try {
+      if (!Number.isInteger(songId) || songId <= 0) {
+        return { success: false, error: 'Invalid song ID' };
+      }
+
+      this.unit.prepare<unknown, { songId: number }>(
+        'UPDATE Song SET play_count = COALESCE(play_count, 0) + 1 WHERE id = $songId',
+        { songId }
+      ).run();
+
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error.message || 'Failed to increment play count' };
+    }
+  }
+
+  private toResponse(song: SongRecord, likeCount: number = 0, isLikedByUser: boolean = false): SongResponse {
     return {
       id: song.id,
       name: song.name,
@@ -828,6 +979,10 @@ export class SongService {
       coverUrl: song.coverUrl,
       ownerId: song.ownerId,
       isPublic: this.isPublicSong(song.isPublic),
+      genre: song.genre ?? null,
+      playCount: song.play_count ?? 0,
+      likeCount,
+      isLikedByUser,
       difficulties: this.getDifficultiesBySongId(song.id)
     };
   }

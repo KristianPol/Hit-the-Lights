@@ -10,6 +10,7 @@ import { SettingsPage } from '../frontend/settings/settings';
 import { AnalyticsPage } from '../frontend/analytics/analytics';
 import { AboutPage } from '../frontend/about/about';
 import { AchievementsComponent } from '../frontend/achievements/achievements';
+import { ChartMaker } from '../frontend/chart-maker/chart-maker';
 
 export const routes: Routes = [
     {path: 'login', component: Login},
@@ -25,5 +26,6 @@ export const routes: Routes = [
     {path: 'starterPage', component: Starterpage},
     {path: 'gameplay', component: Gameplay},
     {path: 'gameplay/:songId', component: Gameplay},
+    {path: 'chart-maker', component: ChartMaker},
     {path: '', pathMatch: 'full', redirectTo: 'starterPage'}
 ];

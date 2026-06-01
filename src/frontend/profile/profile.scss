@@ -399,6 +399,106 @@ $text-muted: #555555;
   }
 }
 
+// Pinned achievements section
+.pinned-achievements-section {
+  border-top: 1px solid rgba(255, 215, 0, 0.1);
+  padding-top: 2rem;
+  margin-top: 2rem;
+
+  .pinned-header {
+    color: $text-secondary;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 1.5rem;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+
+    i {
+      color: $yellow-primary;
+      transform: rotate(45deg);
+    }
+  }
+
+  .pinned-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+  }
+
+  .pinned-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.15rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 16px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.25s ease;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.06);
+      border-color: rgba(255, 215, 0, 0.2);
+      transform: translateX(6px);
+    }
+  }
+
+  .pinned-cover {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    border: 2px solid rgba(255, 215, 0, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-weight: 700;
+    font-size: 1.05rem;
+
+    &.skill {
+      background: linear-gradient(135deg, #1e3a8a, #2563eb);
+    }
+
+    &.progression {
+      background: linear-gradient(135deg, #14532d, #16a34a);
+    }
+
+    &.social {
+      background: linear-gradient(135deg, #7c2d12, #f59e0b);
+    }
+  }
+
+  .pinned-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .pinned-title {
+    color: #fff;
+    font-weight: 700;
+    font-size: 1.05rem;
+  }
+
+  .pinned-desc {
+    margin-top: 0.4rem;
+    color: #e2e8f0;
+    font-size: 0.9rem;
+  }
+
+  .pinned-category {
+    margin-top: 0.45rem;
+    color: #a1a1aa;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+}
+
 // Action buttons
 .action-buttons {
   display: flex;

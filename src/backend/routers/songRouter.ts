@@ -1,4 +1,4 @@
-﻿import { Router, Request, Response } from 'express';
+import { Router, Request, Response } from 'express';
 import fs from 'fs';
 import path from 'path';
 import { Unit } from '../database/unit';
@@ -56,7 +56,7 @@ songRouter.post('/add', async (req: Request, res: Response) => {
   const unit = new Unit(false);
 
   try {
-    const { name, author, bpm, length, audioBase64, audioMimeType, coverBase64, coverMimeType, ownerId, isPublic } = req.body;
+    const { name, author, bpm, length, audioBase64, audioMimeType, coverBase64, coverMimeType, ownerId, isPublic, genre } = req.body;
 
     if (!name || !author || !bpm || !length || !audioBase64 || !coverBase64) {
       unit.complete(false);
@@ -70,7 +70,7 @@ songRouter.post('/add', async (req: Request, res: Response) => {
     const coverUrl = `/uploads/covers/${coverFilename}`;
 
     const svc = new SongService(unit);
-    const result = svc.addSong({ name, author, bpm: parseInt(bpm, 10), length, songUrl, coverUrl, ownerId: parseOptionalNumber(ownerId) ?? null, isPublic: parseVisibility(isPublic, true) });
+    const result = svc.addSong({ name, author, bpm: parseInt(bpm, 10), length, songUrl, coverUrl, ownerId: parseOptionalNumber(ownerId) ?? null, isPublic: parseVisibility(isPublic, true), genre });
     if (result.success) {
       unit.complete(true);
       res.status(201).json({ success: true, songId: result.songId, songUrl, coverUrl, ownerId: result.ownerId, isPublic: result.isPublic, message: 'Song added successfully' });
@@ -89,8 +89,11 @@ songRouter.get('/all', async (req: Request, res: Response) => {
   try {
     console.log('📥 Backend: GET /api/songs/all - Fetching all songs');
     const viewerId = parseOptionalNumber(req.query['viewerId']);
+    const search = typeof req.query['search'] === 'string' ? req.query['search'] : undefined;
+    const genre = typeof req.query['genre'] === 'string' ? req.query['genre'] : undefined;
+    const sort = typeof req.query['sort'] === 'string' ? req.query['sort'] : undefined;
     const songService = new SongService(unit);
-    const songs = songService.getAllSongs(viewerId);
+    const songs = songService.getAllSongs(viewerId, search, genre, sort);
     console.log(`✅ Backend: Found ${songs.length} songs in database`);
     unit.complete();
     res.status(200).json({ success: true, songs });
@@ -130,6 +133,56 @@ songRouter.get('/:id', async (req: Request, res: Response) => {
     if (song) res.status(200).json({ success: true, song }); else res.status(404).json({ success: false, error: 'Song not found' });
   } catch (error: any) {
     unit.complete();
+    res.status(500).json({ success: false, error: error.message || 'Internal server error' });
+  }
+});
+
+songRouter.post('/:id/like', async (req: Request, res: Response) => {
+  const unit = new Unit(false);
+  try {
+    const songId = parseInt(req.params['id'] as string, 10);
+    const { userId } = req.body;
+    if (isNaN(songId)) { unit.complete(false); res.status(400).json({ success: false, error: 'Invalid song ID' }); return; }
+    const parsedUserId = parseOptionalNumber(userId);
+    if (parsedUserId === undefined) { unit.complete(false); res.status(400).json({ success: false, error: 'userId is required' }); return; }
+
+    const svc = new SongService(unit);
+    const result = svc.likeSong(songId, parsedUserId);
+    if (result.success) { unit.complete(true); res.status(200).json({ success: true, message: 'Song liked' }); } else { unit.complete(false); res.status(400).json({ success: false, error: result.error }); }
+  } catch (error: any) {
+    unit.complete(false);
+    res.status(500).json({ success: false, error: error.message || 'Internal server error' });
+  }
+});
+
+songRouter.delete('/:id/like', async (req: Request, res: Response) => {
+  const unit = new Unit(false);
+  try {
+    const songId = parseInt(req.params['id'] as string, 10);
+    const userId = parseOptionalNumber(req.query['userId']);
+    if (isNaN(songId)) { unit.complete(false); res.status(400).json({ success: false, error: 'Invalid song ID' }); return; }
+    if (userId === undefined) { unit.complete(false); res.status(400).json({ success: false, error: 'userId is required' }); return; }
+
+    const svc = new SongService(unit);
+    const result = svc.unlikeSong(songId, userId);
+    if (result.success) { unit.complete(true); res.status(200).json({ success: true, message: 'Song unliked' }); } else { unit.complete(false); res.status(400).json({ success: false, error: result.error }); }
+  } catch (error: any) {
+    unit.complete(false);
+    res.status(500).json({ success: false, error: error.message || 'Internal server error' });
+  }
+});
+
+songRouter.post('/:id/play', async (req: Request, res: Response) => {
+  const unit = new Unit(false);
+  try {
+    const songId = parseInt(req.params['id'] as string, 10);
+    if (isNaN(songId)) { unit.complete(false); res.status(400).json({ success: false, error: 'Invalid song ID' }); return; }
+
+    const svc = new SongService(unit);
+    const result = svc.incrementPlayCount(songId);
+    if (result.success) { unit.complete(true); res.status(200).json({ success: true, message: 'Play count incremented' }); } else { unit.complete(false); res.status(400).json({ success: false, error: result.error }); }
+  } catch (error: any) {
+    unit.complete(false);
     res.status(500).json({ success: false, error: error.message || 'Internal server error' });
   }
 });

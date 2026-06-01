@@ -336,6 +336,95 @@ $text-muted: #555555;
   }
 }
 
+// Filter bar (search + sort + genre)
+.filter-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+
+  .search-box {
+    position: relative;
+    display: flex;
+    align-items: center;
+
+    .search-icon {
+      position: absolute;
+      left: 0.85rem;
+      color: $text-muted;
+      font-size: 0.85rem;
+      pointer-events: none;
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 0.65rem 2.25rem 0.65rem 2.25rem;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 215, 0, 0.2);
+      background: rgba(0, 0, 0, 0.35);
+      color: $text-primary;
+      font-size: 0.875rem;
+      outline: none;
+      transition: all 0.3s ease;
+
+      &::placeholder {
+        color: $text-muted;
+      }
+
+      &:focus {
+        border-color: rgba(255, 215, 0, 0.5);
+        box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.08);
+      }
+    }
+
+    .search-clear {
+      position: absolute;
+      right: 0.5rem;
+      background: none;
+      border: none;
+      color: $text-muted;
+      cursor: pointer;
+      padding: 0.25rem;
+      font-size: 0.8rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.2s ease;
+
+      &:hover {
+        color: $text-primary;
+      }
+    }
+  }
+
+  .filter-row {
+    display: flex;
+    gap: 0.5rem;
+
+    .filter-select {
+      flex: 1;
+      padding: 0.5rem 0.75rem;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 215, 0, 0.2);
+      background: rgba(0, 0, 0, 0.35);
+      color: $text-primary;
+      font-size: 0.8rem;
+      outline: none;
+      cursor: pointer;
+      transition: all 0.3s ease;
+
+      &:focus {
+        border-color: rgba(255, 215, 0, 0.5);
+      }
+
+      option {
+        background: $black-secondary;
+        color: $text-primary;
+      }
+    }
+  }
+}
+
 // Add Track Button
 .add-track-btn {
   display: flex;
@@ -580,6 +669,71 @@ $text-muted: #555555;
           align-items: center;
           justify-content: center;
           width: 1em;
+        }
+
+        &.genre-pill {
+          background: rgba(255, 215, 0, 0.1);
+          border: 1px solid rgba(255, 215, 0, 0.25);
+          border-radius: 20px;
+          padding: 0.15rem 0.5rem;
+
+          .meta-value {
+            color: $yellow-primary;
+            font-weight: 500;
+          }
+        }
+      }
+    }
+
+    .song-stats-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-top: 0.35rem;
+
+      .like-btn {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        background: none;
+        border: none;
+        color: $text-muted;
+        font-size: 0.8rem;
+        cursor: pointer;
+        padding: 0.2rem 0;
+        transition: color 0.2s ease;
+
+        i {
+          font-size: 0.9rem;
+          transition: transform 0.2s ease;
+        }
+
+        &:hover {
+          color: #ff6b81;
+
+          i {
+            transform: scale(1.15);
+          }
+        }
+
+        &.liked {
+          color: #ff4757;
+
+          i {
+            color: #ff4757;
+          }
+        }
+      }
+
+      .play-stat {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        color: $text-muted;
+        font-size: 0.8rem;
+
+        i {
+          font-size: 0.7rem;
         }
       }
     }
@@ -883,6 +1037,29 @@ $text-muted: #555555;
     &:hover {
       background: linear-gradient(135deg, rgba(76, 205, 196, 0.32), rgba(76, 205, 196, 0.14));
       box-shadow: 0 0 28px rgba(76, 205, 196, 0.18);
+    }
+  }
+
+  .like-detail-btn {
+    @extend .play-track-btn;
+    color: $text-secondary;
+    border-color: rgba(255, 107, 129, 0.35);
+    background: linear-gradient(135deg, rgba(255, 107, 129, 0.1), rgba(255, 107, 129, 0.04));
+
+    &:hover {
+      background: linear-gradient(135deg, rgba(255, 107, 129, 0.2), rgba(255, 107, 129, 0.08));
+      box-shadow: 0 0 28px rgba(255, 107, 129, 0.12);
+    }
+
+    &.liked {
+      color: #ff4757;
+      border-color: rgba(255, 71, 87, 0.55);
+      background: linear-gradient(135deg, rgba(255, 71, 87, 0.15), rgba(255, 71, 87, 0.06));
+
+      &:hover {
+        background: linear-gradient(135deg, rgba(255, 71, 87, 0.25), rgba(255, 71, 87, 0.1));
+        box-shadow: 0 0 28px rgba(255, 71, 87, 0.18);
+      }
     }
   }
 

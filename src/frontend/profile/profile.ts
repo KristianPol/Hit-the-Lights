@@ -1,15 +1,19 @@
 import { Component, OnInit, NgZone, ChangeDetectorRef, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
 import { AuthService, User } from '../../app/services/auth.service';
 import { SongService } from '../../app/services/song.service';
 import { MessageService } from '../../app/services/message.service';
-import { catchError, of, tap, finalize, take } from 'rxjs';
+import { AchievementService } from '../../app/services/achievement.service';
+import { Achievement } from '../../app/services/achievement.model';
+import { catchError, of, tap, finalize, take, map } from 'rxjs';
 
 @Component({
   selector: 'app-profile',
   standalone: true,
-  imports: [RouterModule, FormsModule],
+  imports: [CommonModule, RouterModule, FormsModule],
   templateUrl: './profile.html',
   styleUrls: ['./profile.scss']
 })
@@ -80,12 +84,18 @@ export class ProfileComponent implements OnInit {
   get imageError(): boolean { return this.imageErrorSignal(); }
   set imageError(v: boolean) { this.imageErrorSignal.set(v); }
 
+  private pinnedAchievementsSignal = signal<Achievement[]>([]);
+  get pinnedAchievements(): Achievement[] { return this.pinnedAchievementsSignal(); }
+  set pinnedAchievements(v: Achievement[]) { this.pinnedAchievementsSignal.set(v); }
+
   constructor(
     private authService: AuthService,
     private router: Router,
     private route: ActivatedRoute,
     private songService: SongService,
     private messageService: MessageService,
+    private achievementService: AchievementService,
+    private http: HttpClient,
     private ngZone: NgZone,
     private cdr: ChangeDetectorRef
   ) {}
@@ -132,6 +142,7 @@ export class ProfileComponent implements OnInit {
       // Load counts immediately
       this.loadUploadedSongCount(currentUser.id);
       this.loadUnreadCount(currentUser.id);
+      this.loadPinnedAchievements(currentUser.id);
     }
 
     this.authService.currentUser$.pipe(
@@ -149,6 +160,7 @@ export class ProfileComponent implements OnInit {
             this.uploadedSongCount = 0;
             this.unreadMessageCount = 0;
             this.totalGamesPlayed = 0;
+            this.pinnedAchievements = [];
           });
         }
       }),
@@ -187,6 +199,7 @@ export class ProfileComponent implements OnInit {
           this.imageError = false;
           this.error = null;
           this.loadUploadedSongCount(userId);
+          this.loadPinnedAchievements(userId);
           this.unreadMessageCount = 0;
           this.totalGamesPlayed = 0;
         } else {
@@ -395,6 +408,51 @@ export class ProfileComponent implements OnInit {
       error: () => {
         this.ngZone.run(() => {
           this.unreadMessageCount = 0;
+        });
+      }
+    });
+  }
+
+  private loadPinnedAchievements(userId: number): void {
+    const currentUser = this.authService.currentUser;
+    if (currentUser && currentUser.id === userId) {
+      // Own profile: use the achievement service directly
+      this.achievementService.refreshForCurrentUser();
+      this.ngZone.run(() => {
+        this.pinnedAchievements = this.achievementService.pinned();
+      });
+      return;
+    }
+
+    // Other profile: fetch from API and merge with base definitions
+    this.http.get<{ success: boolean; achievements?: Array<{ id: string; unlocked: boolean; pinned: boolean; progress: number }> }>(
+      `/api/auth/user/${userId}/achievements`
+    ).pipe(
+      map(response => {
+        if (!response.success || !Array.isArray(response.achievements)) {
+          return [];
+        }
+        const baseDefs = this.achievementService.loadBaseDefinitions();
+        const savedMap = new Map(response.achievements.map(a => [a.id, a]));
+        const pinned: Achievement[] = [];
+        for (const def of baseDefs) {
+          const saved = savedMap.get(def.id);
+          if (saved && saved.pinned) {
+            pinned.push({
+              ...def,
+              unlocked: saved.unlocked,
+              pinned: saved.pinned,
+              progress: saved.progress
+            } as Achievement);
+          }
+        }
+        return pinned;
+      }),
+      catchError(() => of([]))
+    ).subscribe({
+      next: achievements => {
+        this.ngZone.run(() => {
+          this.pinnedAchievements = achievements;
         });
       }
     });
