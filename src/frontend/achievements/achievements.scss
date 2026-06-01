@@ -1,0 +1,225 @@
+.achievements-page {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 2rem;
+  color: #fff;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.header h1 {
+  margin: 0;
+  color: #fff;
+  font-size: clamp(1.7rem, 2vw, 2.2rem);
+  flex: 1;
+  text-align: center;
+}
+
+// Back button — matches profile back-to-menu styling
+.back-btn {
+  border: 1px solid rgba(255, 215, 0, 0.35);
+  background: rgba(10, 10, 10, 0.72);
+  color: #ffd700;
+  border-radius: 999px;
+  padding: 0.65rem 1rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    background: rgba(255, 215, 0, 0.12);
+    color: #ffed4e;
+    box-shadow: 0 0 16px rgba(255, 215, 0, 0.2);
+  }
+
+  i {
+    margin-right: 0.35rem;
+    font-size: 0.7rem;
+  }
+}
+
+.filters {
+  margin-bottom: 0.8rem;
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+// Filter buttons — match game secondary button style
+.btn-filter {
+  padding: 0.55rem 1.1rem;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: transparent;
+  color: #888888;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+
+  &:hover {
+    border-color: rgba(255, 215, 0, 0.4);
+    color: #ffffff;
+    background: rgba(255, 215, 0, 0.05);
+  }
+
+  &.active {
+    background: linear-gradient(135deg, #ffd700, #ffed4e);
+    color: #0a0a0a;
+    border: none;
+    box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(255, 215, 0, 0.4);
+    }
+  }
+}
+
+.pinned-note {
+  margin-bottom: 0.8rem;
+  color: #d4d4d4;
+}
+
+.achievement-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.achievement-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.15rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.25s ease;
+}
+
+.achievement-card:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 215, 0, 0.2);
+  transform: translateX(6px);
+}
+
+.achievement-cover {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  border: 2px solid rgba(255, 215, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+.achievement-cover.skill {
+  background: linear-gradient(135deg, #1e3a8a, #2563eb);
+}
+
+.achievement-cover.progression {
+  background: linear-gradient(135deg, #14532d, #16a34a);
+}
+
+.achievement-cover.social {
+  background: linear-gradient(135deg, #7c2d12, #f59e0b);
+}
+
+.achievement-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.title {
+  color: #fff;
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+.desc {
+  margin-top: 0.4rem;
+  color: #e2e8f0;
+}
+
+.criteria {
+  margin-top: 0.45rem;
+  color: #a1a1aa;
+  font-size: 0.9rem;
+}
+
+.progress-row {
+  margin-top: 0.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.progress-text {
+  color: #d4d4d4;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.status {
+  font-weight: 700;
+  color: #22c55e;
+}
+
+.status.locked {
+  color: #f87171;
+}
+
+.btn-pin {
+  padding: 0.42rem 0.8rem;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 215, 0, 0.4);
+  background: rgba(255, 215, 0, 0.08);
+  color: #ffd700;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-pin:hover:not(:disabled) {
+  background: rgba(255, 215, 0, 0.18);
+}
+
+.btn-pin:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #a1a1aa;
+}
+
+.card-glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(255, 215, 0, 0.1), transparent 70%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+
+.achievement-card:hover .card-glow {
+  opacity: 1;
+}

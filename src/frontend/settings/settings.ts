@@ -19,8 +19,14 @@ export class SettingsPage {
   readonly noteSpeed = computed(() => this.gameSettingsService.noteSpeed());
   readonly bindingSummary = computed(() => formatBindingList(this.gameSettingsService.laneBindings()));
 
-  noteSpeedDraft = this.noteSpeed();
-  capturingLane: number | null = null;
+  private noteSpeedDraftSignal = signal<number>(this.noteSpeed());
+  get noteSpeedDraft(): number { return this.noteSpeedDraftSignal(); }
+  set noteSpeedDraft(v: number) { this.noteSpeedDraftSignal.set(v); }
+
+  private capturingLaneSignal = signal<number | null>(null);
+  get capturingLane(): number | null { return this.capturingLaneSignal(); }
+  set capturingLane(v: number | null) { this.capturingLaneSignal.set(v); }
+
   statusMessage = signal('Choose a lane, then press the new key.');
   errorMessage = signal<string | null>(null);
 

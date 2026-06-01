@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { AuthService, User } from '../../app/services/auth.service';
 import { SongService, SongDifficulty, DifficultyLevel, LeaderboardEntry, difficultyNumberToName, difficultyNameToNumber } from '../../app/services/song.service';
 import { MessageService } from '../../app/services/message.service';
+import { AchievementService } from '../../app/services/achievement.service';
 import { tap, filter } from 'rxjs/operators';
 
 interface MenuItem {
@@ -55,6 +56,16 @@ interface LeaderboardState {
   difficultyLabel: string;
 }
 
+interface Comment {
+  id: number;
+  songId: number;
+  senderId: number;
+  senderUsername?: string;
+  parentCommentId?: number | null;
+  content: string;
+  createdAt: string;
+}
+
 @Component({
   selector: 'app-menu',
   standalone: true,
@@ -75,22 +86,41 @@ export class MenuComponent implements OnInit, OnDestroy {
 
   unreadMessageCount = signal(0);
 
-  activeItem = 'Dashboard';
-  currentUser: User | null = null;
+  // reactive UI state using signals
+  private activeItemSignal = signal<string>('Dashboard');
+  get activeItem(): string { return this.activeItemSignal(); }
+  set activeItem(v: string) { this.activeItemSignal.set(v); }
+
   private readonly currentUserSignal = signal<User | null>(null);
+  get currentUser(): User | null { return this.currentUserSignal(); }
+  set currentUser(v: User | null) { this.currentUserSignal.set(v); }
+
   private audio = new Audio();
 
   private readonly allSongsSignal = signal<Song[]>([]);
   readonly visibleSongs = computed(() => {
-    const viewerId = this.currentUserSignal()?.id;
+    const viewerId = this.currentUser?.id;
     return this.allSongsSignal().filter(song => this.isSongPublic(song) || this.isSongOwnedByViewer(song, viewerId));
   });
-  loadingError: string | null = null;
-  isLoading = true;
+  private loadingErrorSignal = signal<string | null>(null);
+  get loadingError(): string | null { return this.loadingErrorSignal(); }
+  set loadingError(v: string | null) { this.loadingErrorSignal.set(v); }
 
-  selectedSong: Song | null = null;
-  selectedDifficultyId: number | null = null;
-  uploadDifficultyChoice: DifficultyLevel | null = null;
+  private isLoadingSignal = signal<boolean>(true);
+  get isLoading(): boolean { return this.isLoadingSignal(); }
+  set isLoading(v: boolean) { this.isLoadingSignal.set(v); }
+
+  private selectedSongSignal = signal<Song | null>(null);
+  get selectedSong(): Song | null { return this.selectedSongSignal(); }
+  set selectedSong(v: Song | null) { this.selectedSongSignal.set(v); }
+
+  private selectedDifficultyIdSignal = signal<number | null>(null);
+  get selectedDifficultyId(): number | null { return this.selectedDifficultyIdSignal(); }
+  set selectedDifficultyId(v: number | null) { this.selectedDifficultyIdSignal.set(v); }
+
+  private uploadDifficultyChoiceSignal = signal<DifficultyLevel | null>(null);
+  get uploadDifficultyChoice(): DifficultyLevel | null { return this.uploadDifficultyChoiceSignal(); }
+  set uploadDifficultyChoice(v: DifficultyLevel | null) { this.uploadDifficultyChoiceSignal.set(v); }
 
   difficultyPickerState = signal<DifficultyPickerState>({
     showPicker: false,
@@ -107,20 +137,46 @@ export class MenuComponent implements OnInit, OnDestroy {
     difficultyLabel: ''
   });
 
-  showAddTrackForm = false;
-  pendingSong: AddSongFormData = {};
-  menuImageError = false;
+  // Comments UI state
+  // Comments UI state (use signals)
+  private commentsSignal = signal<Comment[]>([]);
+  get comments(): Comment[] { return this.commentsSignal(); }
+  set comments(v: Comment[]) { this.commentsSignal.set(v); }
+
+  private commentDraftSignal = signal<string>('');
+  get commentDraft(): string { return this.commentDraftSignal(); }
+  set commentDraft(v: string) { this.commentDraftSignal.set(v); }
+
+  private replyingToSignal = signal<number | null>(null);
+  get replyingTo(): number | null { return this.replyingToSignal(); }
+  set replyingTo(v: number | null) { this.replyingToSignal.set(v); }
+
+  private loadingCommentsSignal = signal<boolean>(false);
+  get loadingComments(): boolean { return this.loadingCommentsSignal(); }
+  set loadingComments(v: boolean) { this.loadingCommentsSignal.set(v); }
+
+  private showAddTrackFormSignal = signal<boolean>(false);
+  get showAddTrackForm(): boolean { return this.showAddTrackFormSignal(); }
+  set showAddTrackForm(v: boolean) { this.showAddTrackFormSignal.set(v); }
+
+  private pendingSongSignal = signal<AddSongFormData>({});
+  get pendingSong(): AddSongFormData { return this.pendingSongSignal(); }
+  set pendingSong(v: AddSongFormData) { this.pendingSongSignal.set(v); }
+
+  private menuImageErrorSignal = signal<boolean>(false);
+  get menuImageError(): boolean { return this.menuImageErrorSignal(); }
+  set menuImageError(v: boolean) { this.menuImageErrorSignal.set(v); }
 
   constructor(
     private authService: AuthService,
     private songService: SongService,
     private messageService: MessageService,
+    private achievementService: AchievementService,
     private router: Router,
     private cdr: ChangeDetectorRef,
     private ngZone: NgZone
   ) {
     this.currentUser = this.authService.currentUser;
-    this.currentUserSignal.set(this.currentUser);
     this.audio = new Audio();
     this.audio.volume = 1;
   }
@@ -135,7 +191,6 @@ export class MenuComponent implements OnInit, OnDestroy {
       tap(user => {
         this.ngZone.run(() => {
           this.currentUser = user;
-          this.currentUserSignal.set(user);
           this.menuImageError = false; // Reset image error on user update
           this.cdr.detectChanges();
           this.loadSongsFromDatabase();
@@ -172,7 +227,7 @@ export class MenuComponent implements OnInit, OnDestroy {
     console.log('🎵 MenuComponent: Starting to load songs from database');
     this.isLoading = true;
     this.loadingError = null;
-    const viewerId = this.currentUserSignal()?.id;
+    const viewerId = this.currentUser?.id;
 
     this.songService.getAllSongs(viewerId ?? undefined).subscribe({
       next: response => {
@@ -234,6 +289,7 @@ export class MenuComponent implements OnInit, OnDestroy {
     this.selectedSong = song;
     this.selectedDifficultyId = song.difficulties?.[0]?.id ?? null;
     this.loadLeaderboardForSelection();
+    this.loadComments();
     this.playSong(this.selectedSong.songUrl).then(() => "Audio played");
   }
 
@@ -393,8 +449,13 @@ export class MenuComponent implements OnInit, OnDestroy {
     this.router.navigate(['/gameplay', song.id], { state: { song, difficultyId: this.selectedDifficultyId } });
   }
 
-  showDeleteConfirm = false;
-  pendingDeleteSong: Song | null = null;
+  private showDeleteConfirmSignal = signal<boolean>(false);
+  get showDeleteConfirm(): boolean { return this.showDeleteConfirmSignal(); }
+  set showDeleteConfirm(v: boolean) { this.showDeleteConfirmSignal.set(v); }
+
+  private pendingDeleteSongSignal = signal<Song | null>(null);
+  get pendingDeleteSong(): Song | null { return this.pendingDeleteSongSignal(); }
+  set pendingDeleteSong(v: Song | null) { this.pendingDeleteSongSignal.set(v); }
 
   requestDeleteSong(song: Song) {
     if (!this.canManageSong(song)) {
@@ -586,12 +647,99 @@ export class MenuComponent implements OnInit, OnDestroy {
         if (response.success && response.song) {
           this.selectedSong = response.song;
           this.loadSongsFromDatabase();
+          this.loadComments();
         } else {
           alert(`Failed to update visibility: ${response.error}`);
         }
       },
       error: err => alert(`Error updating visibility: ${err.message}`)
     });
+  }
+
+  /***** Comments handling *****/
+  loadComments(): void {
+    if (!this.selectedSong) {
+      this.comments = [];
+      return;
+    }
+
+    // Only load comments for public songs
+    if (!this.isSongPublic(this.selectedSong)) {
+      this.comments = [];
+      return;
+    }
+
+    this.loadingComments = true;
+    const viewerId = this.currentUser?.id;
+    this.songService.getComments(this.selectedSong.id, viewerId ?? undefined).subscribe({
+      next: response => {
+        if (response.success && response.comments) {
+          this.comments = response.comments;
+        } else {
+          this.comments = [];
+        }
+        this.loadingComments = false;
+      },
+      error: err => {
+        console.warn('Failed to load comments', err);
+        this.comments = [];
+        this.loadingComments = false;
+      }
+    });
+  }
+
+  postComment(parentId?: number | null): void {
+    if (!this.currentUser || !this.currentUser.id) {
+      alert('You must be logged in to post comments');
+      return;
+    }
+
+    const content = (this.commentDraft || '').trim();
+    if (!content) {
+      alert('Please enter a comment');
+      return;
+    }
+
+    const payload: any = {
+      senderId: this.currentUser.id,
+      content
+    };
+
+    // Only include parentCommentId when replying to a specific comment.
+    // Sending null was being converted to 0 on the server (Number(null) === 0)
+    // which caused the backend to look for comment id 0 and fail with "Parent comment not found".
+    if (parentId != null) {
+      payload.parentCommentId = parentId;
+    }
+
+    this.songService.postComment(this.selectedSong!.id, payload).subscribe({
+      next: response => {
+        if (response.success && response.comment) {
+          // append comment locally
+          this.comments = [...this.comments, response.comment];
+          this.commentDraft = '';
+          this.replyingTo = null;
+          this.achievementService.trackCommentPosted();
+        } else {
+          alert(`Failed to post comment: ${response.error}`);
+        }
+      },
+      error: err => {
+        console.warn('Failed to post comment', err);
+        alert('Failed to post comment');
+      }
+    });
+  }
+
+  openReply(commentId: number) {
+    this.replyingTo = commentId;
+    const existing = this.comments.find(c => c.id === commentId);
+    this.commentDraft = existing ? `@${existing.senderUsername || 'user'} ` : '';
+  }
+
+  cancelReply() {
+    this.replyingTo = null;
+    this.commentDraft = '';
   }
 
   private ensureSelectedSongVisible(): void {

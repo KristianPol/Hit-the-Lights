@@ -33,6 +33,13 @@ export interface GetUserResponse {
   profilePictureUrl?: string;
 }
 
+export interface UserAchievementState {
+  id: string;
+  unlocked: boolean;
+  pinned: boolean;
+  progress: number;
+}
+
 export class UserService {
   constructor(private unit: Unit) {}
 
@@ -273,6 +280,103 @@ export class UserService {
       const resultStmt = this.unit.prepare<{ playtime_seconds: number }, { userId: number }>('SELECT playtime_seconds FROM User WHERE id = $userId', { userId });
       const result = resultStmt.get();
       return { success: true, playtimeSeconds: typeof result?.playtime_seconds === 'number' ? result.playtime_seconds : 0 };
+    } catch (error: any) {
+      return { success: false, error: error.message || 'Database error' };
+    }
+  }
+
+  public getUserAchievements(userId: number): { success: boolean; achievements?: UserAchievementState[]; error?: string } {
+    if (!userId || userId <= 0) {
+      return { success: false, error: 'Invalid user ID' };
+    }
+
+    try {
+      const user = this.unit.prepare<{ id: number }, { userId: number }>(
+        'SELECT id FROM User WHERE id = $userId',
+        { userId }
+      ).get();
+
+      if (!user) {
+        return { success: false, error: 'User not found' };
+      }
+
+      const rows = this.unit.prepare<
+        { achievement_id: string; unlocked: number; pinned: number; progress: number },
+        { userId: number }
+      >(
+        `SELECT achievement_id, unlocked, pinned, progress
+         FROM UserAchievement
+         WHERE user_id = $userId`,
+        { userId }
+      ).all();
+
+      return {
+        success: true,
+        achievements: rows.map(row => ({
+          id: row.achievement_id,
+          unlocked: row.unlocked === 1,
+          pinned: row.pinned === 1,
+          progress: Number(row.progress ?? 0)
+        }))
+      };
+    } catch (error: any) {
+      return { success: false, error: error.message || 'Database error' };
+    }
+  }
+
+  public saveUserAchievements(
+    userId: number,
+    achievements: UserAchievementState[]
+  ): { success: boolean; error?: string } {
+    if (!userId || userId <= 0) {
+      return { success: false, error: 'Invalid user ID' };
+    }
+
+    if (!Array.isArray(achievements)) {
+      return { success: false, error: 'Achievements payload must be an array' };
+    }
+
+    try {
+      const user = this.unit.prepare<{ id: number }, { userId: number }>(
+        'SELECT id FROM User WHERE id = $userId',
+        { userId }
+      ).get();
+
+      if (!user) {
+        return { success: false, error: 'User not found' };
+      }
+
+      this.unit.prepare<unknown, { userId: number }>(
+        'DELETE FROM UserAchievement WHERE user_id = $userId',
+        { userId }
+      ).run();
+
+      for (const achievement of achievements) {
+        if (!achievement?.id) {
+          continue;
+        }
+
+        const unlocked = achievement.unlocked ? 1 : 0;
+        const pinned = achievement.pinned && unlocked ? 1 : 0;
+        const progress = Math.max(0, Math.floor(Number(achievement.progress ?? 0)));
+
+        this.unit.prepare<
+          unknown,
+          { userId: number; achievementId: string; unlocked: number; pinned: number; progress: number }
+        >(
+          `INSERT INTO UserAchievement (user_id, achievement_id, unlocked, pinned, progress, updated_at)
+           VALUES ($userId, $achievementId, $unlocked, $pinned, $progress, CURRENT_TIMESTAMP)`,
+          {
+            userId,
+            achievementId: achievement.id,
+            unlocked,
+            pinned,
+            progress
+          }
+        ).run();
+      }
+
+      return { success: true };
     } catch (error: any) {
       return { success: false, error: error.message || 'Database error' };
     }

@@ -9,6 +9,7 @@ import {Messages} from '../frontend/messages/messages';
 import { SettingsPage } from '../frontend/settings/settings';
 import { AnalyticsPage } from '../frontend/analytics/analytics';
 import { AboutPage } from '../frontend/about/about';
+import { AchievementsComponent } from '../frontend/achievements/achievements';
 
 export const routes: Routes = [
     {path: 'login', component: Login},
@@ -16,6 +17,7 @@ export const routes: Routes = [
     {path: 'menu' , component : MenuComponent},
     {path: 'profile', component : ProfileComponent},
     {path: 'profile/:userId', component : ProfileComponent},
+    {path: 'achievements', component: AchievementsComponent},
     {path: 'messages', component : Messages},
     {path: 'settings', component: SettingsPage},
     {path: 'analytics', component: AnalyticsPage},

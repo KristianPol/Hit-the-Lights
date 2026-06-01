@@ -1,4 +1,4 @@
-import { Component, OnInit, NgZone, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, NgZone, ChangeDetectorRef, signal } from '@angular/core';
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService, User } from '../../app/services/auth.service';
@@ -14,24 +14,71 @@ import { catchError, of, tap, finalize, take } from 'rxjs';
   styleUrls: ['./profile.scss']
 })
 export class ProfileComponent implements OnInit {
-  user: User | null = null;
-  loading = true;
-  error: string | null = null;
-  uploadedSongCount = 0;
-  unreadMessageCount = 0;
-  totalGamesPlayed = 0;
-  isOwnProfile = true;
-  viewedUserId: number | null = null;
-  private songCountLoaded = false;
+  // reactive state (signals)
+  private userSignal = signal<User | null>(null);
+  get user(): User | null { return this.userSignal(); }
+  set user(v: User | null) { this.userSignal.set(v); }
 
-  // Edit profile modal state
-  showEditModal = false;
-  selectedProfilePicture: File | null = null;
-  profilePicturePreview: string | null = null;
-  updatingProfilePicture = false;
-  updateError: string | null = null;
-  updateSuccess = false;
-  imageError = false;
+  private loadingSignal = signal<boolean>(true);
+  get loading(): boolean { return this.loadingSignal(); }
+  set loading(v: boolean) { this.loadingSignal.set(v); }
+
+  private errorSignal = signal<string | null>(null);
+  get error(): string | null { return this.errorSignal(); }
+  set error(v: string | null) { this.errorSignal.set(v); }
+
+  private uploadedSongCountSignal = signal<number>(0);
+  get uploadedSongCount(): number { return this.uploadedSongCountSignal(); }
+  set uploadedSongCount(v: number) { this.uploadedSongCountSignal.set(v); }
+
+  private unreadMessageCountSignal = signal<number>(0);
+  get unreadMessageCount(): number { return this.unreadMessageCountSignal(); }
+  set unreadMessageCount(v: number) { this.unreadMessageCountSignal.set(v); }
+
+  private totalGamesPlayedSignal = signal<number>(0);
+  get totalGamesPlayed(): number { return this.totalGamesPlayedSignal(); }
+  set totalGamesPlayed(v: number) { this.totalGamesPlayedSignal.set(v); }
+
+  private isOwnProfileSignal = signal<boolean>(true);
+  get isOwnProfile(): boolean { return this.isOwnProfileSignal(); }
+  set isOwnProfile(v: boolean) { this.isOwnProfileSignal.set(v); }
+
+  private viewedUserIdSignal = signal<number | null>(null);
+  get viewedUserId(): number | null { return this.viewedUserIdSignal(); }
+  set viewedUserId(v: number | null) { this.viewedUserIdSignal.set(v); }
+
+  private songCountLoadedSignal = signal<boolean>(false);
+  get songCountLoaded(): boolean { return this.songCountLoadedSignal(); }
+  set songCountLoaded(v: boolean) { this.songCountLoadedSignal.set(v); }
+
+  // Edit profile modal state (signals)
+  private showEditModalSignal = signal<boolean>(false);
+  get showEditModal(): boolean { return this.showEditModalSignal(); }
+  set showEditModal(v: boolean) { this.showEditModalSignal.set(v); }
+
+  private selectedProfilePictureSignal = signal<File | null>(null);
+  get selectedProfilePicture(): File | null { return this.selectedProfilePictureSignal(); }
+  set selectedProfilePicture(v: File | null) { this.selectedProfilePictureSignal.set(v); }
+
+  private profilePicturePreviewSignal = signal<string | null>(null);
+  get profilePicturePreview(): string | null { return this.profilePicturePreviewSignal(); }
+  set profilePicturePreview(v: string | null) { this.profilePicturePreviewSignal.set(v); }
+
+  private updatingProfilePictureSignal = signal<boolean>(false);
+  get updatingProfilePicture(): boolean { return this.updatingProfilePictureSignal(); }
+  set updatingProfilePicture(v: boolean) { this.updatingProfilePictureSignal.set(v); }
+
+  private updateErrorSignal = signal<string | null>(null);
+  get updateError(): string | null { return this.updateErrorSignal(); }
+  set updateError(v: string | null) { this.updateErrorSignal.set(v); }
+
+  private updateSuccessSignal = signal<boolean>(false);
+  get updateSuccess(): boolean { return this.updateSuccessSignal(); }
+  set updateSuccess(v: boolean) { this.updateSuccessSignal.set(v); }
+
+  private imageErrorSignal = signal<boolean>(false);
+  get imageError(): boolean { return this.imageErrorSignal(); }
+  set imageError(v: boolean) { this.imageErrorSignal.set(v); }
 
   constructor(
     private authService: AuthService,

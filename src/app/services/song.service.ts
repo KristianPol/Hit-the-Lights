@@ -176,6 +176,34 @@ export interface GetDifficultyChartResponse {
   error?: string;
 }
 
+export interface Comment {
+  id: number;
+  songId: number;
+  senderId: number;
+  senderUsername?: string;
+  parentCommentId?: number | null;
+  content: string;
+  createdAt: string;
+}
+
+export interface GetCommentsResponse {
+  success: boolean;
+  comments?: Comment[];
+  error?: string;
+}
+
+export interface PostCommentRequest {
+  senderId: number;
+  content: string;
+  parentCommentId?: number | null;
+}
+
+export interface PostCommentResponse {
+  success: boolean;
+  comment?: Comment;
+  error?: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -323,5 +351,22 @@ export class SongService {
           );
         })
       );
+  }
+
+  getComments(songId: number, viewerId?: number): Observable<GetCommentsResponse> {
+    const params = viewerId == null ? new HttpParams() : new HttpParams().set('viewerId', viewerId.toString());
+    return this.http.get<GetCommentsResponse>(`${this.apiUrl}/${songId}/comments`, { params }).pipe(
+      catchError(error => {
+        return throwError(() => new Error(error.error?.error || 'Failed to fetch comments'));
+      })
+    );
+  }
+
+  postComment(songId: number, request: PostCommentRequest): Observable<PostCommentResponse> {
+    return this.http.post<PostCommentResponse>(`${this.apiUrl}/${songId}/comments`, request).pipe(
+      catchError(error => {
+        return throwError(() => new Error(error.error?.error || 'Failed to post comment'));
+      })
+    );
   }
 }

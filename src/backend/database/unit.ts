@@ -400,6 +400,38 @@ class DB {
 
      connection.exec('CREATE INDEX IF NOT EXISTS idx_message_conversation ON Message(sender_id, receiver_id, created_at)');
      connection.exec('CREATE INDEX IF NOT EXISTS idx_message_receiver ON Message(receiver_id, is_read)');
+
+      connection.exec(`
+              CREATE TABLE IF NOT EXISTS UserAchievement (
+                user_id INTEGER NOT NULL,
+                achievement_id TEXT NOT NULL,
+                unlocked INTEGER NOT NULL DEFAULT 0,
+                pinned INTEGER NOT NULL DEFAULT 0,
+                progress INTEGER NOT NULL DEFAULT 0,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (user_id, achievement_id),
+                CONSTRAINT fk_user_achievement_user FOREIGN KEY (user_id) REFERENCES User(id) ON DELETE CASCADE
+                ) STRICT
+          `);
+
+      connection.exec('CREATE INDEX IF NOT EXISTS idx_user_achievement_user ON UserAchievement(user_id)');
+
+      // Comments table: per-song comments with optional parent comment for replies
+      connection.exec(`
+              CREATE TABLE IF NOT EXISTS Comment (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                song_id INTEGER NOT NULL,
+                sender_id INTEGER NOT NULL,
+                parent_comment_id INTEGER,
+                content TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                CONSTRAINT fk_song_comment FOREIGN KEY (song_id) REFERENCES Song(id) ON DELETE CASCADE,
+                CONSTRAINT fk_sender_comment FOREIGN KEY (sender_id) REFERENCES User(id),
+                CONSTRAINT fk_parent_comment FOREIGN KEY (parent_comment_id) REFERENCES Comment(id)
+                ) STRICT
+          `);
+
+      connection.exec('CREATE INDEX IF NOT EXISTS idx_comment_song ON Comment(song_id, created_at)');
   }
 
   private static migrateLegacyUserControls(connection: Database): void {

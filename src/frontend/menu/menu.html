@@ -69,7 +69,7 @@
           <span class="user-name">{{ currentUser?.username || 'Guest' }}</span>
           <span class="user-status">Online</span>
         </div>
-      </div>
+                </div>
     </div>
   </div>
 
@@ -236,16 +236,102 @@
                              <span>{{ entry.maxCombo }} combo</span>
                              <span>{{ entry.accuracy.toFixed(1) }}%</span>
                            </div>
-                         </div>
-                       </div>
-                     }
+                                  </div>
+
+                                </div>
+                              }
                    </div>
                  }
                </div>
              </div>
            }
 
-           <div class="detail-glow"></div>
+            <!-- Comments section moved here (separate from leaderboard) -->
+            @if (selectedSong.isPublic) {
+              <div class="comments-panel">
+                <div class="comments-header">
+                  <h3>Comments</h3>
+                </div>
+
+                @if (loadingComments) {
+                  <p class="comments-loading">Loading comments...</p>
+                } @else {
+                  @if (!currentUser) {
+                    <p class="comments-login-hint">Please log in to post comments.</p>
+                  } @else {
+                    <div class="comment-form">
+                      <textarea [(ngModel)]="commentDraft" placeholder="Add a public comment..." rows="3"></textarea>
+                      <div class="comment-form-actions">
+                        @if (replyingTo) {
+                          <button class="btn-cancel" type="button" (click)="cancelReply()">Cancel Reply</button>
+                          <button class="btn-submit" type="button" (click)="postComment(replyingTo)">Reply</button>
+                        } @else {
+                          <button class="btn-submit" type="button" (click)="postComment()">Post</button>
+                        }
+                      </div>
+                    </div>
+                  }
+
+                  <div class="comments-list">
+                    @if (!comments || comments.length === 0) {
+                      <p class="comments-empty">No comments yet. Be the first to comment!</p>
+                    } @else {
+                      @for (c of comments; track c.id) {
+                        @if (!c.parentCommentId) {
+                          <div class="comment-item">
+                            <div class="comment-row">
+                              <div class="comment-avatar-wrap">
+                                <div class="avatar-initial" #init>{{ c.senderUsername?.charAt(0)?.toUpperCase() || '?' }}</div>
+                                <img class="comment-avatar" #img [src]="'/api/auth/profile-picture/' + c.senderId" alt="avatar"
+                                     (load)="init.style.display='none'"
+                                     (error)="img.style.display='none'" />
+                              </div>
+
+                              <div class="comment-body">
+                                <div class="comment-meta"><strong>{{ c.senderUsername || 'User' }}</strong> · <span class="comment-time">{{ c.createdAt }}</span></div>
+                                <div class="comment-content">{{ c.content }}</div>
+                                <div class="comment-actions">
+                                  @if (currentUser) {
+                                    <button class="reply-btn" (click)="openReply(c.id)">Reply</button>
+                                  }
+                                </div>
+                              </div>
+                            </div>
+
+                            @for (r of comments; track r.id) {
+                              @if (r.parentCommentId === c.id) {
+                                <div class="comment-reply">
+                                  <div class="comment-row">
+                                    <div class="comment-avatar-wrap small">
+                                      <div class="avatar-initial" #rinit>{{ r.senderUsername?.charAt(0)?.toUpperCase() || '?' }}</div>
+                                      <img class="comment-avatar" #rimg [src]="'/api/auth/profile-picture/' + r.senderId" alt="avatar"
+                                           (load)="rinit.style.display='none'"
+                                           (error)="rimg.style.display='none'" />
+                                    </div>
+
+                                    <div class="comment-body">
+                                      <div class="comment-meta"><strong>{{ r.senderUsername || 'User' }}</strong> · <span class="comment-time">{{ r.createdAt }}</span></div>
+                                      <div class="comment-content">{{ r.content }}</div>
+                                      <div class="comment-actions">
+                                        @if (currentUser) {
+                                          <button class="reply-btn" (click)="openReply(c.id)">Reply</button>
+                                        }
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              }
+                            }
+                          </div>
+                        }
+                      }
+                    }
+                  </div>
+                }
+              </div>
+            }
+
+            <div class="detail-glow"></div>
          </div>
        } @else {
           <div class="empty-state">

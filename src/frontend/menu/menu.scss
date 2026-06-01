@@ -671,6 +671,7 @@ $text-muted: #555555;
 
 .detail-content {
   display: flex;
+  flex-wrap: wrap; // allow children to wrap so comments can sit below
   gap: 2rem;
   width: 100%;
   max-width: 1400px;
@@ -1636,3 +1637,172 @@ $text-muted: #555555;
   }
 }
 
+// Comments panel (moved below the selected song's detail)
+.comments-panel {
+  margin-top: 1.25rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 215, 0, 0.12);
+  border-radius: 12px;
+  padding: 1rem;
+  max-height: 320px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  flex: 1 1 100%; // take full width when wrapped under detail-content
+
+  .comments-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+
+    h3 {
+      margin: 0;
+      color: $text-primary;
+      font-size: 1rem;
+      font-weight: 700;
+    }
+  }
+
+  .comments-loading,
+  .comments-empty,
+  .comments-login-hint {
+    color: $text-secondary;
+    font-size: 0.9rem;
+    padding: 0.75rem 0.5rem;
+  }
+
+  .comment-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+
+    textarea {
+      width: 100%;
+      min-height: 68px;
+      resize: vertical;
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      background: rgba(0,0,0,0.35);
+      color: $text-primary;
+      outline: none;
+      font-size: 0.95rem;
+
+      &:focus {
+        border-color: rgba(255, 215, 0, 0.4);
+        box-shadow: 0 0 10px rgba(255, 215, 0, 0.06);
+      }
+    }
+
+    .comment-form-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.5rem;
+    }
+  }
+
+  .comments-list {
+    overflow-y: auto;
+    padding-right: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+    &::-webkit-scrollbar-thumb {
+      background: $yellow-primary;
+      border-radius: 3px;
+    }
+
+    .comment-item,
+    .comment-reply {
+      background: rgba(255, 255, 255, 0.01);
+      border: 1px solid rgba(255, 255, 255, 0.03);
+      padding: 0.6rem;
+      border-radius: 8px;
+    }
+
+    .comment-row {
+      display: flex;
+      gap: 0.75rem;
+      align-items: flex-start;
+    }
+
+    .comment-avatar-wrap {
+      position: relative;
+      width: 40px;
+      height: 40px;
+      flex: 0 0 40px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.03);
+      @include flex-center;
+      overflow: hidden;
+    }
+
+    .comment-avatar-wrap.small {
+      width: 32px;
+      height: 32px;
+      flex: 0 0 32px;
+    }
+
+    .comment-avatar {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      z-index: 2;
+    }
+
+    .avatar-initial {
+      font-weight: 700;
+      color: $text-primary;
+      z-index: 1;
+      font-size: 0.95rem;
+      position: relative;
+    }
+
+    .comment-item {
+      .comment-meta {
+        color: $text-secondary;
+        font-size: 0.8rem;
+        margin-bottom: 0.25rem;
+      }
+
+      .comment-content {
+        color: $text-primary;
+        font-size: 0.95rem;
+        margin-bottom: 0.35rem;
+      }
+
+      .comment-actions {
+        display: flex;
+        gap: 0.5rem;
+
+        .reply-btn {
+          background: transparent;
+          border: none;
+          color: $yellow-primary;
+          cursor: pointer;
+          font-weight: 600;
+          padding: 0.25rem 0.5rem;
+          border-radius: 6px;
+
+          &:hover {
+            background: rgba(255, 215, 0, 0.06);
+          }
+        }
+      }
+    }
+
+    .comment-reply {
+      margin-left: 1rem;
+      background: rgba(255, 255, 255, 0.02);
+    }
+  }
+}

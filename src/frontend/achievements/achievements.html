@@ -1,0 +1,45 @@
+<div class="achievements-page">
+  <div class="header">
+    <button class="btn btn-secondary back-btn" routerLink="/profile">
+      <i class="fas fa-arrow-left"></i> Back to Profile
+    </button>
+    <h1>Achievements</h1>
+  </div>
+
+  <div class="filters">
+    <button class="btn btn-filter" [class.active]="filterSignal() === 'All'" (click)="filterSignal.set('All')">All</button>
+    <button class="btn btn-filter" [class.active]="filterSignal() === 'Skill'" (click)="filterSignal.set('Skill')">Skill</button>
+    <button class="btn btn-filter" [class.active]="filterSignal() === 'Progression'" (click)="filterSignal.set('Progression')">Progression</button>
+    <button class="btn btn-filter" [class.active]="filterSignal() === 'Social'" (click)="filterSignal.set('Social')">Social</button>
+  </div>
+
+  <div class="pinned-note">Pinned: {{ pinnedCount() }} / 5</div>
+
+  <div class="achievement-list">
+    <div *ngFor="let a of achievements" class="achievement-card">
+      <div class="achievement-cover" [ngClass]="a.category.toLowerCase()">
+        <span>{{ a.category.charAt(0) }}</span>
+      </div>
+      <div class="achievement-info">
+        <div class="title">{{ a.name }}</div>
+        <div class="desc">{{ a.description }}</div>
+        <div class="criteria">{{ a.criteria }}</div>
+        <div class="progress-row">
+          <div class="progress-text">
+            {{ formatProgress(a) }}
+            <span class="status" [class.locked]="!a.unlocked">{{ a.unlocked ? 'Unlocked' : 'Locked' }}</span>
+          </div>
+          <button
+            class="btn-pin"
+            [disabled]="!a.unlocked && !a.pinned"
+            [title]="!a.unlocked && !a.pinned ? 'Unlock this achievement before pinning.' : ''"
+            (click)="togglePin(a.id)"
+          >
+            {{ a.pinned ? 'Unpin' : 'Pin' }}
+          </button>
+        </div>
+      </div>
+      <div class="card-glow"></div>
+    </div>
+  </div>
+</div>

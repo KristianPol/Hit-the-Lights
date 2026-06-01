@@ -31,7 +31,7 @@ $text-muted: #555555;
   padding: 3rem;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
   position: relative;
   overflow: hidden;
 
@@ -52,7 +52,8 @@ $text-muted: #555555;
 // Header section
 .profile-header {
   width: 100%;
-  max-width: 600px;
+  max-width: 1200px;
+  margin: 0 auto;
   text-align: center;
   margin-bottom: 3rem;
   padding-top: 0.25rem;
@@ -63,6 +64,31 @@ $text-muted: #555555;
     position: absolute;
     top: 0;
     left: 0;
+    z-index: 3;
+    border: 1px solid rgba(255, 215, 0, 0.35);
+    background: rgba(10, 10, 10, 0.72);
+    color: $yellow-primary;
+    border-radius: 999px;
+    padding: 0.65rem 1rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+      transform: translateY(-1px);
+      background: rgba(255, 215, 0, 0.12);
+      color: $yellow-bright;
+      box-shadow: 0 0 16px rgba(255, 215, 0, 0.2);
+    }
+  }
+
+  .achievements-shortcut {
+    position: absolute;
+    top: 0;
+    right: 0;
     z-index: 3;
     border: 1px solid rgba(255, 215, 0, 0.35);
     background: rgba(10, 10, 10, 0.72);
@@ -113,48 +139,18 @@ $text-muted: #555555;
   }
 }
 
-// Main profile card
-.profile-card {
+// Main full-width profile content
+.profile-content {
   width: 100%;
-  max-width: 600px;
-  background: rgba($black-secondary, 0.6);
-  border: 1px solid rgba(255, 215, 0, 0.2);
-  border-radius: 24px;
-  padding: 3rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 0 2rem;
   position: relative;
   z-index: 1;
-  backdrop-filter: blur(10px);
-  @include neon-glow;
 
   &::selection{
     color: $text-primary;
     background-color: gold;
-  }
-
-  // Animated border glow
-  &::before {
-    content: '';
-    position: absolute;
-    inset: -2px;
-    border-radius: 24px;
-    background: linear-gradient(135deg, rgba(255, 215, 0, 0.3), transparent, rgba(255, 215, 0, 0.3));
-    z-index: -1;
-    filter: blur(15px);
-    opacity: 0.5;
-    animation: borderRotate 4s linear infinite;
-  }
-
-  // Scanline effect at top
-  &::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, $yellow-primary, transparent);
-    animation: scanline 3s linear infinite;
-    opacity: 0.6;
   }
 }
 
@@ -808,8 +804,8 @@ $text-muted: #555555;
     padding: 1.5rem;
   }
 
-  .profile-card {
-    padding: 2rem 1.5rem;
+  .profile-content {
+    padding: 0 0 1.5rem;
   }
 
   .info-grid {
@@ -829,6 +825,11 @@ $text-muted: #555555;
   }
 
   .profile-header .back-to-menu {
+    position: static;
+    margin-bottom: 1rem;
+  }
+
+  .profile-header .achievements-shortcut {
     position: static;
     margin-bottom: 1rem;
   }

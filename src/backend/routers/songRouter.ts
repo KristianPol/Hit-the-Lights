@@ -278,3 +278,42 @@ songRouter.get('/:songId/difficulties/:difficultyId/chart', async (req: Request,
   }
 });
 
+// Comments
+songRouter.get('/:songId/comments', async (req: Request, res: Response) => {
+  const unit = new Unit(true);
+  try {
+    const songId = parseInt(req.params['songId'] as string, 10);
+    const viewerId = parseOptionalNumber(req.query['viewerId']);
+    if (isNaN(songId)) { unit.complete(); res.status(400).json({ success: false, error: 'Invalid song ID' }); return; }
+
+    const svc = new SongService(unit);
+    const comments = svc.getCommentsForSong(songId, viewerId);
+    unit.complete();
+    if (comments === undefined) {
+      res.status(404).json({ success: false, error: 'Song not found or comments unavailable' });
+    } else {
+      res.status(200).json({ success: true, comments });
+    }
+  } catch (error: any) {
+    unit.complete();
+    res.status(500).json({ success: false, error: error.message || 'Internal server error' });
+  }
+});
+
+songRouter.post('/:songId/comments', async (req: Request, res: Response) => {
+  const unit = new Unit(false);
+  try {
+    const songId = parseInt(req.params['songId'] as string, 10);
+    const { senderId, content, parentCommentId } = req.body;
+    if (isNaN(songId)) { unit.complete(false); res.status(400).json({ success: false, error: 'Invalid song ID' }); return; }
+    if (!senderId || !content || typeof content !== 'string' || content.trim().length === 0) { unit.complete(false); res.status(400).json({ success: false, error: 'senderId and content are required' }); return; }
+
+    const svc = new SongService(unit);
+    const result = svc.addCommentToSong(songId, { senderId: Number(senderId), content: String(content), parentCommentId: parentCommentId === undefined ? undefined : Number(parentCommentId) });
+    if (result.success) { unit.complete(true); res.status(201).json({ success: true, comment: result.comment }); } else { unit.complete(false); res.status(result.error === 'Song not found' ? 404 : 400).json({ success: false, error: result.error }); }
+  } catch (error: any) {
+    unit.complete(false);
+    res.status(500).json({ success: false, error: error.message || 'Internal server error' });
+  }
+});
+

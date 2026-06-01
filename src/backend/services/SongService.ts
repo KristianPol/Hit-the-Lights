@@ -60,6 +60,44 @@ export interface SongDifficultyResponse {
   noteCount: number;
 }
 
+export interface CommentRecord {
+  id: number;
+  song_id: number;
+  sender_id: number;
+  parent_comment_id?: number | null;
+  content: string;
+  created_at: string;
+  username?: string;
+}
+
+export interface CommentResponse {
+  id: number;
+  songId: number;
+  senderId: number;
+  senderUsername?: string;
+  parentCommentId?: number | null;
+  content: string;
+  createdAt: string;
+}
+
+export interface GetCommentsResponse {
+  success: boolean;
+  comments?: CommentResponse[];
+  error?: string;
+}
+
+export interface AddCommentRequest {
+  senderId: number;
+  content: string;
+  parentCommentId?: number | null;
+}
+
+export interface AddCommentResponse {
+  success: boolean;
+  comment?: CommentResponse;
+  error?: string;
+}
+
 export interface ChartNoteInput {
   time: number;
   lane: number;
@@ -557,6 +595,110 @@ export class SongService {
         notes
       }
     };
+  }
+
+  /**
+   * Retrieve comments for a song (only if song is public or viewer is owner)
+   */
+  public getCommentsForSong(songId: number, viewerId?: number): CommentResponse[] | undefined {
+    const song = this.getRawSongById(songId);
+    if (!song || !this.canViewSong(song, viewerId)) {
+      return undefined;
+    }
+
+    if (!this.isPublicSong(song.isPublic) && song.ownerId !== viewerId) {
+      // private song: comments are not available
+      return undefined;
+    }
+
+    const stmt = this.unit.prepare<CommentRecord, { songId: number }>(
+      `SELECT c.id, c.song_id, c.sender_id, c.parent_comment_id, c.content, c.created_at, u.username
+       FROM Comment c
+       LEFT JOIN User u ON u.id = c.sender_id
+       WHERE c.song_id = $songId
+       ORDER BY c.created_at ASC`,
+      { songId }
+    );
+
+    const rows = stmt.all();
+    return rows.map(r => ({
+      id: r.id,
+      songId: r.song_id,
+      senderId: r.sender_id,
+      senderUsername: r.username,
+      parentCommentId: r.parent_comment_id ?? null,
+      content: r.content,
+      createdAt: r.created_at
+    }));
+  }
+
+  /**
+   * Add a comment to a song. Comments are only allowed on public songs.
+   */
+  public addCommentToSong(songId: number, request: AddCommentRequest): AddCommentResponse {
+    try {
+      const song = this.getRawSongById(songId);
+      if (!song) return { success: false, error: 'Song not found' };
+
+      if (!this.isPublicSong(song.isPublic)) {
+        return { success: false, error: 'Comments are disabled for private songs' };
+      }
+
+      if (!Number.isInteger(request.senderId) || request.senderId <= 0) {
+        return { success: false, error: 'Valid senderId is required' };
+      }
+
+      if (!request.content || typeof request.content !== 'string' || request.content.trim().length === 0) {
+        return { success: false, error: 'Comment content is required' };
+      }
+
+      const parentId = request.parentCommentId ?? null;
+      if (parentId != null) {
+        // ensure parent exists and belongs to the same song
+        const parentStmt = this.unit.prepare<{ id: number; song_id: number }, { id: number }>(
+          'SELECT id, song_id FROM Comment WHERE id = $id',
+          { id: parentId }
+        );
+        const parent = parentStmt.get();
+        if (!parent) return { success: false, error: 'Parent comment not found' };
+        if (parent.song_id !== songId) return { success: false, error: 'Parent comment does not belong to this song' };
+      }
+
+      this.unit.prepare<unknown, { songId: number; senderId: number; parentId: number | null; content: string }>(
+        `INSERT INTO Comment (song_id, sender_id, parent_comment_id, content)
+         VALUES ($songId, $senderId, $parentId, $content)`,
+        { songId, senderId: request.senderId, parentId, content: request.content.trim() }
+      ).run();
+
+      const commentId = this.unit.getLastRowId();
+      if (!commentId) return { success: false, error: 'Failed to insert comment' };
+
+      const fetchStmt = this.unit.prepare<CommentRecord, { id: number }>(
+        `SELECT c.id, c.song_id, c.sender_id, c.parent_comment_id, c.content, c.created_at, u.username
+         FROM Comment c
+         LEFT JOIN User u ON u.id = c.sender_id
+         WHERE c.id = $id`,
+        { id: commentId }
+      );
+
+      const row = fetchStmt.get();
+      if (!row) return { success: false, error: 'Failed to fetch created comment' };
+
+      return {
+        success: true,
+        comment: {
+          id: row.id,
+          songId: row.song_id,
+          senderId: row.sender_id,
+          senderUsername: row.username,
+          parentCommentId: row.parent_comment_id ?? null,
+          content: row.content,
+          createdAt: row.created_at
+        }
+      };
+    } catch (error: any) {
+      return { success: false, error: error.message || 'Failed to add comment' };
+    }
   }
 
   public submitDifficultyHighscore(

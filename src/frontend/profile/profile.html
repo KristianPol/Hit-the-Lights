@@ -21,10 +21,13 @@
     <div class="profile-header">
       <button class="btn btn-secondary back-to-menu" (click)="goToMenu()">Back to Menu</button>
       <h1>{{ isOwnProfile ? 'Profile' : 'User Profile' }}</h1>
+      @if (isOwnProfile) {
+        <button class="btn btn-secondary achievements-shortcut" routerLink="/achievements">Achievements</button>
+      }
     </div>
 
     @if (user) {
-      <div class="profile-card">
+      <div class="profile-content">
         <!-- Avatar stuff -->
         <div class="avatar-section">
           <div class="avatar-wrapper">
@@ -115,7 +118,7 @@
       </div>
     } @else {
       <!-- No User Data -->
-      <div class="profile-card error-state">
+      <div class="profile-content error-state">
         <div class="error-icon"><i class="fas fa-user-slash"></i></div>
         <p>No user data found</p>
         <button class="btn btn-primary" routerLink="/login">Go to Login</button>

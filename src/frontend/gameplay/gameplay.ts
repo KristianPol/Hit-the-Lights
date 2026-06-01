@@ -1,4 +1,4 @@
-﻿import { AfterViewInit, Component, ElementRef, HostListener, OnDestroy, ViewChild, computed, inject, signal } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, HostListener, OnDestroy, ViewChild, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
@@ -7,6 +7,7 @@ import { AuthService } from '../../app/services/auth.service';
 import { GameSettingsService, formatBindingLabel, formatBindingList, normalizeBindingKey } from '../../app/services/game-settings.service';
 import { FriendshipService, FriendshipResult } from '../../app/services/friendship.service';
 import { MessageService } from '../../app/services/message.service';
+import { AchievementService } from '../../app/services/achievement.service';
 
 
 interface HitFeedback {
@@ -218,7 +219,8 @@ export class Gameplay implements AfterViewInit, OnDestroy {
     private songService: SongService,
     public authService: AuthService,
     private friendshipService: FriendshipService,
-    private messageService: MessageService
+    private messageService: MessageService,
+    private achievementService: AchievementService
   ) {}
 
   async ngAfterViewInit(): Promise<void> {
@@ -951,6 +953,19 @@ export class Gameplay implements AfterViewInit, OnDestroy {
       this.animationFrameId = null;
     }
 
+    // Check run-based skill achievements
+    const currentStats = this.stats();
+    const currentSong = this.currentSong();
+    const currentDiff = this.resolvedDifficulty();
+    this.achievementService.checkRunAchievements({
+      maxCombo: currentStats.maxCombo,
+      accuracy: currentStats.accuracy,
+      miss: currentStats.miss,
+      difficultyLevel: currentDiff?.difficulty ?? 1,
+      songId: currentSong?.id ?? 0,
+      rank: this.resultRank()
+    });
+
     this.render(this.getAudioTimeMs());
     void this.submitFinalScore();
   }
@@ -976,6 +991,9 @@ export class Gameplay implements AfterViewInit, OnDestroy {
       next: response => {
         if (!response.success) {
           console.warn('Failed to submit leaderboard score:', response.error);
+        } else {
+          // Check leaderboard position achievements
+          this.achievementService.checkLeaderboardAchievements(songId, difficultyId);
         }
       },
       error: error => {
@@ -1090,6 +1108,7 @@ export class Gameplay implements AfterViewInit, OnDestroy {
           if (response.success && completed === selectedIds.length && failed === 0) {
             this.sendingScore.set(false);
             this.sendScoreSuccess.set(true);
+            this.achievementService.trackScoreShare();
           } else if (!response.success) {
             failed++;
             this.sendingScore.set(false);
