@@ -231,7 +231,7 @@ export class SongService {
     );
   }
 
-  getAllSongs(viewerId?: number, options?: { search?: string; genre?: string; sort?: string }): Observable<GetSongsResponse> {
+  getAllSongs(viewerId?: number, options?: { search?: string; genre?: string; sort?: string; ownerId?: number }): Observable<GetSongsResponse> {
     const endpoint = `${this.apiUrl}/all`;
     let params = this.buildViewerParams(viewerId);
     if (options?.search) {
@@ -242,6 +242,9 @@ export class SongService {
     }
     if (options?.sort) {
       params = params.set('sort', options.sort);
+    }
+    if (options?.ownerId != null) {
+      params = params.set('ownerId', options.ownerId.toString());
     }
     console.log(`🌐 SongService: Fetching songs from ${endpoint}`);
     return this.http.get<GetSongsResponse>(endpoint, { params }).pipe(

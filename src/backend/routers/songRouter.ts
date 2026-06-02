@@ -92,8 +92,9 @@ songRouter.get('/all', async (req: Request, res: Response) => {
     const search = typeof req.query['search'] === 'string' ? req.query['search'] : undefined;
     const genre = typeof req.query['genre'] === 'string' ? req.query['genre'] : undefined;
     const sort = typeof req.query['sort'] === 'string' ? req.query['sort'] : undefined;
+    const ownerId = parseOptionalNumber(req.query['ownerId']);
     const songService = new SongService(unit);
-    const songs = songService.getAllSongs(viewerId, search, genre, sort);
+    const songs = songService.getAllSongs(viewerId, search, genre, sort, ownerId);
     console.log(`✅ Backend: Found ${songs.length} songs in database`);
     unit.complete();
     res.status(200).json({ success: true, songs });

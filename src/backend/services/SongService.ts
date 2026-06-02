@@ -291,7 +291,8 @@ export class SongService {
     viewerId?: number,
     searchQuery?: string,
     genreFilter?: string,
-    sortBy?: string
+    sortBy?: string,
+    ownerId?: number
   ): SongResponse[] {
     const conditions: string[] = [];
     const params: Record<string, unknown> = {};
@@ -302,6 +303,12 @@ export class SongService {
       params.viewerId = viewerId;
     } else {
       conditions.push('s.isPublic = 1');
+    }
+
+    // Owner filter
+    if (ownerId != null) {
+      conditions.push('s.ownerId = $ownerId');
+      params.ownerId = ownerId;
     }
 
     // Search filter (name or author)

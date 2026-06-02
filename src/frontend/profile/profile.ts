@@ -1,10 +1,10 @@
-import { Component, OnInit, NgZone, ChangeDetectorRef, signal } from '@angular/core';
+import { Component, OnInit, NgZone, ChangeDetectorRef, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { AuthService, User } from '../../app/services/auth.service';
-import { SongService } from '../../app/services/song.service';
+import { SongService, Song, SongDifficulty, difficultyNumberToName } from '../../app/services/song.service';
 import { MessageService } from '../../app/services/message.service';
 import { AchievementService } from '../../app/services/achievement.service';
 import { Achievement } from '../../app/services/achievement.model';
@@ -88,6 +88,38 @@ export class ProfileComponent implements OnInit {
   get pinnedAchievements(): Achievement[] { return this.pinnedAchievementsSignal(); }
   set pinnedAchievements(v: Achievement[]) { this.pinnedAchievementsSignal.set(v); }
 
+  private activeTabSignal = signal<'about' | 'creations'>('about');
+  get activeTab(): 'about' | 'creations' { return this.activeTabSignal(); }
+  set activeTab(v: 'about' | 'creations') { this.activeTabSignal.set(v); }
+
+  private uploadedSongsSignal = signal<Song[]>([]);
+  get uploadedSongs(): Song[] { return this.uploadedSongsSignal(); }
+  set uploadedSongs(v: Song[]) { this.uploadedSongsSignal.set(v); }
+
+  private creationsLoadingSignal = signal<boolean>(false);
+  get creationsLoading(): boolean { return this.creationsLoadingSignal(); }
+  set creationsLoading(v: boolean) { this.creationsLoadingSignal.set(v); }
+
+  private creationsErrorSignal = signal<string | null>(null);
+  get creationsError(): string | null { return this.creationsErrorSignal(); }
+  set creationsError(v: string | null) { this.creationsErrorSignal.set(v); }
+
+  chartsMade = computed(() => {
+    const songs = this.uploadedSongsSignal();
+    const charts: { songId: number; songName: string; difficulty: number; noteCount: number }[] = [];
+    for (const song of songs) {
+      for (const diff of song.difficulties ?? []) {
+        charts.push({
+          songId: song.id,
+          songName: song.name,
+          difficulty: diff.difficulty,
+          noteCount: diff.noteCount
+        });
+      }
+    }
+    return charts;
+  });
+
   constructor(
     private authService: AuthService,
     private router: Router,
@@ -143,6 +175,7 @@ export class ProfileComponent implements OnInit {
       this.loadUploadedSongCount(currentUser.id);
       this.loadUnreadCount(currentUser.id);
       this.loadPinnedAchievements(currentUser.id);
+      this.loadCreations(currentUser.id);
     }
 
     this.authService.currentUser$.pipe(
@@ -161,6 +194,7 @@ export class ProfileComponent implements OnInit {
             this.unreadMessageCount = 0;
             this.totalGamesPlayed = 0;
             this.pinnedAchievements = [];
+            this.uploadedSongs = [];
           });
         }
       }),
@@ -200,6 +234,7 @@ export class ProfileComponent implements OnInit {
           this.error = null;
           this.loadUploadedSongCount(userId);
           this.loadPinnedAchievements(userId);
+          this.loadCreations(userId);
           this.unreadMessageCount = 0;
           this.totalGamesPlayed = 0;
         } else {
@@ -413,6 +448,31 @@ export class ProfileComponent implements OnInit {
     });
   }
 
+  private loadCreations(userId: number): void {
+    this.creationsLoading = true;
+    this.creationsError = null;
+    const viewerId = this.authService.currentUser?.id ?? undefined;
+    this.songService.getAllSongs(viewerId, { ownerId: userId }).subscribe({
+      next: response => {
+        this.ngZone.run(() => {
+          this.creationsLoading = false;
+          this.uploadedSongs = response.success ? response.songs : [];
+        });
+      },
+      error: err => {
+        this.ngZone.run(() => {
+          this.creationsLoading = false;
+          this.creationsError = err.message || 'Failed to load creations';
+          this.uploadedSongs = [];
+        });
+      }
+    });
+  }
+
+  setActiveTab(tab: 'about' | 'creations'): void {
+    this.activeTab = tab;
+  }
+
   private loadPinnedAchievements(userId: number): void {
     const currentUser = this.authService.currentUser;
     if (currentUser && currentUser.id === userId) {
@@ -466,5 +526,9 @@ export class ProfileComponent implements OnInit {
       this.songCountLoaded = false;
       this.loadUploadedSongCount(this.user.id);
     }
+  }
+
+  getDifficultyName(level: number): string {
+    return difficultyNumberToName(level);
   }
 }

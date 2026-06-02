@@ -499,6 +499,246 @@ $text-muted: #555555;
   }
 }
 
+// Profile tabs
+.profile-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 2.5rem;
+  border-bottom: 1px solid rgba(255, 215, 0, 0.1);
+  padding-bottom: 0.5rem;
+
+  .tab-btn {
+    background: transparent;
+    border: none;
+    color: $text-secondary;
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 0.75rem 1.5rem;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.3s ease;
+    font-family: 'Oxanium', 'Rajdhani', 'Segoe UI', sans-serif;
+
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: -0.5rem;
+      left: 50%;
+      transform: translateX(-50%) scaleX(0);
+      width: 60%;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, $yellow-primary, transparent);
+      transition: transform 0.3s ease;
+    }
+
+    &:hover {
+      color: $text-primary;
+    }
+
+    &.active {
+      color: $yellow-primary;
+      text-shadow: 0 0 10px $yellow-glow;
+
+      &::after {
+        transform: translateX(-50%) scaleX(1);
+      }
+    }
+  }
+}
+
+// Creations tab
+.creations-tab {
+  .creations-section {
+    border-top: 1px solid rgba(255, 215, 0, 0.1);
+    padding-top: 2rem;
+    margin-top: 2rem;
+
+    &:first-child {
+      border-top: none;
+      margin-top: 0;
+      padding-top: 0;
+    }
+  }
+
+  .creations-header {
+    color: $text-secondary;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 1.5rem;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+
+    i {
+      color: $yellow-primary;
+    }
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 2rem;
+    color: $text-muted;
+    font-size: 0.95rem;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 16px;
+  }
+
+  .songs-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.25rem;
+  }
+
+  .song-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    position: relative;
+    overflow: hidden;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.06);
+      border-color: rgba(255, 215, 0, 0.25);
+      transform: translateY(-3px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    }
+
+    .song-cover {
+      width: 64px;
+      height: 64px;
+      border-radius: 12px;
+      object-fit: cover;
+      border: 2px solid rgba(255, 215, 0, 0.15);
+      flex-shrink: 0;
+    }
+
+    .song-info {
+      flex: 1;
+      min-width: 0;
+
+      .song-name {
+        color: $text-primary;
+        font-weight: 700;
+        font-size: 1rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .song-author {
+        color: $text-secondary;
+        font-size: 0.85rem;
+        margin-top: 0.25rem;
+      }
+
+      .song-meta {
+        display: flex;
+        gap: 0.75rem;
+        margin-top: 0.4rem;
+        color: $text-muted;
+        font-size: 0.75rem;
+
+        i {
+          margin-right: 0.25rem;
+          color: $yellow-primary;
+          opacity: 0.7;
+        }
+      }
+
+      .song-difficulties {
+        display: flex;
+        gap: 0.4rem;
+        margin-top: 0.5rem;
+        flex-wrap: wrap;
+      }
+    }
+  }
+
+  .charts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .chart-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 1.15rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 14px;
+    transition: all 0.25s ease;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.06);
+      border-color: rgba(255, 215, 0, 0.2);
+      transform: translateX(6px);
+    }
+
+    .chart-cover {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, $yellow-primary, $yellow-bright);
+      color: $black-primary;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      flex-shrink: 0;
+    }
+
+    .chart-info {
+      flex: 1;
+      min-width: 0;
+
+      .chart-song {
+        color: $text-primary;
+        font-weight: 700;
+        font-size: 0.95rem;
+      }
+
+      .chart-details {
+        display: flex;
+        gap: 0.6rem;
+        margin-top: 0.3rem;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+    }
+  }
+
+  .diff-badge {
+    display: inline-block;
+    padding: 0.2rem 0.55rem;
+    border-radius: 6px;
+    background: rgba(255, 215, 0, 0.12);
+    color: $yellow-primary;
+    font-size: 0.75rem;
+    font-weight: 700;
+    border: 1px solid rgba(255, 215, 0, 0.2);
+  }
+
+  .note-count {
+    color: $text-muted;
+    font-size: 0.8rem;
+  }
+}
+
 // Action buttons
 .action-buttons {
   display: flex;
