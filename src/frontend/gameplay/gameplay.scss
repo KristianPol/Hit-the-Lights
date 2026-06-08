@@ -1,4 +1,6 @@
-﻿:host {
+﻿@use '../theme-mixins' as *;
+
+:host {
   display: block;
   width: 100%;
   min-height: 100vh;
@@ -8,8 +10,8 @@
   position: relative;
   min-height: 100vh;
   padding: 1.5rem;
-  background: radial-gradient(circle at top, rgba(255, 215, 0, 0.08), transparent 40%), #050505;
-  color: #fff;
+  background: radial-gradient(circle at top, $color-accent-light, transparent 40%), $color-main;
+  color: $text-primary;
 }
 
 .title-row {
@@ -24,7 +26,7 @@
 .track-meta {
   .eyebrow {
     margin: 0 0 4px;
-    color: #ffd700;
+    color: $yellow-primary;
     text-transform: uppercase;
     letter-spacing: 0.16em;
     font-size: 0.72rem;
@@ -39,16 +41,16 @@
 
   .subtitle {
     margin: 8px 0 0;
-    color: rgba(255, 255, 255, 0.72);
+    color: $text-secondary;
     font-size: 0.94rem;
     letter-spacing: 0.06em;
   }
 }
 
 .menu-button {
-  border: 1px solid rgba(255, 215, 0, 0.35);
-  background: rgba(10, 10, 10, 0.72);
-  color: #ffd700;
+  border: 1px solid $color-border;
+  background: $color-main-secondary;
+  color: $yellow-primary;
   border-radius: 999px;
   padding: 0.8rem 1.2rem;
   font-weight: 700;
@@ -58,8 +60,8 @@
 
   &:hover {
     transform: translateY(-1px);
-    background: rgba(255, 215, 0, 0.12);
-    box-shadow: 0 0 18px rgba(255, 215, 0, 0.18);
+    background: $color-accent-light;
+    box-shadow: 0 0 18px $color-accent-glow;
   }
 }
 
@@ -78,11 +80,11 @@
   aspect-ratio: auto;
   border-radius: 0;
   overflow: hidden;
-  border: 1px solid rgba(255, 215, 0, 0.2);
-  background: rgba(0, 0, 0, 0.6);
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45), inset 0 0 30px rgba(255, 215, 0, 0.06);
+  border: 1px solid $color-border;
+  background: $color-main-secondary;
+  box-shadow: 0 24px 80px $color-shadow, inset 0 0 30px $color-accent-light;
 
-  canvas{
+  canvas {
     line-height: normal;
     height: 100%;
   }
@@ -104,7 +106,7 @@
 }
 
 .stat-card {
-  background: rgba(0, 0, 0, 0.56);
+  background: $color-main-secondary;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 14px;
   padding: 0.9rem;
@@ -121,11 +123,11 @@
   .value {
     font-size: 1.5rem;
     font-weight: 800;
-    color: #fff;
+    color: $text-primary;
   }
 
   &.highlight {
-    border-color: rgba(255, 215, 0, 0.24);
+    border-color: $color-border;
   }
 
   &.miss-card .value {
@@ -134,9 +136,9 @@
 }
 
 .status-badge {
-  background: rgba(255, 215, 0, 0.12);
-  color: #ffd700;
-  border: 1px solid rgba(255, 215, 0, 0.22);
+  background: $color-accent-light;
+  color: $yellow-primary;
+  border: 1px solid $color-border;
   border-radius: 12px;
   padding: 0.8rem 0.9rem;
   font-weight: 700;
@@ -177,13 +179,13 @@
 .loading-card,
 .results-card {
   width: min(92vw, 560px);
-  background: rgba(10, 10, 10, 0.92);
-  border: 1px solid rgba(255, 215, 0, 0.18);
+  background: $color-main-secondary;
+  border: 1px solid $color-border;
   border-radius: 24px;
   padding: 28px;
   text-align: center;
-  color: #ffffff;
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+  color: $text-primary;
+  box-shadow: 0 24px 80px $color-shadow;
 }
 
 .results-card {
@@ -200,7 +202,7 @@
 .loading-card p,
 .results-card p {
   margin: 0;
-  color: rgba(255, 255, 255, 0.78);
+  color: $text-secondary;
 }
 
 .results-stat {
@@ -209,7 +211,7 @@
 
 .results-subtitle {
   margin-top: -2px !important;
-  color: rgba(255, 255, 255, 0.7) !important;
+  color: $text-secondary !important;
   letter-spacing: 0.04em;
 }
 
@@ -217,8 +219,8 @@
   margin-top: 18px;
   padding: 14px;
   border-radius: 16px;
-  border: 1px solid rgba(255, 215, 0, 0.2);
-  background: linear-gradient(135deg, rgba(255, 215, 0, 0.08), rgba(255, 215, 0, 0.02));
+  border: 1px solid $color-border;
+  background: linear-gradient(135deg, $color-accent-light, rgba(255, 215, 0, 0.02));
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -234,20 +236,20 @@
   font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  color: rgba(255, 255, 255, 0.72);
+  color: $text-secondary;
 }
 
 .hero-score {
   font-size: clamp(1.9rem, 4.5vw, 2.6rem);
   font-weight: 800;
-  color: #ffd700;
+  color: $yellow-primary;
   line-height: 1;
 }
 
 .rank-chip {
   min-width: 92px;
   border-radius: 14px;
-  border: 1px solid rgba(255, 215, 0, 0.35);
+  border: 1px solid $color-border;
   background: rgba(0, 0, 0, 0.35);
   padding: 10px 12px;
   text-align: center;
@@ -266,7 +268,7 @@
   margin-top: 2px;
   font-size: 1.4rem;
   font-weight: 800;
-  color: #ffd700;
+  color: $yellow-primary;
 }
 
 .results-grid {
@@ -296,7 +298,7 @@
   margin-top: 4px;
   font-size: 1.42rem;
   font-weight: 800;
-  color: #ffffff;
+  color: $text-primary;
 }
 
 .metric-sub {
@@ -307,7 +309,7 @@
 }
 
 .radiant-card {
-  border-color: rgba(255, 215, 0, 0.28);
+  border-color: $color-border;
 }
 
 .shinning-card {
@@ -350,8 +352,8 @@
 
 .play-again {
   color: #111111;
-  background: linear-gradient(135deg, #ffd700, #ffed4e);
-  border-color: rgba(255, 215, 0, 0.6);
+  background: linear-gradient(135deg, $yellow-primary, $yellow-bright);
+  border-color: $color-border;
 }
 
 @media (max-width: 1300px) {

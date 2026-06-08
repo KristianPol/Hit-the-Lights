@@ -1,15 +1,4 @@
-﻿// Arcade Theme Palette Variables
-$black-primary: #0a0a0a;
-$black-secondary: #111111;
-$black-tertiary: #1a1a1a;
-$black-light: #222222;
-$yellow-primary: #ffd700;
-$yellow-glow: rgba(255, 215, 0, 0.3);
-$yellow-bright: #ffed4e;
-$text-primary: #ffffff;
-$text-secondary: #888888;
-$text-muted: #555555;
-
+﻿@use '../theme-mixins' as *;
 // Accuracy Variant Colors
 $hit-perfect: #00ff88;
 $hit-good: #3d5afe;
@@ -25,7 +14,7 @@ $hit-miss: #ff4757;
 :host {
   display: block;
   min-height: 100vh;
-  font-family: var(--app-font-sans, 'Segoe UI', sans-serif);
+  font-family: var(--app-font-sans, 'Segoe UI', sans-serif), sans-serif;
   background: $black-primary;
 }
 

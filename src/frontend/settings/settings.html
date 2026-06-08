@@ -50,6 +50,62 @@
 	  </label>
 	</div>
 
+	<div class="section">
+	  <h2>Theme Customization</h2>
+	  <p class="section-hint">Choose your main color and accent color.</p>
+
+	  <div class="theme-controls">
+		<div class="color-group">
+		  <label class="color-label">Main Color</label>
+		  <div class="color-options">
+			@for (color of mainColors(); track color.id) {
+			  <button
+				type="button"
+				class="color-button"
+				[style.background-color]="color.hex"
+				[class.active]="selectedMainColor() === color.id"
+				[title]="color.label"
+				(click)="selectMainColor(color.id)">
+				@if (selectedMainColor() === color.id) {
+				  <span class="checkmark">✓</span>
+				}
+			  </button>
+			}
+		  </div>
+		</div>
+
+		<div class="color-group">
+		  <label class="color-label">Accent Color</label>
+		  <div class="color-options">
+			@for (color of accentColors(); track color.id) {
+			  <button
+				type="button"
+				class="color-button"
+				[style.background-color]="color.hex"
+				[class.active]="selectedAccentColor() === color.id"
+				[title]="color.label"
+				(click)="selectAccentColor(color.id)">
+				@if (selectedAccentColor() === color.id) {
+				  <span class="checkmark">✓</span>
+				}
+			  </button>
+			}
+		  </div>
+		</div>
+	  </div>
+
+	  <div class="theme-preview">
+		<p class="preview-label">Preview</p>
+		<div class="preview-box" [style.--preview-main]="getMainColorHex()" [style.--preview-accent]="getAccentColorHex()">
+		  <div class="preview-content">
+			<div class="preview-bar"></div>
+			<div class="preview-text">Sample Text</div>
+			<div class="preview-accent-box"></div>
+		  </div>
+		</div>
+	  </div>
+	</div>
+
 	<div class="section actions">
 	  <button type="button" class="secondary-button" (click)="resetDefaults()">Reset to Default</button>
 	  <button type="button" class="primary-button" (click)="goBack()">Save and Return</button>
@@ -62,5 +118,6 @@
 	  }
 	</div>
   </div>
+
 </div>
 

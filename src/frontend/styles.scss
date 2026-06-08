@@ -1,0 +1,46 @@
+@use 'theme' as *;
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&display=swap');
+
+
+:root {
+  --app-font-sans: 'Space Grotesk', 'Inter', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+
+  // These are injected dynamically by ThemeService
+  --color-main: #050505;
+  --color-accent: #ffd700;
+  --is-dark-main: 1;
+
+  // Derived in JS, but provide safe defaults here
+  --color-main-secondary: rgba(0, 0, 0, 0.3);
+  --color-main-tertiary: rgba(0, 0, 0, 0.1);
+
+  --color-text-primary: #ffffff;
+  --color-text-secondary: rgba(255, 255, 255, 0.72);
+  --color-text-muted: rgba(255, 255, 255, 0.55);
+
+  --color-accent-light: rgba(255, 215, 0, 0.2);
+  --color-accent-glow: rgba(255, 215, 0, 0.3);
+  --color-accent-bright: rgba(255, 215, 0, 0.8);
+
+  --color-error: #ff4444;
+  --color-success: #44ff44;
+  --color-warning: #ffaa00;
+
+  --color-border: rgba(255, 215, 0, 0.2);
+  --color-shadow: rgba(0, 0, 0, 0.6);
+
+  --gradient-primary: linear-gradient(135deg, var(--color-main) 0%, rgba(15, 15, 15, 1) 100%);
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--app-font-sans), sans-serif;
+  background: var(--color-main);
+  color: var(--color-text-primary);
+}
+
+* {
+  box-sizing: border-box;
+}

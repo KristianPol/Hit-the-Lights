@@ -1,0 +1,44 @@
+﻿// _theme-mixins.scss
+// Maps legacy Sass variables to CSS custom properties for dynamic theming
+
+@use 'sass:color';
+
+// These now read from the CSS variables injected by ThemeService
+$color-main: var(--color-main);
+$color-accent: var(--color-accent);
+$color-main-secondary: var(--color-main-secondary);
+$color-main-tertiary: var(--color-main-tertiary);
+$color-text-primary: var(--color-text-primary);
+$color-text-secondary: var(--color-text-secondary);
+$color-text-muted: var(--color-text-muted);
+$color-accent-light: var(--color-accent-light);
+$color-accent-glow: var(--color-accent-glow);
+$color-accent-bright: var(--color-accent-bright);
+$color-border: var(--color-border);
+$color-shadow: var(--color-shadow);
+$color-error: var(--color-error);
+$color-success: var(--color-success);
+
+// Legacy aliases so existing code keeps working
+$black-primary: $color-main;
+$black-secondary: $color-main-secondary;
+$black-tertiary: $color-main-tertiary;
+$black-light: var(--color-main-tertiary);
+$yellow-primary: $color-accent;
+$yellow-glow: $color-accent-glow;
+$yellow-bright: $color-accent-bright;
+$text-primary: $color-text-primary;
+$text-secondary: $color-text-secondary;
+$text-muted: $color-text-muted;
+$error-color: $color-error;
+$success-color: $color-success;
+
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@mixin neon-glow {
+  box-shadow: 0 0 20px $color-accent-glow, 0 0 40px $color-accent-light;
+}

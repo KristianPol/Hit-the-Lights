@@ -37,8 +37,13 @@
               "assets"
             ],
             "styles": [
-              "src/styles.scss"
-            ]
+              "src/frontend/styles.scss"
+            ],
+            "stylePreprocessorOptions": {
+              "sass": {
+                "silenceDeprecations": ["import"]
+              }
+            }
           },
           "configurations": {
             "production": {
