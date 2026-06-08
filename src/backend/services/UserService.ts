@@ -4,11 +4,13 @@ import { UserControls } from '../model';
 type StoredControls = {
   laneBindings: [string, string, string, string];
   noteSpeed: number;
+  theme?: string;
 };
 
 const DEFAULT_CONTROLS: StoredControls = {
   laneBindings: ['d', 'f', 'j', 'k'],
-  noteSpeed: 1
+  noteSpeed: 1,
+  theme: 'black-yellow'
 };
 
 const MIN_NOTE_SPEED = 0.5;
@@ -387,7 +389,8 @@ export class UserService {
       userId,
       laneBindingsJson: JSON.stringify({
         laneBindings: controls.laneBindings,
-        noteSpeed: controls.noteSpeed
+        noteSpeed: controls.noteSpeed,
+        theme: controls.theme
       }),
       noteSpeed: controls.noteSpeed
     };
@@ -441,7 +444,7 @@ export class UserService {
 
   private normalizeControls(value: unknown): StoredControls {
     const candidate = value && typeof value === 'object'
-      ? value as { laneBindings?: unknown; noteSpeed?: unknown; lane_bindings?: unknown; note_speed?: unknown }
+      ? value as { laneBindings?: unknown; noteSpeed?: unknown; lane_bindings?: unknown; note_speed?: unknown; theme?: unknown }
       : null;
 
     const laneBindings = this.parseLaneBindings(candidate?.laneBindings ?? candidate?.lane_bindings);
@@ -449,10 +452,14 @@ export class UserService {
     const noteSpeed = Number.isFinite(numericSpeed)
       ? Math.min(MAX_NOTE_SPEED, Math.max(MIN_NOTE_SPEED, Number(numericSpeed.toFixed(2))))
       : DEFAULT_CONTROLS.noteSpeed;
+    const theme = typeof candidate?.theme === 'string' && candidate.theme.trim()
+      ? candidate.theme.trim()
+      : DEFAULT_CONTROLS.theme;
 
     return {
       laneBindings,
-      noteSpeed
+      noteSpeed,
+      theme
     };
   }
 }

@@ -1,16 +1,6 @@
-﻿// Arcade Theme Palette Variables
-$black-primary: #0a0a0a;
-$black-secondary: #111111;
-$black-tertiary: #1a1a1a;
-$black-light: #222222;
-$yellow-primary: #ffd700;
-$yellow-glow: rgba(255, 215, 0, 0.3);
-$yellow-bright: #ffed4e;
-$text-primary: #ffffff;
-$text-secondary: #888888;
-$text-muted: #555555;
+@use 'theme' as *;
 
-// Accuracy Variant Colors
+// Hit-tier colors (functional, not themed)
 $hit-perfect: #00ff88;
 $hit-good: #3d5afe;
 $hit-okay: #ffd700;
@@ -42,12 +32,12 @@ $hit-miss: #ff4757;
 .analytics-card {
   width: 100%;
   max-width: 760px;
-  background: rgba($black-secondary, 0.5);
-  border: 1px solid rgba(255, 215, 0, 0.2);
+  background: rgba(var(--color-main-rgb), 0.5);
+  border: 1px solid rgba(var(--color-accent-rgb), 0.2);
   border-radius: 24px;
   backdrop-filter: blur(10px);
   padding: 2.5rem;
-  box-shadow: 0 0 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(255, 215, 0, 0.05);
+  box-shadow: 0 0 60px rgba(var(--color-main-rgb), 0.6), 0 0 40px rgba(var(--color-accent-rgb), 0.05);
   position: relative;
   overflow: hidden;
 
@@ -69,7 +59,7 @@ $hit-miss: #ff4757;
   align-items: center;
   margin-bottom: 2rem;
   padding-bottom: 1rem;
-  border-bottom: 1px solid rgba(255, 215, 0, 0.15);
+  border-bottom: 1px solid rgba(var(--color-accent-rgb), 0.15);
 
   h2 {
     margin: 0;
@@ -78,12 +68,12 @@ $hit-miss: #ff4757;
     letter-spacing: 0.05em;
     text-transform: uppercase;
     color: $text-primary;
-    text-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+    text-shadow: 0 0 20px rgba(var(--color-text-primary-rgb), 0.1);
   }
 
   button {
     background: transparent;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(var(--color-text-primary-rgb), 0.1);
     color: $text-secondary;
     padding: 0.6rem 1.2rem;
     border-radius: 12px;
@@ -93,7 +83,7 @@ $hit-miss: #ff4757;
     transition: all 0.3s ease;
 
     &:hover {
-      border-color: rgba(255, 215, 0, 0.4);
+      border-color: rgba(var(--color-accent-rgb), 0.4);
       color: $yellow-primary;
       box-shadow: 0 0 15px $yellow-glow;
       transform: translateX(-2px);
@@ -114,8 +104,8 @@ $hit-miss: #ff4757;
   justify-content: center;
   gap: 0.35rem;
   padding: 1.25rem;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(var(--color-text-primary-rgb), 0.03);
+  border: 1px solid rgba(var(--color-text-primary-rgb), 0.05);
   border-radius: 16px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   font-size: 1.25rem;
@@ -131,8 +121,8 @@ $hit-miss: #ff4757;
   }
 
   &:hover {
-    border-color: rgba(255, 215, 0, 0.15);
-    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(var(--color-accent-rgb), 0.15);
+    background: rgba(var(--color-text-primary-rgb), 0.05);
     transform: translateY(-2px);
   }
 

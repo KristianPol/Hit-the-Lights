@@ -1,11 +1,13 @@
-﻿import { Injectable, computed, signal, inject } from '@angular/core';
+import { Injectable, computed, signal, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from './auth.service';
+import { ThemeService } from './theme.service';
 import { firstValueFrom } from 'rxjs';
 
 export interface GameSettings {
   laneBindings: [string, string, string, string];
   noteSpeed: number;
+  theme: string;
 }
 
 export interface UpdateBindingResult {
@@ -16,7 +18,8 @@ export interface UpdateBindingResult {
 const STORAGE_KEY_PREFIX = 'hit-the-lights.game-settings';
 const DEFAULT_SETTINGS: GameSettings = {
   laneBindings: ['d', 'f', 'j', 'k'],
-  noteSpeed: 1
+  noteSpeed: 1,
+  theme: 'black-yellow'
 };
 const LANE_COUNT = 4;
 const MIN_NOTE_SPEED = 0.5;
@@ -94,8 +97,10 @@ export class GameSettingsService {
   readonly settings = computed(() => this.settingsSignal());
   readonly laneBindings = computed(() => this.settingsSignal().laneBindings);
   readonly noteSpeed = computed(() => this.settingsSignal().noteSpeed);
+  readonly theme = computed(() => this.settingsSignal().theme);
   private readonly http = inject(HttpClient);
   private readonly auth = inject(AuthService);
+  private readonly themeService = inject(ThemeService);
   private activeStorageKey = `${STORAGE_KEY_PREFIX}.guest`;
   private loadSequence = 0;
 
@@ -142,6 +147,11 @@ export class GameSettingsService {
     const current = this.settingsSignal();
     const nextSpeed = this.clampNoteSpeed(noteSpeed);
     this.saveSettings({ ...current, noteSpeed: nextSpeed });
+  }
+
+  updateTheme(theme: string): void {
+    const current = this.settingsSignal();
+    this.saveSettings({ ...current, theme });
   }
 
   resetDefaults(): void {
@@ -191,9 +201,13 @@ export class GameSettingsService {
     }) as [string, string, string, string];
 
     const noteSpeed = this.clampNoteSpeed(settings?.noteSpeed ?? fallback.noteSpeed);
+    const theme = typeof settings?.theme === 'string' && settings.theme.trim()
+      ? settings.theme.trim()
+      : fallback.theme;
     return {
       laneBindings: safeBindings,
-      noteSpeed
+      noteSpeed,
+      theme
     };
   }
 
@@ -209,7 +223,8 @@ export class GameSettingsService {
   private cloneSettings(settings: GameSettings): GameSettings {
     return {
       laneBindings: [...settings.laneBindings] as [string, string, string, string],
-      noteSpeed: settings.noteSpeed
+      noteSpeed: settings.noteSpeed,
+      theme: settings.theme
     };
   }
 
@@ -237,6 +252,7 @@ export class GameSettingsService {
 
       const normalized = this.normalizeSettings(resp.settings);
       this.saveSettings(normalized, { persistServer: false });
+      this.themeService.applyTheme(normalized.theme);
     } catch (e) {
       console.warn('Failed to load server settings:', e);
     }

@@ -1,6 +1,4 @@
-$black-primary: #0a0a0a;
-$yellow-primary: #ffd700;
-$yellow-bright: #ffed4e;
+@use 'theme' as *;
 
 // ─── Layout ───────────────────────────────────────────────
 .starter-layout {
@@ -92,7 +90,7 @@ $yellow-bright: #ffed4e;
   z-index: 1;
 
   .highlight {
-    background: linear-gradient(90deg, #ffcc33, #ff8844, #ffcc33);
+    background: linear-gradient(90deg, $yellow-primary, $yellow-bright, $yellow-primary);
     background-size: 200% auto;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -146,7 +144,7 @@ $yellow-bright: #ffed4e;
   z-index: 1;
 
   &::selection {
-    color: #ffffff;
+    color: $text-primary;
     background-color: gold;
   }
 }
@@ -186,7 +184,7 @@ $yellow-bright: #ffed4e;
     background: linear-gradient(
         45deg,
         transparent 30%,
-        rgba(255, 255, 255, 0.1) 50%,
+        rgba(var(--color-text-primary-rgb), 0.1) 50%,
         transparent 70%
     );
     transform: translateX(-100%) rotate(45deg);
@@ -201,11 +199,11 @@ $yellow-bright: #ffed4e;
 .btn-primary {
   background: linear-gradient(135deg, $yellow-primary, $yellow-bright);
   color: $black-primary;
-  box-shadow: 0 4px 20px rgba(255, 215, 0, 0.3);
+  box-shadow: 0 4px 20px rgba(var(--color-accent-rgb), 0.3);
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 30px rgba(255, 215, 0, 0.4);
+    box-shadow: 0 6px 30px rgba(var(--color-accent-rgb), 0.4);
   }
 
   &:active {
@@ -215,13 +213,13 @@ $yellow-bright: #ffed4e;
 
 .btn-secondary {
   background: transparent;
-  color: #888888;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: $text-secondary;
+  border: 1px solid rgba(var(--color-text-primary-rgb), 0.2);
 
   &:hover {
-    border-color: rgba(255, 215, 0, 0.4);
-    color: #ffffff;
-    background: rgba(255, 215, 0, 0.05);
+    border-color: rgba(var(--color-accent-rgb), 0.4);
+    color: $text-primary;
+    background: rgba(var(--color-accent-rgb), 0.05);
     transform: translateY(-2px);
   }
 }
@@ -242,7 +240,7 @@ $yellow-bright: #ffed4e;
     justify-content: center;
     margin-bottom: 14px;
     font-size: 20px;
-    color: #ffcc33;
+    color: $yellow-primary;
   }
 
   h2 {
@@ -267,8 +265,8 @@ $yellow-bright: #ffed4e;
 
 .feature-card {
   position: relative;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.04);
+  background: rgba(var(--color-text-primary-rgb), 0.02);
+  border: 1px solid rgba(var(--color-text-primary-rgb), 0.04);
   padding: 28px 22px;
   border-radius: 16px;
   display: flex;
@@ -280,7 +278,7 @@ $yellow-bright: #ffed4e;
 
   &:hover {
     transform: translateY(-4px);
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 200, 50, 0.1);
+    box-shadow: 0 20px 50px rgba(var(--color-main-rgb), 0.5), 0 0 0 1px rgba(255, 200, 50, 0.1);
   }
 }
 
@@ -295,7 +293,7 @@ $yellow-bright: #ffed4e;
   justify-content: center;
   margin-bottom: 14px;
   font-size: 20px;
-  color: #ffcc33;
+  color: $yellow-primary;
 }
 
 .feature-title {
@@ -317,7 +315,7 @@ $yellow-bright: #ffed4e;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(var(--color-text-primary-rgb), 0.05);
   border-radius: 4px;
 }
 

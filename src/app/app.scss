@@ -47,9 +47,9 @@
   z-index: -1;
   pointer-events: none;
   background:
-    radial-gradient(circle at 20% 20%, rgba(255, 215, 0, 0.18) 0%, rgba(255, 215, 0, 0.04) 18%, transparent 42%),
-    radial-gradient(circle at 80% 80%, rgba(255, 237, 78, 0.14) 0%, rgba(255, 215, 0, 0.03) 16%, transparent 38%),
-    linear-gradient(135deg, #050505 0%, #0b0b0b 45%, #050505 100%);
+    radial-gradient(circle at 20% 20%, rgba(var(--color-accent-rgb), 0.18) 0%, rgba(var(--color-accent-rgb), 0.04) 18%, transparent 42%),
+    radial-gradient(circle at 80% 80%, rgba(var(--color-accent-bright-rgb), 0.14) 0%, rgba(var(--color-accent-rgb), 0.03) 16%, transparent 38%),
+    linear-gradient(135deg, var(--color-main) 0%, var(--color-main) 45%, var(--color-main) 100%);
   background-size: 150% 150%, 150% 150%, cover;
   filter: saturate(1.15);
   transform-origin: center center;
@@ -66,13 +66,13 @@
 
 .beat-background::before {
   background:
-    radial-gradient(circle at 50% 35%, rgba(255, 215, 0, 0.08) 0%, transparent 28%),
-    radial-gradient(circle at 50% 65%, rgba(255, 237, 78, 0.06) 0%, transparent 32%);
+    radial-gradient(circle at 50% 35%, rgba(var(--color-accent-rgb), 0.08) 0%, transparent 28%),
+    radial-gradient(circle at 50% 65%, rgba(var(--color-accent-bright-rgb), 0.06) 0%, transparent 32%);
   animation: beat-pulse 7s ease-in-out infinite reverse;
 }
 
 .beat-background::after {
-  background: linear-gradient(180deg, transparent 0%, rgba(255, 215, 0, 0.04) 50%, transparent 100%);
+  background: linear-gradient(180deg, transparent 0%, rgba(var(--color-accent-rgb), 0.04) 50%, transparent 100%);
   opacity: 0.5;
   mix-blend-mode: screen;
   animation: beat-drift 12s ease-in-out infinite reverse;
@@ -85,4 +85,3 @@
     animation: none;
   }
 }
-

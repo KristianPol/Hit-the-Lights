@@ -1,7 +1,9 @@
+@use 'theme' as *;
+
 .chart-maker-page {
   min-height: 100vh;
-  background: #0a0a0a;
-  color: #f2f2f2;
+  background: $black-primary;
+  color: $text-primary;
   display: flex;
   flex-direction: column;
   padding: 24px;
@@ -43,12 +45,12 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 8px;
   padding: 8px 12px;
-  color: #f2f2f2;
+  color: $text-primary;
   font-size: 13px;
   width: 140px;
 
   &::placeholder {
-    color: #666;
+    color: $text-muted;
   }
 
   &:focus {
@@ -79,7 +81,7 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 8px;
   padding: 8px 12px;
-  color: #f2f2f2;
+  color: $text-primary;
   font-size: 13px;
   min-width: 200px;
 
@@ -90,7 +92,7 @@
 }
 
 .or-divider {
-  color: #666;
+  color: $text-muted;
   font-size: 12px;
 }
 
@@ -99,7 +101,7 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 8px;
   padding: 8px 14px;
-  color: #c0c0c0;
+  color: $text-secondary;
   font-size: 13px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -110,7 +112,7 @@
 
   &:hover {
     border-color: rgba(255, 200, 50, 0.3);
-    color: #ffcc33;
+    color: $yellow-primary;
   }
 }
 
@@ -136,13 +138,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #c0c0c0;
+  color: $text-secondary;
   cursor: pointer;
   transition: all 0.2s ease;
 
   &:hover:not(:disabled) {
     border-color: rgba(255, 200, 50, 0.3);
-    color: #ffcc33;
+    color: $yellow-primary;
   }
 
   &:disabled {
@@ -156,7 +158,7 @@
   height: 36px;
   background: rgba(255, 200, 50, 0.08);
   border-color: rgba(255, 200, 50, 0.2);
-  color: #ffcc33;
+  color: $yellow-primary;
 
   &:hover:not(:disabled) {
     background: rgba(255, 200, 50, 0.15);
@@ -165,7 +167,7 @@
 
 .time-display {
   font-size: 13px;
-  color: #a0a0a0;
+  color: $text-muted;
   font-variant-numeric: tabular-nums;
   min-width: 140px;
   text-align: center;
@@ -175,7 +177,7 @@
   flex: 1;
   min-width: 120px;
   max-width: 260px;
-  accent-color: #ffcc33;
+  accent-color: $yellow-primary;
 }
 
 .actions {
@@ -193,7 +195,7 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 10px;
   padding: 10px 18px;
-  color: #e0e0e0;
+  color: $text-secondary;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -204,12 +206,12 @@
 
   &:hover:not(:disabled) {
     border-color: rgba(255, 200, 50, 0.3);
-    color: #ffcc33;
+    color: $yellow-primary;
   }
 
   &.primary {
-    background: linear-gradient(135deg, #ffcc33, #ff8844);
-    color: #0a0a0a;
+    background: linear-gradient(135deg, $yellow-primary, $yellow-bright);
+    color: $black-primary;
     border: none;
     font-weight: 700;
 
@@ -251,7 +253,7 @@
   border-radius: 12px;
   padding: 12px 20px;
   font-size: 13px;
-  color: #a0a0a0;
+  color: $text-muted;
 }
 
 .footer-left {
@@ -260,13 +262,13 @@
 }
 
 .stat strong {
-  color: #ffcc33;
+  color: $yellow-primary;
   font-weight: 600;
 }
 
 .hint {
   font-size: 12px;
-  color: #666;
+  color: $text-muted;
 }
 
 // ─── Modals ───────────────────────────────────────────────
@@ -313,14 +315,14 @@
   cursor: pointer;
 
   &:hover {
-    color: #f2f2f2;
+    color: $text-primary;
   }
 }
 
 .modal-body {
   padding: 20px 24px;
   font-size: 14px;
-  color: #b0b0b0;
+  color: $text-secondary;
   line-height: 1.6;
 
   p {
@@ -353,8 +355,8 @@
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #ffcc33, #ff8844);
-  color: #0a0a0a;
+  background: linear-gradient(135deg, $yellow-primary, $yellow-bright);
+  color: $black-primary;
 
   &:hover {
     transform: translateY(-1px);
@@ -364,11 +366,11 @@
 .btn-secondary {
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  color: #e0e0e0;
+  color: $text-secondary;
 
   &:hover {
     border-color: rgba(255, 200, 50, 0.3);
-    color: #ffcc33;
+    color: $yellow-primary;
   }
 }
 
@@ -378,14 +380,14 @@
   border: 1px solid rgba(255, 255, 255, 0.06);
 
   &:hover {
-    color: #f2f2f2;
+    color: $text-primary;
     border-color: rgba(255, 255, 255, 0.12);
   }
 }
 
 .btn-submit {
-  background: linear-gradient(135deg, #ffcc33, #ff8844);
-  color: #0a0a0a;
+  background: linear-gradient(135deg, $yellow-primary, $yellow-bright);
+  color: $black-primary;
 
   &:hover:not(:disabled) {
     transform: translateY(-1px);
@@ -404,7 +406,7 @@
     display: block;
     font-size: 13px;
     font-weight: 600;
-    color: #c0c0c0;
+    color: $text-secondary;
     margin-bottom: 6px;
   }
 
@@ -414,7 +416,7 @@
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 8px;
     padding: 10px 12px;
-    color: #f2f2f2;
+    color: $text-primary;
     font-size: 13px;
 
     &:focus {

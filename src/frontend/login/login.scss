@@ -1,14 +1,4 @@
-$black-primary: #0a0a0a;
-$black-secondary: #111111;
-$black-tertiary: #1a1a1a;
-$black-light: #222222;
-$yellow-primary: #ffd700;
-$yellow-glow: rgba(255, 215, 0, 0.3);
-$yellow-bright: #ffed4e;
-$text-primary: #ffffff;
-$text-secondary: #888888;
-$text-muted: #555555;
-$error-color: #e74c3c;
+@use 'theme' as *;
 
 @mixin flex-center {
   display: flex;
@@ -17,7 +7,7 @@ $error-color: #e74c3c;
 }
 
 @mixin neon-glow {
-  box-shadow: 0 0 20px $yellow-glow, 0 0 40px rgba(255, 215, 0, 0.1);
+  box-shadow: 0 0 20px $yellow-glow, 0 0 40px rgba(var(--color-accent-rgb), 0.1);
 }
 
 // Animations
@@ -58,8 +48,8 @@ $error-color: #e74c3c;
     left: -50%;
     width: 200%;
     height: 200%;
-    background: radial-gradient(circle at 30% 30%, rgba(255, 215, 0, 0.03) 0%, transparent 50%),
-    radial-gradient(circle at 70% 70%, rgba(255, 215, 0, 0.02) 0%, transparent 50%);
+    background: radial-gradient(circle at 30% 30%, rgba(var(--color-accent-rgb), 0.03) 0%, transparent 50%),
+    radial-gradient(circle at 70% 70%, rgba(var(--color-accent-rgb), 0.02) 0%, transparent 50%);
     pointer-events: none;
   }
 }
@@ -67,8 +57,8 @@ $error-color: #e74c3c;
 .login-box {
   width: 100%;
   max-width: 440px;
-  background: rgba($black-secondary, 0.6);
-  border: 1px solid rgba(255, 215, 0, 0.2);
+  background: rgba(var(--color-main-rgb), 0.6);
+  border: 1px solid rgba(var(--color-accent-rgb), 0.2);
   border-radius: 24px;
   padding: 3rem 2.5rem;
   position: relative;
@@ -81,7 +71,7 @@ $error-color: #e74c3c;
     position: absolute;
     inset: -2px;
     border-radius: 24px;
-    background: linear-gradient(135deg, rgba(255, 215, 0, 0.3), transparent, rgba(255, 215, 0, 0.3));
+    background: linear-gradient(135deg, rgba(var(--color-accent-rgb), 0.3), transparent, rgba(var(--color-accent-rgb), 0.3));
     z-index: -1;
     filter: blur(15px);
     opacity: 0.5;
@@ -170,10 +160,10 @@ form {
   .form-input {
     width: 100%;
     padding: 1rem 1.25rem 1rem 2.75rem;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(var(--color-text-primary-rgb), 0.1);
     border-radius: 12px;
     font-size: 1rem;
-    background: rgba($black-tertiary, 0.6);
+    background: rgba(var(--color-main-rgb), 0.6);
     color: $text-primary;
     transition: all 0.3s ease;
 
@@ -183,9 +173,9 @@ form {
 
     &:focus {
       outline: none;
-      border-color: rgba(255, 215, 0, 0.4);
-      background: rgba($black-light, 0.6);
-      box-shadow: 0 0 20px rgba(255, 215, 0, 0.1);
+      border-color: rgba(var(--color-accent-rgb), 0.4);
+      background: rgba(var(--color-main-rgb), 0.6);
+      box-shadow: 0 0 20px rgba(var(--color-accent-rgb), 0.1);
 
       & + .input-icon,
       & ~ .input-icon {
@@ -245,7 +235,7 @@ form {
     background: linear-gradient(
         45deg,
         transparent 30%,
-        rgba(255, 255, 255, 0.1) 50%,
+        rgba(var(--color-text-primary-rgb), 0.1) 50%,
         transparent 70%
     );
     transform: translateX(-100%) rotate(45deg);
@@ -260,12 +250,12 @@ form {
 .submit-btn {
   background: linear-gradient(135deg, $yellow-primary, $yellow-bright);
   color: $black-primary;
-  box-shadow: 0 4px 20px rgba(255, 215, 0, 0.3);
+  box-shadow: 0 4px 20px rgba(var(--color-accent-rgb), 0.3);
   margin-top: 0.5rem;
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 30px rgba(255, 215, 0, 0.4);
+    box-shadow: 0 6px 30px rgba(var(--color-accent-rgb), 0.4);
   }
 
   &:active {
@@ -283,12 +273,12 @@ form {
 .reset-btn {
   background: transparent;
   color: $text-secondary;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(var(--color-text-primary-rgb), 0.2);
 
   &:hover {
-    border-color: rgba(255, 215, 0, 0.4);
+    border-color: rgba(var(--color-accent-rgb), 0.4);
     color: $text-primary;
-    background: rgba(255, 215, 0, 0.05);
+    background: rgba(var(--color-accent-rgb), 0.05);
     transform: translateY(-2px);
   }
 
@@ -301,7 +291,7 @@ form {
   text-align: center;
   margin-top: 1.5rem;
   padding-top: 1.5rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid rgba(var(--color-text-primary-rgb), 0.06);
   font-size: 0.875rem;
   color: $text-muted;
 
@@ -332,7 +322,7 @@ form {
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(var(--color-text-primary-rgb), 0.05);
   border-radius: 4px;
 }
 

@@ -9,11 +9,10 @@ body {
   margin: 0;
   padding: 0;
   font-family: var(--app-font-sans, 'Space Grotesk'), sans-serif;
-  background: #050505;
-  color: #ffffff;
+  background: var(--color-main, #050505);
+  color: var(--color-text-primary, #ffffff);
   min-height: 100%;
   overflow-x: hidden;
-  color-scheme: dark;
 }
 
 * {

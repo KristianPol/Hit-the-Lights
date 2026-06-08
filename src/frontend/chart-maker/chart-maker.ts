@@ -18,6 +18,18 @@ interface EditorNote {
   styleUrl: './chart-maker.scss'
 })
 export class ChartMaker implements AfterViewInit, OnDestroy {
+  // Theme-aware color helpers
+  private getCssVar(name: string): string {
+    if (typeof window === 'undefined') return '';
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || '';
+  }
+  private get accentColor(): string {
+    return this.getCssVar('--color-accent') || '#ffcc33';
+  }
+  private get textPrimaryRgb(): string {
+    return this.getCssVar('--color-text-primary-rgb') || '255, 255, 255';
+  }
+
   @ViewChild('editorCanvas') canvasRef!: ElementRef<HTMLCanvasElement>;
 
   private router = inject(Router);
@@ -225,7 +237,7 @@ export class ChartMaker implements AfterViewInit, OnDestroy {
         const bandHeight = nextY - y;
         if (bandHeight < 0.5) continue;
         const idx = Math.floor(ms / 5);
-        this.ctx.fillStyle = idx % 2 === 0 ? 'rgba(255,255,255,0.015)' : 'rgba(255,255,255,0.005)';
+        this.ctx.fillStyle = idx % 2 === 0 ? `rgba(${this.textPrimaryRgb}, 0.015)` : `rgba(${this.textPrimaryRgb}, 0.005)`;
         this.ctx.fillRect(0, y, width, bandHeight);
       }
     }
@@ -239,14 +251,14 @@ export class ChartMaker implements AfterViewInit, OnDestroy {
       const isMedium = ms % 10 === 0;
 
       if (isMajor) {
-        this.ctx.strokeStyle = 'rgba(255,255,255,0.22)';
+        this.ctx.strokeStyle = `rgba(${this.textPrimaryRgb}, 0.22)`;
         this.ctx.lineWidth = 1;
       } else if (isMedium) {
-        this.ctx.strokeStyle = 'rgba(255,255,255,0.09)';
+        this.ctx.strokeStyle = `rgba(${this.textPrimaryRgb}, 0.09)`;
         this.ctx.lineWidth = 0.5;
       } else {
         if (zoom < 0.12) continue;
-        this.ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+        this.ctx.strokeStyle = `rgba(${this.textPrimaryRgb}, 0.04)`;
         this.ctx.lineWidth = 0.5;
       }
 
@@ -256,7 +268,7 @@ export class ChartMaker implements AfterViewInit, OnDestroy {
       this.ctx.stroke();
 
       if (isMajor) {
-        this.ctx.fillStyle = 'rgba(255,255,255,0.35)';
+        this.ctx.fillStyle = `rgba(${this.textPrimaryRgb}, 0.35)`;
         this.ctx.font = '11px sans-serif';
         this.ctx.textAlign = 'left';
         this.ctx.textBaseline = 'bottom';
@@ -269,7 +281,7 @@ export class ChartMaker implements AfterViewInit, OnDestroy {
     const laneWidth = width / this.laneCount;
     for (let i = 0; i <= this.laneCount; i++) {
       const x = i * laneWidth;
-      this.ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+      this.ctx.strokeStyle = `rgba(${this.textPrimaryRgb}, 0.12)`;
       this.ctx.lineWidth = 1;
       this.ctx.beginPath();
       this.ctx.moveTo(x, 0);
@@ -277,7 +289,7 @@ export class ChartMaker implements AfterViewInit, OnDestroy {
       this.ctx.stroke();
     }
 
-    this.ctx.fillStyle = 'rgba(255,255,255,0.45)';
+    this.ctx.fillStyle = `rgba(${this.textPrimaryRgb}, 0.45)`;
     this.ctx.font = 'bold 12px sans-serif';
     this.ctx.textAlign = 'center';
     this.ctx.textBaseline = 'top';
@@ -312,7 +324,7 @@ export class ChartMaker implements AfterViewInit, OnDestroy {
 
       // Border
       this.ctx.beginPath();
-      this.ctx.strokeStyle = isHovered ? '#fff' : 'rgba(255,255,255,0.7)';
+      this.ctx.strokeStyle = isHovered ? `rgba(${this.textPrimaryRgb}, 1)` : `rgba(${this.textPrimaryRgb}, 0.7)`;
       this.ctx.lineWidth = isHovered ? 2 : 1.5;
       this.ctx.arc(x, y, noteRadius, 0, Math.PI * 2);
       this.ctx.stroke();
@@ -323,14 +335,14 @@ export class ChartMaker implements AfterViewInit, OnDestroy {
     const y = this.timeToY(this.currentTimeMs());
     if (y < -2 || y > height + 2) return;
 
-    this.ctx.strokeStyle = '#ffcc33';
+    this.ctx.strokeStyle = this.accentColor;
     this.ctx.lineWidth = 2;
     this.ctx.beginPath();
     this.ctx.moveTo(0, y);
     this.ctx.lineTo(width, y);
     this.ctx.stroke();
 
-    this.ctx.fillStyle = '#ffcc33';
+    this.ctx.fillStyle = this.accentColor;
     this.ctx.beginPath();
     this.ctx.moveTo(0, y);
     this.ctx.lineTo(8, y - 5);
@@ -343,7 +355,7 @@ export class ChartMaker implements AfterViewInit, OnDestroy {
     const y = this.timeToY(this.cursorTimeMs());
     if (y < -2 || y > height + 2) return;
 
-    this.ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+    this.ctx.strokeStyle = `rgba(${this.textPrimaryRgb}, 0.25)`;
     this.ctx.setLineDash([4, 4]);
     this.ctx.lineWidth = 1;
     this.ctx.beginPath();

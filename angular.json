@@ -40,6 +40,9 @@
               "src/frontend/styles.scss"
             ],
             "stylePreprocessorOptions": {
+              "includePaths": [
+                "src/frontend"
+              ],
               "sass": {
                 "silenceDeprecations": ["import"]
               }
@@ -55,8 +58,8 @@
                 },
                 {
                   "type": "anyComponentStyle",
-                  "maximumWarning": "30kB",
-                  "maximumError": "35kB"
+                  "maximumWarning": "35kB",
+                  "maximumError": "45kB"
                 }
               ],
               "outputHashing": "all"

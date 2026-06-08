@@ -1,16 +1,5 @@
-// Variables - matching the app's dark neon theme
-$black-primary: #0a0a0a;
-$black-secondary: #111111;
-$black-tertiary: #1a1a1a;
-$black-light: #222222;
-$yellow-primary: #ffd700;
-$yellow-glow: rgba(255, 215, 0, 0.3);
-$yellow-bright: #ffed4e;
-$text-primary: #ffffff;
-$text-secondary: #888888;
-$text-muted: #555555;
-$error-color: #ff4757;
-$success-color: #00ff88;
+@use 'theme' as *;
+
 
 @mixin flex-center {
   display: flex;
@@ -36,7 +25,7 @@ $success-color: #00ff88;
   display: flex;
   flex-direction: column;
   background: linear-gradient(180deg, $black-primary 0%, $black-secondary 100%);
-  border-right: 1px solid rgba(255, 215, 0, 0.1);
+  border-right: 1px solid rgba(var(--color-accent-rgb), 0.1);
 }
 
 .sidebar-header {
@@ -44,11 +33,11 @@ $success-color: #00ff88;
   align-items: center;
   gap: 0.75rem;
   padding: 1.25rem 1.5rem;
-  border-bottom: 1px solid rgba(255, 215, 0, 0.1);
+  border-bottom: 1px solid rgba(var(--color-accent-rgb), 0.1);
 
   .back-btn {
     background: transparent;
-    border: 1px solid rgba(255, 215, 0, 0.35);
+    border: 1px solid rgba(var(--color-accent-rgb), 0.35);
     color: $yellow-primary;
     padding: 0.4rem 0.75rem;
     border-radius: 999px;
@@ -60,7 +49,7 @@ $success-color: #00ff88;
     letter-spacing: 0.05em;
 
     &:hover {
-      background: rgba(255, 215, 0, 0.12);
+      background: rgba(var(--color-accent-rgb), 0.12);
       transform: translateY(-1px);
     }
 
@@ -92,22 +81,22 @@ $success-color: #00ff88;
 // Search
 .search-section {
   padding: 1rem 1.25rem;
-  border-bottom: 1px solid rgba(255, 215, 0, 0.08);
+  border-bottom: 1px solid rgba(var(--color-accent-rgb), 0.08);
 }
 
 .search-input-wrapper {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(var(--color-text-primary-rgb), 0.04);
+  border: 1px solid rgba(var(--color-text-primary-rgb), 0.08);
   border-radius: 12px;
   padding: 0.65rem 0.9rem;
   transition: all 0.3s ease;
 
   &:focus-within {
-    border-color: rgba(255, 215, 0, 0.4);
-    box-shadow: 0 0 15px rgba(255, 215, 0, 0.08);
+    border-color: rgba(var(--color-accent-rgb), 0.4);
+    box-shadow: 0 0 15px rgba(var(--color-accent-rgb), 0.08);
   }
 
   .search-icon {
@@ -158,14 +147,14 @@ $success-color: #00ff88;
   align-items: center;
   gap: 0.75rem;
   padding: 0.65rem 0.75rem;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(var(--color-text-primary-rgb), 0.03);
+  border: 1px solid rgba(var(--color-text-primary-rgb), 0.06);
   border-radius: 12px;
   transition: all 0.2s ease;
 
   &:hover {
-    background: rgba(255, 255, 255, 0.06);
-    border-color: rgba(255, 215, 0, 0.2);
+    background: rgba(var(--color-text-primary-rgb), 0.06);
+    border-color: rgba(var(--color-accent-rgb), 0.2);
   }
 
   .user-info-row {
@@ -221,13 +210,13 @@ $success-color: #00ff88;
 
   &:hover {
     color: $text-primary;
-    background: rgba(255, 255, 255, 0.03);
+    background: rgba(var(--color-text-primary-rgb), 0.03);
   }
 
   &.active {
     color: $yellow-primary;
-    background: rgba(255, 215, 0, 0.08);
-    border-color: rgba(255, 215, 0, 0.25);
+    background: rgba(var(--color-accent-rgb), 0.08);
+    border-color: rgba(var(--color-accent-rgb), 0.25);
   }
 
   .tab-badge {
@@ -260,7 +249,7 @@ $success-color: #00ff88;
   }
 
   &::-webkit-scrollbar-thumb {
-    background: rgba(255, 215, 0, 0.3);
+    background: rgba(var(--color-accent-rgb), 0.3);
     border-radius: 3px;
   }
 }
@@ -286,22 +275,22 @@ $success-color: #00ff88;
   align-items: center;
   gap: 0.75rem;
   padding: 0.75rem;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(var(--color-text-primary-rgb), 0.03);
+  border: 1px solid rgba(var(--color-text-primary-rgb), 0.05);
   border-radius: 14px;
   cursor: pointer;
   transition: all 0.25s ease;
   position: relative;
 
   &:hover {
-    background: rgba(255, 255, 255, 0.06);
-    border-color: rgba(255, 215, 0, 0.2);
+    background: rgba(var(--color-text-primary-rgb), 0.06);
+    border-color: rgba(var(--color-accent-rgb), 0.2);
     transform: translateX(4px);
   }
 
   &.selected {
-    background: rgba(255, 215, 0, 0.08);
-    border-color: rgba(255, 215, 0, 0.35);
+    background: rgba(var(--color-accent-rgb), 0.08);
+    border-color: rgba(var(--color-accent-rgb), 0.35);
 
     .list-item-name {
       color: $yellow-primary;
@@ -309,8 +298,8 @@ $success-color: #00ff88;
   }
 
   &.unread {
-    background: rgba(255, 215, 0, 0.04);
-    border-color: rgba(255, 215, 0, 0.15);
+    background: rgba(var(--color-accent-rgb), 0.04);
+    border-color: rgba(var(--color-accent-rgb), 0.15);
   }
 
   .list-item-body {
@@ -379,7 +368,7 @@ $success-color: #00ff88;
   border-radius: 50%;
   object-fit: cover;
   flex-shrink: 0;
-  border: 2px solid rgba(255, 215, 0, 0.2);
+  border: 2px solid rgba(var(--color-accent-rgb), 0.2);
 }
 
 .user-avatar-sm {
@@ -388,7 +377,7 @@ $success-color: #00ff88;
   border-radius: 50%;
   object-fit: cover;
   flex-shrink: 0;
-  border: 2px solid rgba(255, 215, 0, 0.2);
+  border: 2px solid rgba(var(--color-accent-rgb), 0.2);
 }
 
 .user-avatar-md {
@@ -397,7 +386,7 @@ $success-color: #00ff88;
   border-radius: 50%;
   object-fit: cover;
   flex-shrink: 0;
-  border: 2px solid rgba(255, 215, 0, 0.3);
+  border: 2px solid rgba(var(--color-accent-rgb), 0.3);
 }
 
 .avatar-fallback {
@@ -436,15 +425,15 @@ $success-color: #00ff88;
   }
 
   &.pending {
-    background: rgba(255, 215, 0, 0.12);
+    background: rgba(var(--color-accent-rgb), 0.12);
     color: $yellow-primary;
-    border: 1px solid rgba(255, 215, 0, 0.25);
+    border: 1px solid rgba(var(--color-accent-rgb), 0.25);
   }
 }
 
 .btn-add {
-  background: linear-gradient(135deg, rgba(255, 215, 0, 0.18), rgba(255, 215, 0, 0.08));
-  border: 1px solid rgba(255, 215, 0, 0.4);
+  background: linear-gradient(135deg, rgba(var(--color-accent-rgb), 0.18), rgba(var(--color-accent-rgb), 0.08));
+  border: 1px solid rgba(var(--color-accent-rgb), 0.4);
   color: $yellow-primary;
   font-size: 0.8rem;
   font-weight: 700;
@@ -455,7 +444,7 @@ $success-color: #00ff88;
   flex-shrink: 0;
 
   &:hover {
-    background: linear-gradient(135deg, rgba(255, 215, 0, 0.3), rgba(255, 215, 0, 0.15));
+    background: linear-gradient(135deg, rgba(var(--color-accent-rgb), 0.3), rgba(var(--color-accent-rgb), 0.15));
     transform: scale(1.05);
   }
 }
@@ -567,7 +556,7 @@ $success-color: #00ff88;
   .spinner {
     width: 32px;
     height: 32px;
-    border: 3px solid rgba(255, 215, 0, 0.2);
+    border: 3px solid rgba(var(--color-accent-rgb), 0.2);
     border-top-color: $yellow-primary;
     border-radius: 50%;
     animation: spin 1s linear infinite;
@@ -588,8 +577,8 @@ $success-color: #00ff88;
   align-items: center;
   justify-content: space-between;
   padding: 1rem 1.5rem;
-  border-bottom: 1px solid rgba(255, 215, 0, 0.1);
-  background: rgba(0, 0, 0, 0.2);
+  border-bottom: 1px solid rgba(var(--color-accent-rgb), 0.1);
+  background: rgba(var(--color-main-rgb), 0.2);
 
   .chat-header-user {
     display: flex;
@@ -626,8 +615,8 @@ $success-color: #00ff88;
   }
 
   .btn-close-chat {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(var(--color-text-primary-rgb), 0.05);
+    border: 1px solid rgba(var(--color-text-primary-rgb), 0.1);
     color: $text-secondary;
     width: 34px;
     height: 34px;
@@ -663,12 +652,12 @@ $success-color: #00ff88;
   }
 
   &::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.03);
+    background: rgba(var(--color-text-primary-rgb), 0.03);
     border-radius: 3px;
   }
 
   &::-webkit-scrollbar-thumb {
-    background: rgba(255, 215, 0, 0.3);
+    background: rgba(var(--color-accent-rgb), 0.3);
     border-radius: 3px;
   }
 }
@@ -717,8 +706,8 @@ $success-color: #00ff88;
 
   &.own {
     align-self: flex-end;
-    background: linear-gradient(135deg, rgba(255, 215, 0, 0.18), rgba(255, 215, 0, 0.08));
-    border: 1px solid rgba(255, 215, 0, 0.25);
+    background: linear-gradient(135deg, rgba(var(--color-accent-rgb), 0.18), rgba(var(--color-accent-rgb), 0.08));
+    border: 1px solid rgba(var(--color-accent-rgb), 0.25);
     border-bottom-right-radius: 4px;
 
     .message-content {
@@ -726,14 +715,14 @@ $success-color: #00ff88;
     }
 
     .message-time {
-      color: rgba(255, 255, 255, 0.5);
+      color: rgba(var(--color-text-primary-rgb), 0.5);
     }
   }
 
   &:not(.own) {
     align-self: flex-start;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(var(--color-text-primary-rgb), 0.05);
+    border: 1px solid rgba(var(--color-text-primary-rgb), 0.08);
     border-bottom-left-radius: 4px;
 
     .message-content {
@@ -777,9 +766,9 @@ $success-color: #00ff88;
         inset: 0;
         background: linear-gradient(
           to bottom,
-          rgba(10, 10, 10, 0.25) 0%,
-          rgba(10, 10, 10, 0.65) 50%,
-          rgba(10, 10, 10, 0.92) 100%
+          rgba(var(--color-main-rgb), 0.25) 0%,
+          rgba(var(--color-main-rgb), 0.65) 50%,
+          rgba(var(--color-main-rgb), 0.92) 100%
         );
       }
     }
@@ -796,8 +785,8 @@ $success-color: #00ff88;
         margin: 0 0 4px;
         font-size: 0.85rem;
         line-height: 1.35;
-        color: #ffffff;
-        text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+        color: $text-primary;
+        text-shadow: 0 1px 4px rgba(var(--color-main-rgb), 0.8);
 
         &:first-child {
           font-size: 0.72rem;
@@ -850,23 +839,23 @@ $success-color: #00ff88;
 // Chat Input
 .chat-input-area {
   padding: 1rem 1.5rem 1.25rem;
-  border-top: 1px solid rgba(255, 215, 0, 0.08);
-  background: rgba(0, 0, 0, 0.2);
+  border-top: 1px solid rgba(var(--color-accent-rgb), 0.08);
+  background: rgba(var(--color-main-rgb), 0.2);
 }
 
 .chat-input-wrapper {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(var(--color-text-primary-rgb), 0.04);
+  border: 1px solid rgba(var(--color-text-primary-rgb), 0.08);
   border-radius: 16px;
   padding: 0.5rem 0.5rem 0.5rem 1rem;
   transition: all 0.3s ease;
 
   &:focus-within {
-    border-color: rgba(255, 215, 0, 0.3);
-    box-shadow: 0 0 20px rgba(255, 215, 0, 0.06);
+    border-color: rgba(var(--color-accent-rgb), 0.3);
+    box-shadow: 0 0 20px rgba(var(--color-accent-rgb), 0.06);
   }
 }
 
@@ -902,11 +891,11 @@ $success-color: #00ff88;
   justify-content: center;
   transition: all 0.2s ease;
   flex-shrink: 0;
-  box-shadow: 0 4px 15px rgba(255, 215, 0, 0.25);
+  box-shadow: 0 4px 15px rgba(var(--color-accent-rgb), 0.25);
 
   &:hover:not(:disabled) {
     transform: scale(1.08);
-    box-shadow: 0 6px 20px rgba(255, 215, 0, 0.35);
+    box-shadow: 0 6px 20px rgba(var(--color-accent-rgb), 0.35);
   }
 
   &:disabled {
@@ -917,7 +906,7 @@ $success-color: #00ff88;
   .send-spinner {
     width: 18px;
     height: 18px;
-    border: 2px solid rgba(0, 0, 0, 0.2);
+    border: 2px solid rgba(var(--color-main-rgb), 0.2);
     border-top-color: $black-primary;
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
@@ -934,7 +923,7 @@ $success-color: #00ff88;
   position: absolute;
   inset: 0;
   @include flex-center;
-  background: rgba($black-primary, 0.85);
+  background: rgba(var(--color-main-rgb), 0.85);
   backdrop-filter: blur(8px);
   z-index: 50;
   animation: fadeIn 0.25s ease;
@@ -944,9 +933,9 @@ $success-color: #00ff88;
   width: 90%;
   max-width: 460px;
   background: linear-gradient(160deg, $black-secondary 0%, $black-tertiary 100%);
-  border: 1px solid rgba(255, 215, 0, 0.25);
+  border: 1px solid rgba(var(--color-accent-rgb), 0.25);
   border-radius: 24px;
-  box-shadow: 0 0 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(255, 215, 0, 0.08);
+  box-shadow: 0 0 60px rgba(var(--color-main-rgb), 0.6), 0 0 40px rgba(var(--color-accent-rgb), 0.08);
   overflow: hidden;
   animation: slideUp 0.3s ease;
 }
@@ -956,8 +945,8 @@ $success-color: #00ff88;
   align-items: center;
   justify-content: space-between;
   padding: 1.5rem 2rem;
-  border-bottom: 1px solid rgba(255, 215, 0, 0.15);
-  background: rgba(255, 215, 0, 0.03);
+  border-bottom: 1px solid rgba(var(--color-accent-rgb), 0.15);
+  background: rgba(var(--color-accent-rgb), 0.03);
 
   .request-user {
     display: flex;
@@ -989,8 +978,8 @@ $success-color: #00ff88;
     width: 100%;
     padding: 1rem 1.25rem;
     border-radius: 14px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background: rgba($black-tertiary, 0.6);
+    border: 1px solid rgba(var(--color-text-primary-rgb), 0.1);
+    background: rgba(var(--color-main-rgb), 0.6);
     color: $text-primary;
     font-size: 0.95rem;
     resize: vertical;
@@ -1003,8 +992,8 @@ $success-color: #00ff88;
     }
 
     &:focus {
-      border-color: rgba(255, 215, 0, 0.4);
-      box-shadow: 0 0 20px rgba(255, 215, 0, 0.1);
+      border-color: rgba(var(--color-accent-rgb), 0.4);
+      box-shadow: 0 0 20px rgba(var(--color-accent-rgb), 0.1);
     }
   }
 }
@@ -1013,7 +1002,7 @@ $success-color: #00ff88;
   display: flex;
   gap: 1rem;
   padding: 1rem 2rem 1.5rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid rgba(var(--color-text-primary-rgb), 0.06);
 
   .btn-cancel,
   .btn-submit {
@@ -1032,23 +1021,23 @@ $success-color: #00ff88;
   .btn-cancel {
     background: transparent;
     color: $text-secondary;
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(var(--color-text-primary-rgb), 0.15);
 
     &:hover {
-      border-color: rgba(255, 215, 0, 0.3);
+      border-color: rgba(var(--color-accent-rgb), 0.3);
       color: $text-primary;
-      background: rgba(255, 215, 0, 0.05);
+      background: rgba(var(--color-accent-rgb), 0.05);
     }
   }
 
   .btn-submit {
     background: linear-gradient(135deg, $yellow-primary, $yellow-bright);
     color: $black-primary;
-    box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+    box-shadow: 0 4px 15px rgba(var(--color-accent-rgb), 0.3);
 
     &:hover:not(:disabled) {
       transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(255, 215, 0, 0.4);
+      box-shadow: 0 6px 20px rgba(var(--color-accent-rgb), 0.4);
     }
 
     &:disabled {
@@ -1124,7 +1113,7 @@ $success-color: #00ff88;
     height: 50vh;
     min-width: unset;
     border-right: none;
-    border-bottom: 1px solid rgba(255, 215, 0, 0.1);
+    border-bottom: 1px solid rgba(var(--color-accent-rgb), 0.1);
   }
 
   .chat-area {

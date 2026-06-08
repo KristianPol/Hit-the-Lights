@@ -1,14 +1,6 @@
+@use 'theme' as *;
+
 // Variables (matching your menu.scss)
-$black-primary: #0a0a0a;
-$black-secondary: #111111;
-$black-tertiary: #1a1a1a;
-$black-light: #222222;
-$yellow-primary: #ffd700;
-$yellow-glow: rgba(255, 215, 0, 0.3);
-$yellow-bright: #ffed4e;
-$text-primary: #ffffff;
-$text-secondary: #888888;
-$text-muted: #555555;
 
 @mixin flex-center {
   display: flex;
@@ -17,7 +9,7 @@ $text-muted: #555555;
 }
 
 @mixin neon-glow {
-  box-shadow: 0 0 20px $yellow-glow, 0 0 40px rgba(255, 215, 0, 0.1);
+  box-shadow: 0 0 20px $yellow-glow, 0 0 40px rgba(var(--color-accent-rgb), 0.1);
 }
 
 :host {
@@ -43,8 +35,8 @@ $text-muted: #555555;
     left: -50%;
     width: 200%;
     height: 200%;
-    background: radial-gradient(circle at 30% 30%, rgba(255, 215, 0, 0.03) 0%, transparent 50%),
-    radial-gradient(circle at 70% 70%, rgba(255, 215, 0, 0.02) 0%, transparent 50%);
+    background: radial-gradient(circle at 30% 30%, rgba(var(--color-accent-rgb), 0.03) 0%, transparent 50%),
+    radial-gradient(circle at 70% 70%, rgba(var(--color-accent-rgb), 0.02) 0%, transparent 50%);
     pointer-events: none;
   }
 }
@@ -65,8 +57,8 @@ $text-muted: #555555;
     top: 0;
     left: 0;
     z-index: 3;
-    border: 1px solid rgba(255, 215, 0, 0.35);
-    background: rgba(10, 10, 10, 0.72);
+    border: 1px solid rgba(var(--color-accent-rgb), 0.35);
+    background: rgba(var(--color-main-rgb), 0.72);
     color: $yellow-primary;
     border-radius: 999px;
     padding: 0.65rem 1rem;
@@ -79,9 +71,9 @@ $text-muted: #555555;
 
     &:hover {
       transform: translateY(-1px);
-      background: rgba(255, 215, 0, 0.12);
+      background: rgba(var(--color-accent-rgb), 0.12);
       color: $yellow-bright;
-      box-shadow: 0 0 16px rgba(255, 215, 0, 0.2);
+      box-shadow: 0 0 16px rgba(var(--color-accent-rgb), 0.2);
     }
   }
 
@@ -90,8 +82,8 @@ $text-muted: #555555;
     top: 0;
     right: 0;
     z-index: 3;
-    border: 1px solid rgba(255, 215, 0, 0.35);
-    background: rgba(10, 10, 10, 0.72);
+    border: 1px solid rgba(var(--color-accent-rgb), 0.35);
+    background: rgba(var(--color-main-rgb), 0.72);
     color: $yellow-primary;
     border-radius: 999px;
     padding: 0.65rem 1rem;
@@ -104,9 +96,9 @@ $text-muted: #555555;
 
     &:hover {
       transform: translateY(-1px);
-      background: rgba(255, 215, 0, 0.12);
+      background: rgba(var(--color-accent-rgb), 0.12);
       color: $yellow-bright;
-      box-shadow: 0 0 16px rgba(255, 215, 0, 0.2);
+      box-shadow: 0 0 16px rgba(var(--color-accent-rgb), 0.2);
     }
   }
 
@@ -189,8 +181,8 @@ $text-muted: #555555;
       @include flex-center;
       position: relative;
       z-index: 1;
-      border: 3px solid rgba(255, 215, 0, 0.5);
-      box-shadow: 0 0 40px $yellow-glow, inset 0 0 20px rgba(255, 255, 255, 0.2);
+      border: 3px solid rgba(var(--color-accent-rgb), 0.5);
+      box-shadow: 0 0 40px $yellow-glow, inset 0 0 20px rgba(var(--color-text-primary-rgb), 0.2);
       transition: transform 0.3s ease;
 
       &:hover {
@@ -236,10 +228,10 @@ $text-muted: #555555;
     color: $text-muted;
     font-size: 0.875rem;
     font-family: 'Courier New', monospace;
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(var(--color-text-primary-rgb), 0.05);
     padding: 0.25rem 0.75rem;
     border-radius: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(var(--color-text-primary-rgb), 0.1);
   }
 }
 
@@ -251,8 +243,8 @@ $text-muted: #555555;
   margin-bottom: 2.5rem;
 
   .info-item {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(var(--color-text-primary-rgb), 0.03);
+    border: 1px solid rgba(var(--color-text-primary-rgb), 0.1);
     border-radius: 16px;
     padding: 1.5rem;
     transition: all 0.3s ease;
@@ -277,8 +269,8 @@ $text-muted: #555555;
     }
 
     &:hover {
-      border-color: rgba(255, 215, 0, 0.3);
-      background: rgba(255, 215, 0, 0.05);
+      border-color: rgba(var(--color-accent-rgb), 0.3);
+      background: rgba(var(--color-accent-rgb), 0.05);
       transform: translateY(-4px);
 
       &::before {
@@ -325,7 +317,7 @@ $text-muted: #555555;
 
 // Stats section
 .stats-section {
-  border-top: 1px solid rgba(255, 215, 0, 0.1);
+  border-top: 1px solid rgba(var(--color-accent-rgb), 0.1);
   padding-top: 2rem;
 
   .stats-header {
@@ -343,8 +335,8 @@ $text-muted: #555555;
     gap: 1rem;
 
     .stat-box {
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(var(--color-text-primary-rgb), 0.03);
+      border: 1px solid rgba(var(--color-text-primary-rgb), 0.1);
       border-radius: 16px;
       padding: 1.5rem 1rem;
       text-align: center;
@@ -353,8 +345,8 @@ $text-muted: #555555;
       overflow: hidden;
 
       &:hover {
-        border-color: rgba(255, 215, 0, 0.4);
-        background: rgba(255, 215, 0, 0.08);
+        border-color: rgba(var(--color-accent-rgb), 0.4);
+        background: rgba(var(--color-accent-rgb), 0.08);
         transform: translateY(-4px);
 
         .stat-value {
@@ -401,7 +393,7 @@ $text-muted: #555555;
 
 // Pinned achievements section
 .pinned-achievements-section {
-  border-top: 1px solid rgba(255, 215, 0, 0.1);
+  border-top: 1px solid rgba(var(--color-accent-rgb), 0.1);
   padding-top: 2rem;
   margin-top: 2rem;
 
@@ -434,16 +426,16 @@ $text-muted: #555555;
     align-items: center;
     gap: 1rem;
     padding: 1.15rem;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: rgba(var(--color-text-primary-rgb), 0.03);
+    border: 1px solid rgba(var(--color-text-primary-rgb), 0.05);
     border-radius: 16px;
     position: relative;
     overflow: hidden;
     transition: all 0.25s ease;
 
     &:hover {
-      background: rgba(255, 255, 255, 0.06);
-      border-color: rgba(255, 215, 0, 0.2);
+      background: rgba(var(--color-text-primary-rgb), 0.06);
+      border-color: rgba(var(--color-accent-rgb), 0.2);
       transform: translateX(6px);
     }
   }
@@ -452,7 +444,7 @@ $text-muted: #555555;
     width: 56px;
     height: 56px;
     border-radius: 12px;
-    border: 2px solid rgba(255, 215, 0, 0.2);
+    border: 2px solid rgba(var(--color-accent-rgb), 0.2);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -479,7 +471,7 @@ $text-muted: #555555;
   }
 
   .pinned-title {
-    color: #fff;
+    color: $text-primary;
     font-weight: 700;
     font-size: 1.05rem;
   }
@@ -505,7 +497,7 @@ $text-muted: #555555;
   justify-content: center;
   gap: 0.5rem;
   margin-bottom: 2.5rem;
-  border-bottom: 1px solid rgba(255, 215, 0, 0.1);
+  border-bottom: 1px solid rgba(var(--color-accent-rgb), 0.1);
   padding-bottom: 0.5rem;
 
   .tab-btn {
@@ -552,7 +544,7 @@ $text-muted: #555555;
 // Creations tab
 .creations-tab {
   .creations-section {
-    border-top: 1px solid rgba(255, 215, 0, 0.1);
+    border-top: 1px solid rgba(var(--color-accent-rgb), 0.1);
     padding-top: 2rem;
     margin-top: 2rem;
 
@@ -585,8 +577,8 @@ $text-muted: #555555;
     padding: 2rem;
     color: $text-muted;
     font-size: 0.95rem;
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: rgba(var(--color-text-primary-rgb), 0.02);
+    border: 1px solid rgba(var(--color-text-primary-rgb), 0.05);
     border-radius: 16px;
   }
 
@@ -601,8 +593,8 @@ $text-muted: #555555;
     align-items: center;
     gap: 1rem;
     padding: 1rem;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: rgba(var(--color-text-primary-rgb), 0.03);
+    border: 1px solid rgba(var(--color-text-primary-rgb), 0.05);
     border-radius: 16px;
     cursor: pointer;
     transition: all 0.25s ease;
@@ -610,10 +602,10 @@ $text-muted: #555555;
     overflow: hidden;
 
     &:hover {
-      background: rgba(255, 255, 255, 0.06);
-      border-color: rgba(255, 215, 0, 0.25);
+      background: rgba(var(--color-text-primary-rgb), 0.06);
+      border-color: rgba(var(--color-accent-rgb), 0.25);
       transform: translateY(-3px);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 8px 24px rgba(var(--color-main-rgb), 0.3);
     }
 
     .song-cover {
@@ -621,7 +613,7 @@ $text-muted: #555555;
       height: 64px;
       border-radius: 12px;
       object-fit: cover;
-      border: 2px solid rgba(255, 215, 0, 0.15);
+      border: 2px solid rgba(var(--color-accent-rgb), 0.15);
       flex-shrink: 0;
     }
 
@@ -678,14 +670,14 @@ $text-muted: #555555;
     align-items: center;
     gap: 1rem;
     padding: 1rem 1.15rem;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: rgba(var(--color-text-primary-rgb), 0.03);
+    border: 1px solid rgba(var(--color-text-primary-rgb), 0.05);
     border-radius: 14px;
     transition: all 0.25s ease;
 
     &:hover {
-      background: rgba(255, 255, 255, 0.06);
-      border-color: rgba(255, 215, 0, 0.2);
+      background: rgba(var(--color-text-primary-rgb), 0.06);
+      border-color: rgba(var(--color-accent-rgb), 0.2);
       transform: translateX(6px);
     }
 
@@ -726,11 +718,11 @@ $text-muted: #555555;
     display: inline-block;
     padding: 0.2rem 0.55rem;
     border-radius: 6px;
-    background: rgba(255, 215, 0, 0.12);
+    background: rgba(var(--color-accent-rgb), 0.12);
     color: $yellow-primary;
     font-size: 0.75rem;
     font-weight: 700;
-    border: 1px solid rgba(255, 215, 0, 0.2);
+    border: 1px solid rgba(var(--color-accent-rgb), 0.2);
   }
 
   .note-count {
@@ -762,11 +754,11 @@ $text-muted: #555555;
     &.btn-primary {
       background: linear-gradient(135deg, $yellow-primary, $yellow-bright);
       color: $black-primary;
-      box-shadow: 0 4px 20px rgba(255, 215, 0, 0.3);
+      box-shadow: 0 4px 20px rgba(var(--color-accent-rgb), 0.3);
 
       &:hover {
         transform: translateY(-2px);
-        box-shadow: 0 6px 30px rgba(255, 215, 0, 0.4);
+        box-shadow: 0 6px 30px rgba(var(--color-accent-rgb), 0.4);
       }
 
       &:active {
@@ -777,12 +769,12 @@ $text-muted: #555555;
     &.btn-secondary {
       background: transparent;
       color: $text-secondary;
-      border: 1px solid rgba(255, 255, 255, 0.2);
+      border: 1px solid rgba(var(--color-text-primary-rgb), 0.2);
 
       &:hover {
-        border-color: rgba(255, 215, 0, 0.4);
+        border-color: rgba(var(--color-accent-rgb), 0.4);
         color: $text-primary;
-        background: rgba(255, 215, 0, 0.05);
+        background: rgba(var(--color-accent-rgb), 0.05);
       }
     }
 
@@ -797,7 +789,7 @@ $text-muted: #555555;
       background: linear-gradient(
           45deg,
           transparent 30%,
-          rgba(255, 255, 255, 0.1) 50%,
+          rgba(var(--color-text-primary-rgb), 0.1) 50%,
           transparent 70%
       );
       transform: translateX(-100%) rotate(45deg);
@@ -820,7 +812,7 @@ $text-muted: #555555;
   .spinner {
     width: 50px;
     height: 50px;
-    border: 3px solid rgba(255, 215, 0, 0.2);
+    border: 3px solid rgba(var(--color-accent-rgb), 0.2);
     border-top-color: $yellow-primary;
     border-radius: 50%;
     animation: spin 1s linear infinite;
@@ -891,7 +883,7 @@ $text-muted: #555555;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(var(--color-text-primary-rgb), 0.05);
   border-radius: 4px;
 }
 
@@ -911,7 +903,7 @@ $text-muted: #555555;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba($black-primary, 0.85);
+  background: rgba(var(--color-main-rgb), 0.85);
   backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
@@ -922,11 +914,11 @@ $text-muted: #555555;
 
 .modal {
   background: linear-gradient(135deg, $black-secondary 0%, $black-tertiary 100%);
-  border: 1px solid rgba(255, 215, 0, 0.3);
+  border: 1px solid rgba(var(--color-accent-rgb), 0.3);
   border-radius: 20px;
   width: 90%;
   max-width: 450px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 40px $yellow-glow;
+  box-shadow: 0 20px 60px rgba(var(--color-main-rgb), 0.5), 0 0 40px $yellow-glow;
   animation: slideUp 0.3s ease;
   overflow: hidden;
 }
@@ -936,8 +928,8 @@ $text-muted: #555555;
   justify-content: space-between;
   align-items: center;
   padding: 1.5rem 2rem;
-  border-bottom: 1px solid rgba(255, 215, 0, 0.1);
-  background: rgba(255, 215, 0, 0.05);
+  border-bottom: 1px solid rgba(var(--color-accent-rgb), 0.1);
+  background: rgba(var(--color-accent-rgb), 0.05);
 
   h2 {
     margin: 0;
@@ -996,7 +988,7 @@ $text-muted: #555555;
         font-size: 2.5rem;
         font-weight: 800;
         @include flex-center;
-        border: 3px solid rgba(255, 215, 0, 0.5);
+        border: 3px solid rgba(var(--color-accent-rgb), 0.5);
         box-shadow: 0 0 30px $yellow-glow;
       }
 
@@ -1021,8 +1013,8 @@ $text-muted: #555555;
     .file-btn {
       width: 100%;
       padding: 1rem 1.5rem;
-      background: rgba(255, 255, 255, 0.05);
-      border: 2px dashed rgba(255, 215, 0, 0.3);
+      background: rgba(var(--color-text-primary-rgb), 0.05);
+      border: 2px dashed rgba(var(--color-accent-rgb), 0.3);
       border-radius: 12px;
       color: $text-primary;
       font-size: 0.95rem;
@@ -1032,7 +1024,7 @@ $text-muted: #555555;
 
       &:hover {
         border-color: $yellow-primary;
-        background: rgba(255, 215, 0, 0.1);
+        background: rgba(var(--color-accent-rgb), 0.1);
       }
     }
 
@@ -1075,8 +1067,8 @@ $text-muted: #555555;
   display: flex;
   gap: 1rem;
   padding: 1.5rem 2rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(0, 0, 0, 0.2);
+  border-top: 1px solid rgba(var(--color-text-primary-rgb), 0.1);
+  background: rgba(var(--color-main-rgb), 0.2);
 
   .btn-cancel,
   .btn-submit {
@@ -1095,23 +1087,23 @@ $text-muted: #555555;
   .btn-cancel {
     background: transparent;
     color: $text-secondary;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(var(--color-text-primary-rgb), 0.2);
 
     &:hover {
-      border-color: rgba(255, 215, 0, 0.4);
+      border-color: rgba(var(--color-accent-rgb), 0.4);
       color: $text-primary;
-      background: rgba(255, 215, 0, 0.05);
+      background: rgba(var(--color-accent-rgb), 0.05);
     }
   }
 
   .btn-submit {
     background: linear-gradient(135deg, $yellow-primary, $yellow-bright);
     color: $black-primary;
-    box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+    box-shadow: 0 4px 15px rgba(var(--color-accent-rgb), 0.3);
 
     &:hover:not(:disabled) {
       transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(255, 215, 0, 0.4);
+      box-shadow: 0 6px 20px rgba(var(--color-accent-rgb), 0.4);
     }
 
     &:disabled {

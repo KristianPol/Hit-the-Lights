@@ -68,6 +68,24 @@ interface ShatterShard {
   styleUrls: ['./gameplay.scss']
 })
 export class Gameplay implements AfterViewInit, OnDestroy {
+  // Theme-aware color helpers
+  private getCssVar(name: string): string {
+    if (typeof window === 'undefined') return '';
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || '';
+  }
+  private get accentColor(): string {
+    return this.getCssVar('--color-accent') || '#ffd700';
+  }
+  private get accentColorRgb(): string {
+    return this.getCssVar('--color-accent-rgb') || '255, 215, 0';
+  }
+  private get mainColor(): string {
+    return this.getCssVar('--color-main') || '#050505';
+  }
+  private get textPrimaryRgb(): string {
+    return this.getCssVar('--color-text-primary-rgb') || '255, 255, 255';
+  }
+
   @ViewChild('gameCanvas') canvasRef!: ElementRef<HTMLCanvasElement>;
 
   private readonly gameSettingsService = inject(GameSettingsService);
@@ -615,7 +633,7 @@ export class Gameplay implements AfterViewInit, OnDestroy {
       this.stats.update(stats => ({ ...stats, perfect: stats.perfect + 1 }));
       points = 3;
       feedbackText = 'Radiant';
-      feedbackColour = '#ffd700';
+      feedbackColour = this.accentColor;
     } else if (timingDelta <= this.shinningWindow) {
       this.stats.update(stats => ({ ...stats, good: stats.good + 1 }));
       points = 2;
@@ -739,8 +757,8 @@ export class Gameplay implements AfterViewInit, OnDestroy {
 
   private drawBackground(width: number, height: number): void {
     const gradient = this.ctx.createLinearGradient(0, 0, 0, height);
-    gradient.addColorStop(0, '#050505');
-    gradient.addColorStop(1, '#111111');
+    gradient.addColorStop(0, this.mainColor);
+    gradient.addColorStop(1, this.mainColor);
     this.ctx.fillStyle = gradient;
     this.ctx.fillRect(0, 0, width, height);
   }
@@ -748,7 +766,7 @@ export class Gameplay implements AfterViewInit, OnDestroy {
   private drawLaneGuides(height: number): void {
     const geometry = this.getLaneGeometry();
 
-    this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+    this.ctx.strokeStyle = `rgba(${this.textPrimaryRgb}, 0.12)`;
     this.ctx.lineWidth = 3;
 
     for (let lane = 0; lane < this.laneCount; lane++) {
@@ -770,7 +788,7 @@ export class Gameplay implements AfterViewInit, OnDestroy {
       const color = this.laneColors[lane] ?? '#ffd700';
 
       this.ctx.beginPath();
-      this.ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+      this.ctx.fillStyle = `rgba(${this.textPrimaryRgb}, 0.08)`;
       this.ctx.arc(laneCenterX, hitZoneY, this.hitAreaRadius, 0, Math.PI * 2);
       this.ctx.fill();
 
@@ -781,7 +799,7 @@ export class Gameplay implements AfterViewInit, OnDestroy {
       this.ctx.stroke();
 
       this.ctx.beginPath();
-      this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
+      this.ctx.strokeStyle = `rgba(${this.textPrimaryRgb}, 0.45)`;
       this.ctx.lineWidth = 1.5;
       this.ctx.arc(laneCenterX, hitZoneY, this.hitAreaRadius - 8, 0, Math.PI * 2);
       this.ctx.stroke();
@@ -826,13 +844,13 @@ export class Gameplay implements AfterViewInit, OnDestroy {
       this.ctx.shadowBlur = 0;
 
       this.ctx.beginPath();
-      this.ctx.strokeStyle = '#ffffff';
+      this.ctx.strokeStyle = `rgba(${this.textPrimaryRgb}, 1)`;
       this.ctx.lineWidth = 3;
       this.ctx.arc(xCenter, yCenter, noteRadius, 0, Math.PI * 2);
       this.ctx.stroke();
 
       this.ctx.beginPath();
-      this.ctx.strokeStyle = 'rgba(0, 0, 0, 0.35)';
+      this.ctx.strokeStyle = 'rgba(0, 0, 0, 0.35';
       this.ctx.lineWidth = 2;
       this.ctx.arc(xCenter, yCenter, noteRadius - 8, 0, Math.PI * 2);
       this.ctx.stroke();
@@ -867,7 +885,7 @@ export class Gameplay implements AfterViewInit, OnDestroy {
 
     for (let lane = 0; lane < this.laneCount; lane++) {
       const xPos = this.getLaneCenterX(lane, geometry);
-      this.ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+      this.ctx.fillStyle = `rgba(${this.textPrimaryRgb}, 0.8)`;
       this.ctx.fillText(this.laneLabels[lane], xPos, hitZoneY + this.hitAreaRadius + 26);
     }*/
     const geometry = this.getLaneGeometry();
@@ -878,7 +896,7 @@ export class Gameplay implements AfterViewInit, OnDestroy {
     this.ctx.font = '700 22px Arial, sans-serif';
     this.ctx.textAlign = 'center';
     this.ctx.textBaseline = 'middle';
-    this.ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
+    this.ctx.fillStyle = `rgba(${this.textPrimaryRgb}, 0.75)`;
 
     for (let lane = 0; lane < this.laneCount; lane++) {
       const xPos = this.getLaneCenterX(lane, geometry);
@@ -1369,7 +1387,7 @@ export class Gameplay implements AfterViewInit, OnDestroy {
       ctx.fill();
 
       // White core for glass look
-      ctx.fillStyle = `rgba(255, 255, 255, ${shard.life * 0.6})`;
+      ctx.fillStyle = `rgba(${this.textPrimaryRgb}, ${shard.life * 0.6})`;
       ctx.beginPath();
       ctx.arc(0, 0, shard.size * 0.25, 0, Math.PI * 2);
       ctx.fill();

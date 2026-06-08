@@ -1,4 +1,6 @@
-﻿:host {
+@use 'theme' as *;
+
+:host {
   display: block;
   width: 100%;
   min-height: 100vh;
@@ -9,7 +11,7 @@
   min-height: 100vh;
   padding: 1.5rem;
   background: transparent;
-  color: #fff;
+  color: $text-primary;
 }
 
 .title-row {
@@ -24,7 +26,7 @@
 .track-meta {
   .eyebrow {
     margin: 0 0 4px;
-    color: #ffd700;
+    color: $yellow-primary;
     text-transform: uppercase;
     letter-spacing: 0.16em;
     font-size: 0.72rem;
@@ -46,9 +48,9 @@
 }
 
 .menu-button {
-  border: 1px solid rgba(255, 215, 0, 0.35);
+  border: 1px solid rgba(var(--color-accent-rgb), 0.35);
   background: rgba(10, 10, 10, 0.72);
-  color: #ffd700;
+  color: $yellow-primary;
   border-radius: 999px;
   padding: 0.8rem 1.2rem;
   font-weight: 700;
@@ -58,8 +60,8 @@
 
   &:hover {
     transform: translateY(-1px);
-    background: rgba(255, 215, 0, 0.12);
-    box-shadow: 0 0 18px rgba(255, 215, 0, 0.18);
+    background: rgba(var(--color-accent-rgb), 0.12);
+    box-shadow: 0 0 18px rgba(var(--color-accent-rgb), 0.18);
   }
 }
 
@@ -78,9 +80,9 @@
   aspect-ratio: auto;
   border-radius: 0;
   overflow: hidden;
-  border: 1px solid rgba(255, 215, 0, 0.2);
+  border: 1px solid rgba(var(--color-accent-rgb), 0.2);
   background: rgba(0, 0, 0, 0.6);
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45), inset 0 0 30px rgba(255, 215, 0, 0.06);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45), inset 0 0 30px rgba(var(--color-accent-rgb), 0.06);
 
   canvas {
     line-height: normal;
@@ -121,11 +123,11 @@
   .value {
     font-size: 1.5rem;
     font-weight: 800;
-    color: #fff;
+    color: $text-primary;
   }
 
   &.highlight {
-    border-color: rgba(255, 215, 0, 0.24);
+    border-color: rgba(var(--color-accent-rgb), 0.24);
   }
 
   &.miss-card .value {
@@ -134,9 +136,9 @@
 }
 
 .status-badge {
-  background: rgba(255, 215, 0, 0.12);
-  color: #ffd700;
-  border: 1px solid rgba(255, 215, 0, 0.22);
+  background: rgba(var(--color-accent-rgb), 0.12);
+  color: $yellow-primary;
+  border: 1px solid rgba(var(--color-accent-rgb), 0.22);
   border-radius: 12px;
   padding: 0.8rem 0.9rem;
   font-weight: 700;
@@ -178,11 +180,11 @@
 .results-card {
   width: min(92vw, 560px);
   background: rgba(10, 10, 10, 0.92);
-  border: 1px solid rgba(255, 215, 0, 0.18);
+  border: 1px solid rgba(var(--color-accent-rgb), 0.18);
   border-radius: 24px;
   padding: 28px;
   text-align: center;
-  color: #ffffff;
+  color: $text-primary;
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
 }
 
@@ -217,8 +219,8 @@
   margin-top: 18px;
   padding: 14px;
   border-radius: 16px;
-  border: 1px solid rgba(255, 215, 0, 0.2);
-  background: linear-gradient(135deg, rgba(255, 215, 0, 0.08), rgba(255, 215, 0, 0.02));
+  border: 1px solid rgba(var(--color-accent-rgb), 0.2);
+  background: linear-gradient(135deg, rgba(var(--color-accent-rgb), 0.08), rgba(var(--color-accent-rgb), 0.02));
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -240,14 +242,14 @@
 .hero-score {
   font-size: clamp(1.9rem, 4.5vw, 2.6rem);
   font-weight: 800;
-  color: #ffd700;
+  color: $yellow-primary;
   line-height: 1;
 }
 
 .rank-chip {
   min-width: 92px;
   border-radius: 14px;
-  border: 1px solid rgba(255, 215, 0, 0.35);
+  border: 1px solid rgba(var(--color-accent-rgb), 0.35);
   background: rgba(0, 0, 0, 0.35);
   padding: 10px 12px;
   text-align: center;
@@ -266,7 +268,7 @@
   margin-top: 2px;
   font-size: 1.4rem;
   font-weight: 800;
-  color: #ffd700;
+  color: $yellow-primary;
 }
 
 .results-grid {
@@ -296,7 +298,7 @@
   margin-top: 4px;
   font-size: 1.42rem;
   font-weight: 800;
-  color: #ffffff;
+  color: $text-primary;
 }
 
 .metric-sub {
@@ -307,7 +309,7 @@
 }
 
 .radiant-card {
-  border-color: rgba(255, 215, 0, 0.28);
+  border-color: rgba(var(--color-accent-rgb), 0.28);
 }
 
 .shinning-card {
@@ -349,19 +351,19 @@
 }
 
 .play-again {
-  color: #111111;
-  background: linear-gradient(135deg, #ffd700, #ffed4e);
-  border-color: rgba(255, 215, 0, 0.6);
+  color: $black-secondary;
+  background: linear-gradient(135deg, $yellow-primary, $yellow-bright);
+  border-color: rgba(var(--color-accent-rgb), 0.6);
 }
 
 .send-score {
-  color: #ffd700;
-  background: rgba(255, 215, 0, 0.1);
-  border-color: rgba(255, 215, 0, 0.4);
+  color: $yellow-primary;
+  background: rgba(var(--color-accent-rgb), 0.1);
+  border-color: rgba(var(--color-accent-rgb), 0.4);
 
   &:hover {
-    background: rgba(255, 215, 0, 0.2);
-    box-shadow: 0 0 20px rgba(255, 215, 0, 0.25);
+    background: rgba(var(--color-accent-rgb), 0.2);
+    box-shadow: 0 0 20px rgba(var(--color-accent-rgb), 0.25);
   }
 }
 
@@ -379,10 +381,10 @@
 .send-score-card {
   width: min(92vw, 420px);
   background: rgba(10, 10, 10, 0.95);
-  border: 1px solid rgba(255, 215, 0, 0.2);
+  border: 1px solid rgba(var(--color-accent-rgb), 0.2);
   border-radius: 20px;
   padding: 22px;
-  color: #ffffff;
+  color: $text-primary;
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
   animation: slideUp 0.25s ease;
   display: flex;
@@ -399,7 +401,7 @@
   h3 {
     margin: 0;
     font-size: 1.3rem;
-    color: #ffd700;
+    color: $yellow-primary;
   }
 
   .modal-close {
@@ -417,7 +419,7 @@
     }
 
     &:hover {
-      color: #ffd700;
+      color: $yellow-primary;
       transform: rotate(90deg);
     }
   }
@@ -460,8 +462,8 @@
     .spinner {
       width: 32px;
       height: 32px;
-      border: 2px solid rgba(255, 215, 0, 0.2);
-      border-top-color: #ffd700;
+      border: 2px solid rgba(var(--color-accent-rgb), 0.2);
+      border-top-color: $yellow-primary;
       border-radius: 50%;
       animation: spin 1s linear infinite;
     }
@@ -513,14 +515,14 @@
     transition: all 0.2s ease;
 
     &:hover {
-      background: rgba(255, 215, 0, 0.08);
-      border-color: rgba(255, 215, 0, 0.25);
+      background: rgba(var(--color-accent-rgb), 0.08);
+      border-color: rgba(var(--color-accent-rgb), 0.25);
     }
 
     input[type="checkbox"] {
       width: 18px;
       height: 18px;
-      accent-color: #ffd700;
+      accent-color: $yellow-primary;
       cursor: pointer;
       flex-shrink: 0;
     }
@@ -529,8 +531,8 @@
       width: 32px;
       height: 32px;
       border-radius: 50%;
-      background: linear-gradient(135deg, #ffd700, #ffed4e);
-      color: #0a0a0a;
+      background: linear-gradient(135deg, $yellow-primary, $yellow-bright);
+      color: $black-primary;
       font-size: 0.85rem;
       font-weight: 700;
       display: flex;
@@ -548,7 +550,7 @@
 
     .friend-name {
       font-size: 0.95rem;
-      color: #ffffff;
+      color: $text-primary;
     }
   }
 }
@@ -595,20 +597,20 @@
     border: 1px solid rgba(255, 255, 255, 0.2);
 
     &:hover {
-      border-color: rgba(255, 215, 0, 0.4);
-      color: #ffffff;
-      background: rgba(255, 215, 0, 0.05);
+      border-color: rgba(var(--color-accent-rgb), 0.4);
+      color: $text-primary;
+      background: rgba(var(--color-accent-rgb), 0.05);
     }
   }
 
   .btn-submit {
-    background: linear-gradient(135deg, #ffd700, #ffed4e);
-    color: #0a0a0a;
-    box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+    background: linear-gradient(135deg, $yellow-primary, $yellow-bright);
+    color: $black-primary;
+    box-shadow: 0 4px 15px rgba(var(--color-accent-rgb), 0.3);
 
     &:hover:not(:disabled) {
       transform: translateY(-1px);
-      box-shadow: 0 6px 20px rgba(255, 215, 0, 0.4);
+      box-shadow: 0 6px 20px rgba(var(--color-accent-rgb), 0.4);
     }
 
     &:disabled {

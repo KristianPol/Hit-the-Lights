@@ -1,9 +1,11 @@
+@use 'theme' as *;
+
 /* ─── About Page ─── */
 .about-page {
   padding: 40px 24px 60px;
   max-width: 1100px;
   margin: 0 auto;
-  color: #f2f2f2;
+  color: $text-primary;
   position: relative;
 }
 
@@ -74,7 +76,7 @@
   z-index: 1;
 
   .highlight {
-    background: linear-gradient(90deg, #ffcc33, #ff8844, #ffcc33);
+    background: linear-gradient(90deg, $yellow-primary, $yellow-bright, $yellow-primary);
     background-size: 200% auto;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -91,7 +93,7 @@
 
 .hero-subtitle {
   font-size: 16px;
-  color: #a0a0a0;
+  color: $text-muted;
   margin: 0 0 20px;
   position: relative;
   z-index: 1;
@@ -122,7 +124,7 @@
   text-align: center;
   max-width: 640px;
   margin: 0 auto 40px;
-  color: #b0b0b0;
+  color: $text-secondary;
   font-size: 15px;
   line-height: 1.7;
 }
@@ -147,7 +149,7 @@
     justify-content: center;
     margin-bottom: 14px;
     font-size: 20px;
-    color: #ffcc33;
+    color: $yellow-primary;
   }
 
   h2 {
@@ -157,7 +159,7 @@
   }
 
   .section-sub {
-    color: #909090;
+    color: $text-muted;
     font-size: 14px;
     margin: 0;
   }
@@ -227,7 +229,7 @@
     position: absolute;
     inset: -3px;
     border-radius: 50%;
-    background: conic-gradient(from 0deg, #ffcc33, #ff8844, #ffcc33);
+    background: conic-gradient(from 0deg, $yellow-primary, $yellow-bright, $yellow-primary);
     opacity: 0.5;
     mask: radial-gradient(circle, transparent 66%, black 67%);
     -webkit-mask: radial-gradient(circle, transparent 66%, black 67%);
@@ -248,7 +250,7 @@
   position: relative;
   z-index: 1;
   border: 3px solid rgba(20, 20, 20, 0.9);
-  background: #1a1a1a;
+  background: $black-tertiary;
 }
 
 .profile-header {
@@ -270,7 +272,7 @@
     gap: 6px;
     font-size: 12px;
     font-weight: 600;
-    color: #ffcc33;
+    color: $yellow-primary;
     background: rgba(255, 200, 50, 0.08);
     border: 1px solid rgba(255, 200, 50, 0.12);
     padding: 5px 12px;
@@ -281,7 +283,7 @@
 
 .profile-bio {
   font-size: 13.5px;
-  color: #b0b0b0;
+  color: $text-secondary;
   margin-bottom: 18px;
   line-height: 1.65;
   position: relative;
@@ -293,7 +295,7 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  color: #c8c8c8;
+  color: $text-secondary;
   text-decoration: none;
   font-weight: 600;
   font-size: 13px;
@@ -314,7 +316,7 @@
   }
 
   &:hover {
-    color: #ffcc33;
+    color: $yellow-primary;
     border-color: rgba(255, 200, 50, 0.2);
     background: rgba(255, 200, 50, 0.04);
 
@@ -364,12 +366,12 @@
   border: 1px solid rgba(255, 255, 255, 0.04);
   font-size: 13px;
   font-weight: 600;
-  color: #c0c0c0;
+  color: $text-secondary;
   transition: transform 200ms ease, border-color 200ms ease, background 200ms ease;
 
   i {
     font-size: 16px;
-    color: #ffcc33;
+    color: $yellow-primary;
     opacity: 0.8;
   }
 
@@ -390,7 +392,7 @@
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  color: #e0e0e0;
+  color: $text-secondary;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.08);
   padding: 12px 24px;
@@ -408,7 +410,7 @@
   &:hover {
     background: rgba(255, 200, 50, 0.08);
     border-color: rgba(255, 200, 50, 0.2);
-    color: #ffcc33;
+    color: $yellow-primary;
     transform: translateY(-2px);
     box-shadow: 0 8px 24px rgba(255, 200, 50, 0.08);
 

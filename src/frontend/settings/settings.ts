@@ -1,8 +1,9 @@
-﻿import { Component, HostListener, computed, inject, signal } from '@angular/core';
+import { Component, HostListener, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { GameSettingsService, formatBindingLabel, formatBindingList } from '../../app/services/game-settings.service';
+import { ThemeService, THEMES, type Theme } from '../../app/services/theme.service';
 
 @Component({
   selector: 'app-settings',
@@ -13,11 +14,15 @@ import { GameSettingsService, formatBindingLabel, formatBindingList } from '../.
 })
 export class SettingsPage {
   private readonly gameSettingsService = inject(GameSettingsService);
+  private readonly themeService = inject(ThemeService);
   private readonly router = inject(Router);
 
   readonly laneLabels = computed(() => this.gameSettingsService.laneBindings().map(binding => formatBindingLabel(binding)));
   readonly noteSpeed = computed(() => this.gameSettingsService.noteSpeed());
   readonly bindingSummary = computed(() => formatBindingList(this.gameSettingsService.laneBindings()));
+
+  readonly themes = signal<Theme[]>(THEMES);
+  readonly selectedThemeId = computed(() => this.themeService.currentThemeId());
 
   private noteSpeedDraftSignal = signal<number>(this.noteSpeed());
   get noteSpeedDraft(): number { return this.noteSpeedDraftSignal(); }
@@ -54,12 +59,19 @@ export class SettingsPage {
     this.statusMessage.set(`Note speed set to ${this.noteSpeed().toFixed(2)}x.`);
   }
 
+  selectTheme(themeId: string): void {
+    this.themeService.applyTheme(themeId);
+    this.gameSettingsService.updateTheme(themeId);
+    this.statusMessage.set(`Theme changed to ${this.themes().find(t => t.id === themeId)?.label ?? themeId}.`);
+  }
+
   resetDefaults(): void {
     this.gameSettingsService.resetDefaults();
+    this.themeService.applyTheme('black-yellow');
     this.noteSpeedDraft = this.noteSpeed();
     this.capturingLane = null;
     this.errorMessage.set(null);
-    this.statusMessage.set('Controls and speed reset to default values.');
+    this.statusMessage.set('Controls, speed, and theme reset to default values.');
   }
 
   @HostListener('window:keydown', ['$event'])
