@@ -1,218 +1,152 @@
 $black-primary: #0a0a0a;
-$black-secondary: #111111;
-$black-tertiary: #1a1a1a;
-$black-light: #222222;
 $yellow-primary: #ffd700;
-$yellow-glow: rgba(255, 215, 0, 0.3);
 $yellow-bright: #ffed4e;
-$text-primary: #ffffff;
-$text-secondary: #888888;
-$text-muted: #555555;
-
-@mixin flex-center {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-@mixin neon-glow {
-  box-shadow: 0 0 20px $yellow-glow, 0 0 40px rgba(255, 215, 0, 0.1);
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.8; transform: scale(1.05); }
-}
-
-@keyframes scanline {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
-}
-
-@keyframes rotate {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-@keyframes borderRotate {
-  0% { filter: blur(15px) hue-rotate(0deg); }
-  100% { filter: blur(15px) hue-rotate(360deg); }
-}
-
-@keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); }
-}
 
 // ─── Layout ───────────────────────────────────────────────
 .starter-layout {
   min-height: 100vh;
-  background: linear-gradient(135deg, $black-primary 0%, #0f0f0f 100%);
+  padding: 40px 24px 60px;
+  max-width: 1100px;
+  margin: 0 auto;
+  color: #f2f2f2;
+  position: relative;
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 2rem;
-  position: relative;
-  overflow: hidden;
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(circle at 30% 30%, rgba(255, 215, 0, 0.03) 0%, transparent 50%),
-    radial-gradient(circle at 70% 70%, rgba(255, 215, 0, 0.02) 0%, transparent 50%);
-    pointer-events: none;
-  }
 }
 
 .starter-container {
   width: 100%;
-  max-width: 860px;
-  background: rgba($black-secondary, 0.6);
-  border: 1px solid rgba(255, 215, 0, 0.2);
-  border-radius: 24px;
-  padding: 3rem 2.5rem;
   text-align: center;
   display: flex;
   flex-direction: column;
   gap: 3rem;
   position: relative;
   z-index: 1;
-  backdrop-filter: blur(10px);
-  @include neon-glow;
-
-  &::before {
-    content: '';
-    position: absolute;
-    inset: -2px;
-    border-radius: 24px;
-    background: linear-gradient(135deg, rgba(255, 215, 0, 0.3), transparent, rgba(255, 215, 0, 0.3));
-    z-index: -1;
-    filter: blur(15px);
-    opacity: 0.5;
-    animation: borderRotate 4s linear infinite;
-  }
-
-  &::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, $yellow-primary, transparent);
-    animation: scanline 3s linear infinite;
-    opacity: 0.6;
-  }
 }
 
 // ─── Hero Section ─────────────────────────────────────────
 .hero-section {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1.5rem;
-}
-
-// ─── Branding ─────────────────────────────────────────────
-.branding {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.game-logo {
-  width: 120px;
-  height: 120px;
-  border-radius: 24px;
-  background: linear-gradient(135deg, $yellow-primary, $yellow-bright);
-  border: 3px solid rgba(255, 215, 0, 0.5);
-  @include flex-center;
+  position: relative;
+  text-align: center;
+  padding: 60px 20px 40px;
   overflow: hidden;
-  box-shadow: 0 0 40px $yellow-glow, inset 0 0 20px rgba(255, 255, 255, 0.2);
-  position: relative;
-  animation: float 3s ease-in-out infinite;
+  border-radius: 16px;
+}
 
-  &::before {
-    content: '';
-    position: absolute;
-    inset: -10px;
-    border-radius: 24px;
-    background: conic-gradient(from 0deg, transparent, $yellow-primary, transparent, $yellow-primary, transparent);
-    animation: rotate 3s linear infinite;
-    opacity: 0.5;
-    filter: blur(10px);
-    z-index: -1;
+.hero-glow {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(255, 200, 50, 0.08) 0%, transparent 60%),
+    radial-gradient(ellipse at 20% 100%, rgba(255, 100, 50, 0.05) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 100%, rgba(50, 150, 255, 0.05) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+.hero-particles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.particle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: rgba(255, 200, 50, 0.4);
+  border-radius: 50%;
+  bottom: -10px;
+  left: calc(var(--i) * 8%);
+  animation: float-up 4s ease-in infinite;
+  animation-delay: calc(var(--i) * 0.35s);
+  box-shadow: 0 0 6px rgba(255, 200, 50, 0.4);
+}
+
+@keyframes float-up {
+  0% {
+    transform: translateY(0) scale(0);
+    opacity: 0;
   }
-
-  img {
-    width: 80%;
-    height: 80%;
-    object-fit: contain;
-    display: block;
-    filter: drop-shadow(0 0 10px rgba(0, 0, 0, 0.3));
+  10% {
+    opacity: 1;
+    transform: translateY(-20px) scale(1);
   }
-
-  &:hover {
-    transform: scale(1.05);
-    transition: transform 0.3s ease;
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-300px) scale(0.3);
+    opacity: 0;
   }
 }
 
-.game-title {
-  font-size: 2.5rem;
+.hero-title {
+  font-size: 42px;
   font-weight: 800;
-  letter-spacing: 0.15em;
-  margin: 0;
-  background: linear-gradient(90deg, $yellow-primary, $yellow-bright);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  text-shadow: 0 0 30px $yellow-glow;
+  margin: 0 0 12px;
+  letter-spacing: -0.5px;
   position: relative;
+  z-index: 1;
 
-  &::selection {
-    color: $text-primary;
-    background-color: gold;
-    -webkit-text-fill-color: $text-primary;
-  }
-
-  &::after {
-    content: '⚡';
-    margin-left: 0.5rem;
-    -webkit-text-fill-color: $yellow-primary;
-    filter: drop-shadow(0 0 10px $yellow-glow);
-    animation: pulse 2s ease-in-out infinite;
+  .highlight {
+    background: linear-gradient(90deg, #ffcc33, #ff8844, #ffcc33);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: shimmer 3s linear infinite;
   }
 }
 
-.game-tagline {
-  font-size: 1rem;
-  font-weight: 600;
-  color: $text-muted;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  margin: 0;
+@keyframes shimmer {
+  to {
+    background-position: 200% center;
+  }
+}
 
-  &::selection {
-    color: $text-primary;
-    background-color: gold;
+.hero-subtitle {
+  font-size: 16px;
+  color: #a0a0a0;
+  margin: 0 0 20px;
+  position: relative;
+  z-index: 1;
+}
+
+.hero-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  position: relative;
+  z-index: 1;
+  margin-bottom: 20px;
+
+  .divider-bar {
+    width: 60px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 200, 50, 0.4), transparent);
+  }
+
+  .divider-icon {
+    color: rgba(255, 200, 50, 0.5);
+    font-size: 14px;
   }
 }
 
 .game-description {
   font-size: 1.1rem;
-  color: $text-secondary;
+  color: #b0b0b0;
   line-height: 1.6;
   max-width: 500px;
   margin: 0 auto;
+  position: relative;
+  z-index: 1;
 
   &::selection {
-    color: $text-primary;
+    color: #ffffff;
     background-color: gold;
   }
 }
@@ -223,6 +157,8 @@ $text-muted: #555555;
   justify-content: center;
   gap: 1rem;
   margin-top: 0.5rem;
+  position: relative;
+  z-index: 1;
 }
 
 .btn-primary,
@@ -279,14 +215,46 @@ $text-muted: #555555;
 
 .btn-secondary {
   background: transparent;
-  color: $text-secondary;
+  color: #888888;
   border: 1px solid rgba(255, 255, 255, 0.2);
 
   &:hover {
     border-color: rgba(255, 215, 0, 0.4);
-    color: $text-primary;
+    color: #ffffff;
     background: rgba(255, 215, 0, 0.05);
     transform: translateY(-2px);
+  }
+}
+
+// ─── Section Header ───────────────────────────────────────
+.section-header {
+  text-align: center;
+  margin-bottom: 28px;
+
+  .section-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    background: rgba(255, 200, 50, 0.08);
+    border: 1px solid rgba(255, 200, 50, 0.12);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 14px;
+    font-size: 20px;
+    color: #ffcc33;
+  }
+
+  h2 {
+    font-size: 24px;
+    font-weight: 700;
+    margin: 0 0 8px;
+  }
+
+  .section-sub {
+    color: #909090;
+    font-size: 14px;
+    margin: 0;
   }
 }
 
@@ -294,71 +262,53 @@ $text-muted: #555555;
 .features-section {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 1.25rem;
+  gap: 1.5rem;
 }
 
 .feature-card {
-  background: rgba($black-tertiary, 0.6);
-  border: 1px solid rgba(255, 215, 0, 0.1);
+  position: relative;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  padding: 28px 22px;
   border-radius: 16px;
-  padding: 1.5rem 1.25rem;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.75rem;
-  transition: all 0.3s ease;
+  text-align: center;
+  transition: transform 300ms ease, box-shadow 300ms ease;
+  overflow: hidden;
 
   &:hover {
-    border-color: rgba(255, 215, 0, 0.3);
-    background: rgba($black-light, 0.6);
     transform: translateY(-4px);
-    box-shadow: 0 8px 24px rgba(255, 215, 0, 0.08);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 200, 50, 0.1);
   }
 }
 
-.feature-icon {
-  font-size: 2rem;
-  line-height: 1;
+.feature-icon-wrap {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: rgba(255, 200, 50, 0.08);
+  border: 1px solid rgba(255, 200, 50, 0.12);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 14px;
+  font-size: 20px;
+  color: #ffcc33;
 }
 
 .feature-title {
-  font-size: 0.95rem;
   font-weight: 700;
-  color: $text-primary;
-  letter-spacing: 0.05em;
-  margin: 0;
-  text-transform: uppercase;
+  font-size: 19px;
+  margin-bottom: 10px;
 }
 
 .feature-description {
-  font-size: 0.85rem;
-  color: $text-muted;
-  line-height: 1.5;
+  font-size: 13.5px;
+  color: #b0b0b0;
+  line-height: 1.65;
   margin: 0;
-}
-
-// ─── Footer ───────────────────────────────────────────────
-.starter-footer {
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-  padding-top: 1.5rem;
-}
-
-.footer-text {
-  font-size: 0.875rem;
-  color: $text-muted;
-  margin: 0;
-}
-
-.footer-link {
-  color: $yellow-primary;
-  text-decoration: none;
-  font-weight: 600;
-  transition: color 0.2s ease;
-
-  &:hover {
-    color: $yellow-bright;
-    text-decoration: underline;
-  }
 }
 
 // ─── Scrollbar ────────────────────────────────────────────
@@ -383,16 +333,19 @@ $text-muted: #555555;
 // ─── Responsive ───────────────────────────────────────────
 @media (max-width: 768px) {
   .starter-layout {
-    padding: 1.5rem;
+    padding: 40px 16px 32px;
   }
 
   .starter-container {
-    padding: 2rem 1.5rem;
     gap: 2rem;
   }
 
-  .game-title {
-    font-size: 1.75rem;
+  .hero-title {
+    font-size: 32px;
+  }
+
+  .hero-section {
+    padding: 40px 16px 32px;
   }
 
   .cta-group {

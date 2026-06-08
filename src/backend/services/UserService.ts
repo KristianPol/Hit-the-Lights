@@ -1,4 +1,18 @@
 import { Unit } from '../database/unit';
+import { UserControls } from '../model';
+
+type StoredControls = {
+  laneBindings: [string, string, string, string];
+  noteSpeed: number;
+};
+
+const DEFAULT_CONTROLS: StoredControls = {
+  laneBindings: ['d', 'f', 'j', 'k'],
+  noteSpeed: 1
+};
+
+const MIN_NOTE_SPEED = 0.5;
+const MAX_NOTE_SPEED = 2.5;
 
 export interface UpdateProfilePictureRequest {
   userId: number;
@@ -17,6 +31,13 @@ export interface GetUserResponse {
   joinDate: string;
   playtimeSeconds?: number;
   profilePictureUrl?: string;
+}
+
+export interface UserAchievementState {
+  id: string;
+  unlocked: boolean;
+  pinned: boolean;
+  progress: number;
 }
 
 export class UserService {
@@ -168,16 +189,47 @@ export class UserService {
    * Get stored settings JSON string for a user (may be null)
    */
   public getUserSettings(userId: number): string | null | undefined {
-    const stmt = this.unit.prepare<{ settings_json: string | null }, { userId: number }>(
-      'SELECT settings_json FROM User WHERE id = $userId',
+    if (!userId || userId <= 0) {
+      return undefined;
+    }
+
+    const userExists = this.unit.prepare<{ id: number }, { userId: number }>(
+      'SELECT id FROM User WHERE id = $userId',
+      { userId }
+    ).get();
+
+    if (!userExists) {
+      return undefined;
+    }
+
+    const stmt = this.unit.prepare<
+      { lane_bindings_json: string | null; note_speed: number | null },
+      { userId: number }
+    >(
+      'SELECT lane_bindings_json, note_speed FROM UserControls WHERE user_id = $userId',
       { userId }
     );
     const result = stmt.get();
-    return result ? result.settings_json ?? null : undefined;
+
+    if (!result) {
+      this.upsertUserControls(userId, DEFAULT_CONTROLS);
+      return JSON.stringify(DEFAULT_CONTROLS);
+    }
+
+    const parsedControls = this.parseSettingsJson(result.lane_bindings_json ?? '');
+    const normalized = this.normalizeControls({
+      laneBindings: this.parseLaneBindings(parsedControls && typeof parsedControls === 'object'
+        ? (parsedControls as { laneBindings?: unknown; lane_bindings?: unknown }).laneBindings
+          ?? (parsedControls as { laneBindings?: unknown; lane_bindings?: unknown }).lane_bindings
+        : null),
+      noteSpeed: result.note_speed
+    });
+
+    return JSON.stringify(normalized);
   }
 
   /**
-   * Update stored settings JSON for a user
+   * Update stored controls for a user
    */
   public updateUserSettings(userId: number, settingsJson: string): { success: boolean; error?: string } {
     if (!userId || userId <= 0) {
@@ -191,11 +243,9 @@ export class UserService {
         return { success: false, error: 'User not found' };
       }
 
-      const updateStmt = this.unit.prepare<unknown, { settingsJson: string; userId: number }>(
-        'UPDATE User SET settings_json = $settingsJson WHERE id = $userId',
-        { settingsJson: settingsJson, userId }
-      );
-      updateStmt.run();
+      const parsedSettings = this.parseSettingsJson(settingsJson);
+      const normalized = this.normalizeControls(parsedSettings);
+      this.upsertUserControls(userId, normalized);
       return { success: true };
     } catch (error: any) {
       return { success: false, error: error.message || 'Database error' };
@@ -233,5 +283,176 @@ export class UserService {
     } catch (error: any) {
       return { success: false, error: error.message || 'Database error' };
     }
+  }
+
+  public getUserAchievements(userId: number): { success: boolean; achievements?: UserAchievementState[]; error?: string } {
+    if (!userId || userId <= 0) {
+      return { success: false, error: 'Invalid user ID' };
+    }
+
+    try {
+      const user = this.unit.prepare<{ id: number }, { userId: number }>(
+        'SELECT id FROM User WHERE id = $userId',
+        { userId }
+      ).get();
+
+      if (!user) {
+        return { success: false, error: 'User not found' };
+      }
+
+      const rows = this.unit.prepare<
+        { achievement_id: string; unlocked: number; pinned: number; progress: number },
+        { userId: number }
+      >(
+        `SELECT achievement_id, unlocked, pinned, progress
+         FROM UserAchievement
+         WHERE user_id = $userId`,
+        { userId }
+      ).all();
+
+      return {
+        success: true,
+        achievements: rows.map(row => ({
+          id: row.achievement_id,
+          unlocked: row.unlocked === 1,
+          pinned: row.pinned === 1,
+          progress: Number(row.progress ?? 0)
+        }))
+      };
+    } catch (error: any) {
+      return { success: false, error: error.message || 'Database error' };
+    }
+  }
+
+  public saveUserAchievements(
+    userId: number,
+    achievements: UserAchievementState[]
+  ): { success: boolean; error?: string } {
+    if (!userId || userId <= 0) {
+      return { success: false, error: 'Invalid user ID' };
+    }
+
+    if (!Array.isArray(achievements)) {
+      return { success: false, error: 'Achievements payload must be an array' };
+    }
+
+    try {
+      const user = this.unit.prepare<{ id: number }, { userId: number }>(
+        'SELECT id FROM User WHERE id = $userId',
+        { userId }
+      ).get();
+
+      if (!user) {
+        return { success: false, error: 'User not found' };
+      }
+
+      this.unit.prepare<unknown, { userId: number }>(
+        'DELETE FROM UserAchievement WHERE user_id = $userId',
+        { userId }
+      ).run();
+
+      for (const achievement of achievements) {
+        if (!achievement?.id) {
+          continue;
+        }
+
+        const unlocked = achievement.unlocked ? 1 : 0;
+        const pinned = achievement.pinned && unlocked ? 1 : 0;
+        const progress = Math.max(0, Math.floor(Number(achievement.progress ?? 0)));
+
+        this.unit.prepare<
+          unknown,
+          { userId: number; achievementId: string; unlocked: number; pinned: number; progress: number }
+        >(
+          `INSERT INTO UserAchievement (user_id, achievement_id, unlocked, pinned, progress, updated_at)
+           VALUES ($userId, $achievementId, $unlocked, $pinned, $progress, CURRENT_TIMESTAMP)`,
+          {
+            userId,
+            achievementId: achievement.id,
+            unlocked,
+            pinned,
+            progress
+          }
+        ).run();
+      }
+
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error.message || 'Database error' };
+    }
+  }
+
+  private upsertUserControls(userId: number, controls: StoredControls): void {
+    const payload: UserControls = {
+      userId,
+      laneBindingsJson: JSON.stringify({
+        laneBindings: controls.laneBindings,
+        noteSpeed: controls.noteSpeed
+      }),
+      noteSpeed: controls.noteSpeed
+    };
+
+    const stmt = this.unit.prepare<unknown, { userId: number; laneBindingsJson: string; noteSpeed: number }>(
+      `INSERT INTO UserControls (user_id, lane_bindings_json, note_speed, created_at, updated_at)
+       VALUES ($userId, $laneBindingsJson, $noteSpeed, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+       ON CONFLICT(user_id) DO UPDATE SET
+         lane_bindings_json = excluded.lane_bindings_json,
+         note_speed = excluded.note_speed,
+         updated_at = CURRENT_TIMESTAMP`,
+      {
+        userId: payload.userId,
+        laneBindingsJson: payload.laneBindingsJson,
+        noteSpeed: payload.noteSpeed
+      }
+    );
+
+    stmt.run();
+  }
+
+  private parseSettingsJson(settingsJson: string): unknown {
+    if (!settingsJson || !settingsJson.trim()) {
+      return null;
+    }
+
+    try {
+      return JSON.parse(settingsJson);
+    } catch {
+      return null;
+    }
+  }
+
+  private parseLaneBindings(value: unknown): [string, string, string, string] {
+    const fallback: [string, string, string, string] = DEFAULT_CONTROLS.laneBindings;
+
+    if (!Array.isArray(value)) {
+      return [...fallback] as [string, string, string, string];
+    }
+
+    return fallback.map((defaultBinding, index) => {
+      const raw = value[index];
+      if (typeof raw !== 'string') {
+        return defaultBinding;
+      }
+
+      const normalized = raw.trim().toLowerCase();
+      return normalized || defaultBinding;
+    }) as [string, string, string, string];
+  }
+
+  private normalizeControls(value: unknown): StoredControls {
+    const candidate = value && typeof value === 'object'
+      ? value as { laneBindings?: unknown; noteSpeed?: unknown; lane_bindings?: unknown; note_speed?: unknown }
+      : null;
+
+    const laneBindings = this.parseLaneBindings(candidate?.laneBindings ?? candidate?.lane_bindings);
+    const numericSpeed = Number(candidate?.noteSpeed ?? candidate?.note_speed ?? DEFAULT_CONTROLS.noteSpeed);
+    const noteSpeed = Number.isFinite(numericSpeed)
+      ? Math.min(MAX_NOTE_SPEED, Math.max(MIN_NOTE_SPEED, Number(numericSpeed.toFixed(2))))
+      : DEFAULT_CONTROLS.noteSpeed;
+
+    return {
+      laneBindings,
+      noteSpeed
+    };
   }
 }

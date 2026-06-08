@@ -25,7 +25,9 @@ type TabType = 'conversations' | 'friends' | 'requests';
   styleUrls: ['./messages.scss']
 })
 export class Messages implements OnInit, OnDestroy {
-  currentUser: User | null = null;
+  private currentUserSignal = signal<User | null>(null);
+  get currentUser(): User | null { return this.currentUserSignal(); }
+  set currentUser(v: User | null) { this.currentUserSignal.set(v); }
   activeTab = signal<TabType>('conversations');
   searchQuery = signal('');
   searchResults = signal<SearchUserResult[]>([]);
@@ -55,6 +57,7 @@ export class Messages implements OnInit, OnDestroy {
   requestTarget = signal<SearchUserResult | null>(null);
 
   private refreshSubscription: Subscription | null = null;
+  private authSubscription: Subscription | null = null;
 
   get selectedOtherUserId(): number | null {
     const friend = this.selectedFriend();
@@ -100,7 +103,12 @@ export class Messages implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    // subscribe to auth changes so the view updates when user logs in/out
     this.currentUser = this.authService.currentUser;
+    this.authSubscription = this.authService.currentUser$.subscribe(user => {
+      this.currentUser = user;
+    });
+
     if (!this.currentUser) {
       this.router.navigate(['/login']);
       return;
@@ -116,6 +124,7 @@ export class Messages implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.refreshSubscription?.unsubscribe();
+    this.authSubscription?.unsubscribe();
   }
 
   private loadAllData(): void {
@@ -438,6 +447,10 @@ export class Messages implements OnInit, OnDestroy {
     this.router.navigate(['/menu']);
   }
 
+  goToProfile(userId: number): void {
+    this.router.navigate(['/profile', userId]);
+  }
+
   isFriend(userId: number): boolean {
     return this.friends().some(f => f.otherUser.id === userId);
   }
@@ -473,5 +486,23 @@ export class Messages implements OnInit, OnDestroy {
       return 'You';
     }
     return this.selectedOtherUserName ?? 'Unknown';
+  }
+
+  isScoreShareMessage(content: string): boolean {
+    return content.startsWith('Score Share');
+  }
+
+  parseScoreShare(content: string): { lines: string[]; coverUrl: string | null } {
+    const lines = content.split('\n');
+    let coverUrl: string | null = null;
+    const filteredLines: string[] = [];
+    for (const line of lines) {
+      if (line.startsWith('Cover: ')) {
+        coverUrl = line.slice('Cover: '.length).trim();
+      } else {
+        filteredLines.push(line);
+      }
+    }
+    return { lines: filteredLines, coverUrl };
   }
 }

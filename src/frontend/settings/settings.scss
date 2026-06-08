@@ -19,14 +19,14 @@ $text-muted: #555555;
 :host {
   display: block;
   min-height: 100vh;
-  font-family: var(--app-font-sans, 'Segoe UI', sans-serif), sans-serif;
-  background: $black-primary;
+  font-family: var(--app-font-sans, 'Segoe UI'), sans-serif;
+  background: transparent;
 }
 
 .settings-page {
   min-height: 100vh;
   padding: 2rem;
-  background: linear-gradient(135deg, $black-primary 0%, #0f0f0f 100%);
+  background: transparent;
   color: $text-primary;
   display: flex;
   align-items: center;
@@ -297,142 +297,6 @@ $text-muted: #555555;
     color: $text-secondary;
     font-size: 0.8rem;
     letter-spacing: 0.02em;
-  }
-}
-
-// Theme Customization Section
-.theme-controls {
-  display: grid;
-  gap: 2rem;
-  margin-top: 1.25rem;
-}
-
-.color-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.color-label {
-  font-weight: 600;
-  color: $text-primary;
-  font-size: 0.95rem;
-  letter-spacing: 0.02em;
-}
-
-.color-options {
-  display: flex;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-}
-
-.color-button {
-  width: 60px;
-  height: 60px;
-  border-radius: 12px;
-  border: 2px solid transparent;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-
-  &:hover {
-    transform: scale(1.05);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
-  }
-
-  &.active {
-    border-color: $text-primary;
-    box-shadow: 0 0 20px rgba(255, 255, 255, 0.3), 0 0 40px rgba(255, 215, 0, 0.2);
-    transform: scale(1.1);
-  }
-
-  .checkmark {
-    color: $text-primary;
-    font-size: 1.5rem;
-    font-weight: bold;
-    text-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
-  }
-}
-
-.theme-preview {
-  margin-top: 1.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.preview-label {
-  font-weight: 600;
-  color: $text-primary;
-  font-size: 0.95rem;
-  margin: 0;
-}
-
-.preview-box {
-  background: linear-gradient(135deg, var(--preview-main, $black-primary) 0%, rgba(15, 15, 15, 1) 100%);
-  border: 1px solid rgba(255, 215, 0, 0.2);
-  border-radius: 14px;
-  padding: 1.5rem;
-  min-height: 120px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  position: relative;
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, var(--preview-accent, $yellow-primary), transparent);
-    opacity: 0.5;
-  }
-}
-
-.preview-content {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  width: 100%;
-}
-
-.preview-bar {
-  height: 3px;
-  background: var(--preview-accent, $yellow-primary);
-  border-radius: 2px;
-  width: 80%;
-}
-
-.preview-text {
-  color: $text-primary;
-  font-size: 1rem;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-}
-
-.preview-accent-box {
-  width: 40px;
-  height: 40px;
-  background: var(--preview-accent, $yellow-primary);
-  border-radius: 8px;
-  box-shadow: 0 0 12px rgba(255, 215, 0, 0.3);
-}
-
-@keyframes pulse {
-  0%,
-  100% {
-    box-shadow: 0 0 15px $yellow-glow;
-  }
-
-  50% {
-    box-shadow: 0 0 25px $yellow-glow;
   }
 }
 

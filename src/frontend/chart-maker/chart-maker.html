@@ -1,0 +1,136 @@
+<div class="chart-maker-page">
+  <!-- Header -->
+  <div class="editor-header">
+    <div class="header-group">
+      <h1 class="page-title">Chart Maker</h1>
+      <div class="song-meta">
+        <input class="meta-input" [value]="title()" (input)="title.set($any($event.target).value)" placeholder="Title" />
+        <input class="meta-input" [value]="artist()" (input)="artist.set($any($event.target).value)" placeholder="Artist" />
+        <input class="meta-input bpm-input" type="number" [value]="bpm()" (change)="bpm.set($any($event.target).valueAsNumber || 120)" min="1" max="999" placeholder="BPM" />
+      </div>
+    </div>
+
+    <div class="header-group audio-controls">
+      <div class="audio-source">
+        <select class="source-select" [value]="selectedSongId() ?? ''" (change)="onSelectExistingSong($any($event.target).value)">
+          <option value="">Select existing song...</option>
+          @for (song of ownedSongs(); track song.id) {
+            <option [value]="song.id">{{ song.name }} — {{ song.author }}</option>
+          }
+        </select>
+        <span class="or-divider">or</span>
+        <label class="file-btn">
+          <i class="fas fa-music"></i>
+          <span class="file-label">{{ audioFileName() || 'Upload MP3' }}</span>
+          <input type="file" accept=".mp3,audio/mpeg" style="display:none" (change)="onAudioFileSelected($event)" />
+        </label>
+      </div>
+
+      <div class="playback-controls">
+        <button class="control-btn" (click)="seekTo(0)" title="Go to start"><i class="fas fa-backward-step"></i></button>
+        <button class="control-btn play-btn" (click)="togglePlay()" [disabled]="!isAudioLoaded()">
+          <i [class]="isPlaying() ? 'fas fa-pause' : 'fas fa-play'"></i>
+        </button>
+        <span class="time-display">{{ formattedCurrentTime() }} / {{ formattedDuration() }}</span>
+        <input type="range" class="seek-bar" [min]="0" [max]="durationMs()" [value]="currentTimeMs()" (input)="onSeekInput($event)" />
+      </div>
+    </div>
+
+    <div class="header-group actions">
+      <span class="zoom-label">{{ (zoom() * 100).toFixed(0) }}%</span>
+      <button class="action-btn" (click)="playtest()" [disabled]="notes().length === 0 || !isAudioLoaded()">
+        <i class="fas fa-gamepad"></i> Playtest
+      </button>
+      <button class="action-btn primary" (click)="openFinishModal()">
+        <i class="fas fa-check"></i> Finish
+      </button>
+    </div>
+  </div>
+
+  <!-- Canvas Editor -->
+  <div class="editor-body">
+    <canvas
+      #editorCanvas
+      class="editor-canvas"
+      (mousedown)="onCanvasMouseDown($event)"
+      (mousemove)="onCanvasMouseMove($event)"
+      (mouseup)="onCanvasMouseUp($event)"
+      (mouseleave)="onCanvasMouseLeave()"
+      (wheel)="onCanvasWheel($event)">
+    </canvas>
+  </div>
+
+  <!-- Footer -->
+  <div class="editor-footer">
+    <div class="footer-left">
+      <span class="stat">Cursor: <strong>{{ cursorTimeMs() }} ms</strong></span>
+      <span class="stat">{{ noteCountText() }}</span>
+    </div>
+    <div class="footer-right">
+      <span class="hint">Click lane to place/remove • Keys 1-4 • Arrows move cursor • Space plays</span>
+    </div>
+  </div>
+</div>
+
+<!-- Finish Modal -->
+@if (showFinishModal()) {
+  <div class="modal-overlay" (click)="closeFinishModal()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Chart Complete</h2>
+        <button class="modal-close" (click)="closeFinishModal()"><i class="fas fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <p>Your chart has <strong>{{ notes().length }}</strong> notes.</p>
+        <p>What would you like to do?</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="downloadChart()"><i class="fas fa-download"></i> Download JSON</button>
+        <button class="btn-primary" (click)="openAssignModal()"><i class="fas fa-link"></i> Assign to Song</button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Assign Modal -->
+@if (showAssignModal()) {
+  <div class="modal-overlay" (click)="closeAssignModal()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Assign to Song</h2>
+        <button class="modal-close" (click)="closeAssignModal()"><i class="fas fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Song</label>
+          <select [value]="selectedSongId() ?? ''" (change)="onAssignSongChange($any($event.target).value)">
+            <option value="">Select a song...</option>
+            @for (song of ownedSongs(); track song.id) {
+              <option [value]="song.id">{{ song.name }} — {{ song.author }}</option>
+            }
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Difficulty Level</label>
+          <select [value]="assignDifficulty()" (change)="onAssignDifficultyChange($any($event.target).value)">
+            @for (level of [1,2,3,4,5,6,7,8,9,10]; track level) {
+              <option [value]="level">Level {{ level }}</option>
+            }
+          </select>
+        </div>
+        @if (assignError()) {
+          <p class="error-text">{{ assignError() }}</p>
+        }
+        @if (assignSuccess()) {
+          <p class="success-text">Chart assigned successfully!</p>
+        }
+      </div>
+      <div class="modal-footer">
+        <button class="btn-cancel" (click)="closeAssignModal()">Cancel</button>
+        <button class="btn-submit" (click)="submitAssign()" [disabled]="isAssigning()">
+          {{ isAssigning() ? 'Saving...' : 'Assign Chart' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

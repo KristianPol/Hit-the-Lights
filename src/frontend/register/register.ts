@@ -1,5 +1,4 @@
 import { Component } from '@angular/core';
-import { NgOptimizedImage } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink, Router } from '@angular/router';
 import { Login } from '../login/login';
@@ -9,7 +8,6 @@ import { AuthService } from '../../app/services/auth.service';
   selector: 'app-register',
   standalone: true,
   imports: [
-    NgOptimizedImage,
     ReactiveFormsModule,
     RouterLink
   ],

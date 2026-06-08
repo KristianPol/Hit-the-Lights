@@ -21,13 +21,13 @@ $text-muted: #555555;
 }
 
 :host {
-  font-family: var(--app-font-sans, 'Segoe UI', sans-serif);
+  font-family: var(--app-font-sans, 'Segoe UI'), sans-serif;
 }
 
 .dashboard-layout {
   display: flex;
   height: 100vh;
-  background: $black-primary;
+  background: transparent;
 }
 
 .menu-container {
@@ -66,6 +66,9 @@ $text-muted: #555555;
       color: $yellow-primary;
       filter: drop-shadow(0 0 10px $yellow-glow);
       animation: pulse 2s ease-in-out infinite;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .logo-text {
@@ -140,6 +143,9 @@ $text-muted: #555555;
     transition: transform 0.3s ease;
     z-index: 2;
     position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 
     &.has-notification::after {
       content: '';
@@ -330,6 +336,95 @@ $text-muted: #555555;
   }
 }
 
+// Filter bar (search + sort + genre)
+.filter-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+
+  .search-box {
+    position: relative;
+    display: flex;
+    align-items: center;
+
+    .search-icon {
+      position: absolute;
+      left: 0.85rem;
+      color: $text-muted;
+      font-size: 0.85rem;
+      pointer-events: none;
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 0.65rem 2.25rem 0.65rem 2.25rem;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 215, 0, 0.2);
+      background: rgba(0, 0, 0, 0.35);
+      color: $text-primary;
+      font-size: 0.875rem;
+      outline: none;
+      transition: all 0.3s ease;
+
+      &::placeholder {
+        color: $text-muted;
+      }
+
+      &:focus {
+        border-color: rgba(255, 215, 0, 0.5);
+        box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.08);
+      }
+    }
+
+    .search-clear {
+      position: absolute;
+      right: 0.5rem;
+      background: none;
+      border: none;
+      color: $text-muted;
+      cursor: pointer;
+      padding: 0.25rem;
+      font-size: 0.8rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.2s ease;
+
+      &:hover {
+        color: $text-primary;
+      }
+    }
+  }
+
+  .filter-row {
+    display: flex;
+    gap: 0.5rem;
+
+    .filter-select {
+      flex: 1;
+      padding: 0.5rem 0.75rem;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 215, 0, 0.2);
+      background: rgba(0, 0, 0, 0.35);
+      color: $text-primary;
+      font-size: 0.8rem;
+      outline: none;
+      cursor: pointer;
+      transition: all 0.3s ease;
+
+      &:focus {
+        border-color: rgba(255, 215, 0, 0.5);
+      }
+
+      option {
+        background: $black-secondary;
+        color: $text-primary;
+      }
+    }
+  }
+}
+
 // Add Track Button
 .add-track-btn {
   display: flex;
@@ -430,11 +525,17 @@ $text-muted: #555555;
   .empty-icon {
     font-size: 2.5rem;
     opacity: 0.6;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .error-icon {
     font-size: 2.5rem;
     opacity: 0.8;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
 
   p {
@@ -495,6 +596,9 @@ $text-muted: #555555;
 
     .delete-icon {
       font-size: 1rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
     }
   }
 
@@ -561,6 +665,75 @@ $text-muted: #555555;
 
         .meta-icon {
           opacity: 0.7;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 1em;
+        }
+
+        &.genre-pill {
+          background: rgba(255, 215, 0, 0.1);
+          border: 1px solid rgba(255, 215, 0, 0.25);
+          border-radius: 20px;
+          padding: 0.15rem 0.5rem;
+
+          .meta-value {
+            color: $yellow-primary;
+            font-weight: 500;
+          }
+        }
+      }
+    }
+
+    .song-stats-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-top: 0.35rem;
+
+      .like-btn {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        background: none;
+        border: none;
+        color: $text-muted;
+        font-size: 0.8rem;
+        cursor: pointer;
+        padding: 0.2rem 0;
+        transition: color 0.2s ease;
+
+        i {
+          font-size: 0.9rem;
+          transition: transform 0.2s ease;
+        }
+
+        &:hover {
+          color: #ff6b81;
+
+          i {
+            transform: scale(1.15);
+          }
+        }
+
+        &.liked {
+          color: #ff4757;
+
+          i {
+            color: #ff4757;
+          }
+        }
+      }
+
+      .play-stat {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        color: $text-muted;
+        font-size: 0.8rem;
+
+        i {
+          font-size: 0.7rem;
         }
       }
     }
@@ -652,6 +825,7 @@ $text-muted: #555555;
 
 .detail-content {
   display: flex;
+  flex-wrap: wrap; // allow children to wrap so comments can sit below
   gap: 2rem;
   width: 100%;
   max-width: 1400px;
@@ -848,6 +1022,10 @@ $text-muted: #555555;
     &:active {
       transform: translateY(0);
     }
+
+    i {
+      font-size: 0.95em;
+    }
   }
 
   .visibility-toggle-btn {
@@ -859,6 +1037,29 @@ $text-muted: #555555;
     &:hover {
       background: linear-gradient(135deg, rgba(76, 205, 196, 0.32), rgba(76, 205, 196, 0.14));
       box-shadow: 0 0 28px rgba(76, 205, 196, 0.18);
+    }
+  }
+
+  .like-detail-btn {
+    @extend .play-track-btn;
+    color: $text-secondary;
+    border-color: rgba(255, 107, 129, 0.35);
+    background: linear-gradient(135deg, rgba(255, 107, 129, 0.1), rgba(255, 107, 129, 0.04));
+
+    &:hover {
+      background: linear-gradient(135deg, rgba(255, 107, 129, 0.2), rgba(255, 107, 129, 0.08));
+      box-shadow: 0 0 28px rgba(255, 107, 129, 0.12);
+    }
+
+    &.liked {
+      color: #ff4757;
+      border-color: rgba(255, 71, 87, 0.55);
+      background: linear-gradient(135deg, rgba(255, 71, 87, 0.15), rgba(255, 71, 87, 0.06));
+
+      &:hover {
+        background: linear-gradient(135deg, rgba(255, 71, 87, 0.25), rgba(255, 71, 87, 0.1));
+        box-shadow: 0 0 28px rgba(255, 71, 87, 0.18);
+      }
     }
   }
 
@@ -1032,6 +1233,10 @@ $text-muted: #555555;
       font-size: 0.85rem;
       transition: all 0.2s ease;
 
+      i {
+        line-height: 1;
+      }
+
       &:hover {
         border-color: rgba(255, 215, 0, 0.4);
         color: $yellow-primary;
@@ -1120,6 +1325,11 @@ $text-muted: #555555;
     color: $yellow-primary;
     background: rgba(255, 215, 0, 0.05);
     box-shadow: 0 0 12px rgba(255, 215, 0, 0.1);
+  }
+
+  i {
+    width: 1.1em;
+    text-align: center;
   }
 }
 
@@ -1604,3 +1814,172 @@ $text-muted: #555555;
   }
 }
 
+// Comments panel (moved below the selected song's detail)
+.comments-panel {
+  margin-top: 1.25rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 215, 0, 0.12);
+  border-radius: 12px;
+  padding: 1rem;
+  max-height: 320px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  flex: 1 1 100%; // take full width when wrapped under detail-content
+
+  .comments-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+
+    h3 {
+      margin: 0;
+      color: $text-primary;
+      font-size: 1rem;
+      font-weight: 700;
+    }
+  }
+
+  .comments-loading,
+  .comments-empty,
+  .comments-login-hint {
+    color: $text-secondary;
+    font-size: 0.9rem;
+    padding: 0.75rem 0.5rem;
+  }
+
+  .comment-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+
+    textarea {
+      width: 100%;
+      min-height: 68px;
+      resize: vertical;
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      background: rgba(0,0,0,0.35);
+      color: $text-primary;
+      outline: none;
+      font-size: 0.95rem;
+
+      &:focus {
+        border-color: rgba(255, 215, 0, 0.4);
+        box-shadow: 0 0 10px rgba(255, 215, 0, 0.06);
+      }
+    }
+
+    .comment-form-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.5rem;
+    }
+  }
+
+  .comments-list {
+    overflow-y: auto;
+    padding-right: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+    &::-webkit-scrollbar-thumb {
+      background: $yellow-primary;
+      border-radius: 3px;
+    }
+
+    .comment-item,
+    .comment-reply {
+      background: rgba(255, 255, 255, 0.01);
+      border: 1px solid rgba(255, 255, 255, 0.03);
+      padding: 0.6rem;
+      border-radius: 8px;
+    }
+
+    .comment-row {
+      display: flex;
+      gap: 0.75rem;
+      align-items: flex-start;
+    }
+
+    .comment-avatar-wrap {
+      position: relative;
+      width: 40px;
+      height: 40px;
+      flex: 0 0 40px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.03);
+      @include flex-center;
+      overflow: hidden;
+    }
+
+    .comment-avatar-wrap.small {
+      width: 32px;
+      height: 32px;
+      flex: 0 0 32px;
+    }
+
+    .comment-avatar {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      z-index: 2;
+    }
+
+    .avatar-initial {
+      font-weight: 700;
+      color: $text-primary;
+      z-index: 1;
+      font-size: 0.95rem;
+      position: relative;
+    }
+
+    .comment-item {
+      .comment-meta {
+        color: $text-secondary;
+        font-size: 0.8rem;
+        margin-bottom: 0.25rem;
+      }
+
+      .comment-content {
+        color: $text-primary;
+        font-size: 0.95rem;
+        margin-bottom: 0.35rem;
+      }
+
+      .comment-actions {
+        display: flex;
+        gap: 0.5rem;
+
+        .reply-btn {
+          background: transparent;
+          border: none;
+          color: $yellow-primary;
+          cursor: pointer;
+          font-weight: 600;
+          padding: 0.25rem 0.5rem;
+          border-radius: 6px;
+
+          &:hover {
+            background: rgba(255, 215, 0, 0.06);
+          }
+        }
+      }
+    }
+
+    .comment-reply {
+      margin-left: 1rem;
+      background: rgba(255, 255, 255, 0.02);
+    }
+  }
+}

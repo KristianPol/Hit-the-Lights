@@ -1,4 +1,4 @@
-﻿import { Unit } from '../database/unit';
+import { Unit } from '../database/unit';
 import { HTLService } from './HTLService';
 
 export interface AddSongRequest {
@@ -10,6 +10,7 @@ export interface AddSongRequest {
   coverUrl: string;
   ownerId?: number | null;
   isPublic?: boolean | number | string;
+  genre?: string | null;
 }
 
 export interface AddSongResponse {
@@ -32,6 +33,8 @@ export interface SongRecord {
   coverUrl: string;
   ownerId: number | null;
   isPublic: number | boolean | string;
+  genre?: string | null;
+  play_count?: number;
 }
 
 export interface SongResponse {
@@ -44,6 +47,10 @@ export interface SongResponse {
   coverUrl: string;
   ownerId: number | null;
   isPublic: boolean;
+  genre?: string | null;
+  playCount: number;
+  likeCount: number;
+  isLikedByUser: boolean;
   difficulties: SongDifficultyResponse[];
 }
 
@@ -58,6 +65,44 @@ export interface SongDifficultyResponse {
   id: number;
   difficulty: number;
   noteCount: number;
+}
+
+export interface CommentRecord {
+  id: number;
+  song_id: number;
+  sender_id: number;
+  parent_comment_id?: number | null;
+  content: string;
+  created_at: string;
+  username?: string;
+}
+
+export interface CommentResponse {
+  id: number;
+  songId: number;
+  senderId: number;
+  senderUsername?: string;
+  parentCommentId?: number | null;
+  content: string;
+  createdAt: string;
+}
+
+export interface GetCommentsResponse {
+  success: boolean;
+  comments?: CommentResponse[];
+  error?: string;
+}
+
+export interface AddCommentRequest {
+  senderId: number;
+  content: string;
+  parentCommentId?: number | null;
+}
+
+export interface AddCommentResponse {
+  success: boolean;
+  comment?: CommentResponse;
+  error?: string;
 }
 
 export interface ChartNoteInput {
@@ -195,6 +240,8 @@ export class SongService {
         return { success: false, error: 'Private songs require an owner' };
       }
 
+      const genre = request.genre?.trim() || null;
+
       const insertStmt = this.unit.prepare<unknown, {
         name: string;
         author: string;
@@ -204,9 +251,10 @@ export class SongService {
         coverUrl: string;
         ownerId: number | null;
         isPublic: number;
+        genre: string | null;
       }>(
-        `INSERT INTO Song (name, author, bpm, length, songUrl, coverUrl, ownerId, isPublic)
-         VALUES ($name, $author, $bpm, $length, $songUrl, $coverUrl, $ownerId, $isPublic)`,
+        `INSERT INTO Song (name, author, bpm, length, songUrl, coverUrl, ownerId, isPublic, genre)
+         VALUES ($name, $author, $bpm, $length, $songUrl, $coverUrl, $ownerId, $isPublic, $genre)`,
         {
           name: request.name.trim(),
           author: request.author.trim(),
@@ -215,7 +263,8 @@ export class SongService {
           songUrl: request.songUrl,
           coverUrl: request.coverUrl,
           ownerId,
-          isPublic: isPublic ? 1 : 0
+          isPublic: isPublic ? 1 : 0,
+          genre
         }
       );
       insertStmt.run();
@@ -238,15 +287,86 @@ export class SongService {
     }
   }
 
-  public getAllSongs(viewerId?: number): SongResponse[] {
-    const stmt = this.unit.prepare<SongRecord>(
-      'SELECT id, name, author, bpm, length, songUrl, coverUrl, ownerId, isPublic FROM Song ORDER BY id'
-    );
+  public getAllSongs(
+    viewerId?: number,
+    searchQuery?: string,
+    genreFilter?: string,
+    sortBy?: string,
+    ownerId?: number
+  ): SongResponse[] {
+    const conditions: string[] = [];
+    const params: Record<string, unknown> = {};
 
-    return stmt
-      .all()
-      .filter(song => this.isPublicSong(song.isPublic) || song.ownerId === viewerId)
-      .map(song => this.toResponse(song));
+    // Visibility filter
+    if (viewerId != null) {
+      conditions.push('(s.isPublic = 1 OR s.ownerId = $viewerId)');
+      params.viewerId = viewerId;
+    } else {
+      conditions.push('s.isPublic = 1');
+    }
+
+    // Owner filter
+    if (ownerId != null) {
+      conditions.push('s.ownerId = $ownerId');
+      params.ownerId = ownerId;
+    }
+
+    // Search filter (name or author)
+    if (searchQuery && searchQuery.trim().length > 0) {
+      conditions.push('(LOWER(s.name) LIKE $search OR LOWER(s.author) LIKE $search)');
+      params.search = `%${searchQuery.trim().toLowerCase()}%`;
+    }
+
+    // Genre filter
+    if (genreFilter && genreFilter.trim().length > 0) {
+      conditions.push('s.genre = $genre');
+      params.genre = genreFilter.trim();
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    // Sort mapping
+    let orderBy = 's.id DESC'; // default newest
+    switch (sortBy) {
+      case 'most_liked':
+        orderBy = 'likeCount DESC, s.id DESC';
+        break;
+      case 'least_liked':
+        orderBy = 'likeCount ASC, s.id DESC';
+        break;
+      case 'most_played':
+        orderBy = 's.play_count DESC, s.id DESC';
+        break;
+      case 'bpm_asc':
+        orderBy = 's.bpm ASC, s.id DESC';
+        break;
+      case 'bpm_desc':
+        orderBy = 's.bpm DESC, s.id DESC';
+        break;
+      case 'newest':
+      default:
+        orderBy = 's.id DESC';
+        break;
+    }
+
+    const sql = `
+      SELECT
+        s.id, s.name, s.author, s.bpm, s.length, s.songUrl, s.coverUrl, s.ownerId, s.isPublic, s.genre, s.play_count,
+        (SELECT COUNT(*) FROM SongLike WHERE song_id = s.id) as likeCount,
+        EXISTS(SELECT 1 FROM SongLike WHERE song_id = s.id AND user_id = $viewerId) as isLikedByUser
+      FROM Song s
+      ${whereClause}
+      ORDER BY ${orderBy}
+    `;
+
+    interface EnrichedSongRecord extends SongRecord {
+      likeCount: number;
+      isLikedByUser: number;
+    }
+
+    const stmt = this.unit.prepare<EnrichedSongRecord>(sql, params);
+
+    return stmt.all().map(song => this.toResponse(song, song.likeCount, !!song.isLikedByUser));
   }
 
   public getSongDifficulties(songId: number, viewerId?: number): SongDifficultyResponse[] | undefined {
@@ -354,9 +474,19 @@ export class SongService {
   public getSongById(
     songId: number
   , viewerId?: number): SongResponse | undefined {
-    const stmt = this.unit.prepare<SongRecord, { id: number }>(
-      'SELECT id, name, author, bpm, length, songUrl, coverUrl, ownerId, isPublic FROM Song WHERE id = $id',
-      { id: songId }
+    interface EnrichedSongRecord extends SongRecord {
+      likeCount: number;
+      isLikedByUser: number;
+    }
+
+    const stmt = this.unit.prepare<EnrichedSongRecord, { id: number; viewerId: number | null }>(
+      `SELECT
+        s.id, s.name, s.author, s.bpm, s.length, s.songUrl, s.coverUrl, s.ownerId, s.isPublic, s.genre, s.play_count,
+        (SELECT COUNT(*) FROM SongLike WHERE song_id = s.id) as likeCount,
+        EXISTS(SELECT 1 FROM SongLike WHERE song_id = s.id AND user_id = $viewerId) as isLikedByUser
+      FROM Song s
+      WHERE s.id = $id`,
+      { id: songId, viewerId: viewerId ?? null }
     );
 
     const song = stmt.get();
@@ -368,7 +498,7 @@ export class SongService {
       return undefined;
     }
 
-    return this.toResponse(song);
+    return this.toResponse(song, song.likeCount, !!song.isLikedByUser);
   }
 
   public updateSongVisibility(
@@ -559,6 +689,110 @@ export class SongService {
     };
   }
 
+  /**
+   * Retrieve comments for a song (only if song is public or viewer is owner)
+   */
+  public getCommentsForSong(songId: number, viewerId?: number): CommentResponse[] | undefined {
+    const song = this.getRawSongById(songId);
+    if (!song || !this.canViewSong(song, viewerId)) {
+      return undefined;
+    }
+
+    if (!this.isPublicSong(song.isPublic) && song.ownerId !== viewerId) {
+      // private song: comments are not available
+      return undefined;
+    }
+
+    const stmt = this.unit.prepare<CommentRecord, { songId: number }>(
+      `SELECT c.id, c.song_id, c.sender_id, c.parent_comment_id, c.content, c.created_at, u.username
+       FROM Comment c
+       LEFT JOIN User u ON u.id = c.sender_id
+       WHERE c.song_id = $songId
+       ORDER BY c.created_at ASC`,
+      { songId }
+    );
+
+    const rows = stmt.all();
+    return rows.map(r => ({
+      id: r.id,
+      songId: r.song_id,
+      senderId: r.sender_id,
+      senderUsername: r.username,
+      parentCommentId: r.parent_comment_id ?? null,
+      content: r.content,
+      createdAt: r.created_at
+    }));
+  }
+
+  /**
+   * Add a comment to a song. Comments are only allowed on public songs.
+   */
+  public addCommentToSong(songId: number, request: AddCommentRequest): AddCommentResponse {
+    try {
+      const song = this.getRawSongById(songId);
+      if (!song) return { success: false, error: 'Song not found' };
+
+      if (!this.isPublicSong(song.isPublic)) {
+        return { success: false, error: 'Comments are disabled for private songs' };
+      }
+
+      if (!Number.isInteger(request.senderId) || request.senderId <= 0) {
+        return { success: false, error: 'Valid senderId is required' };
+      }
+
+      if (!request.content || typeof request.content !== 'string' || request.content.trim().length === 0) {
+        return { success: false, error: 'Comment content is required' };
+      }
+
+      const parentId = request.parentCommentId ?? null;
+      if (parentId != null) {
+        // ensure parent exists and belongs to the same song
+        const parentStmt = this.unit.prepare<{ id: number; song_id: number }, { id: number }>(
+          'SELECT id, song_id FROM Comment WHERE id = $id',
+          { id: parentId }
+        );
+        const parent = parentStmt.get();
+        if (!parent) return { success: false, error: 'Parent comment not found' };
+        if (parent.song_id !== songId) return { success: false, error: 'Parent comment does not belong to this song' };
+      }
+
+      this.unit.prepare<unknown, { songId: number; senderId: number; parentId: number | null; content: string }>(
+        `INSERT INTO Comment (song_id, sender_id, parent_comment_id, content)
+         VALUES ($songId, $senderId, $parentId, $content)`,
+        { songId, senderId: request.senderId, parentId, content: request.content.trim() }
+      ).run();
+
+      const commentId = this.unit.getLastRowId();
+      if (!commentId) return { success: false, error: 'Failed to insert comment' };
+
+      const fetchStmt = this.unit.prepare<CommentRecord, { id: number }>(
+        `SELECT c.id, c.song_id, c.sender_id, c.parent_comment_id, c.content, c.created_at, u.username
+         FROM Comment c
+         LEFT JOIN User u ON u.id = c.sender_id
+         WHERE c.id = $id`,
+        { id: commentId }
+      );
+
+      const row = fetchStmt.get();
+      if (!row) return { success: false, error: 'Failed to fetch created comment' };
+
+      return {
+        success: true,
+        comment: {
+          id: row.id,
+          songId: row.song_id,
+          senderId: row.sender_id,
+          senderUsername: row.username,
+          parentCommentId: row.parent_comment_id ?? null,
+          content: row.content,
+          createdAt: row.created_at
+        }
+      };
+    } catch (error: any) {
+      return { success: false, error: error.message || 'Failed to add comment' };
+    }
+  }
+
   public submitDifficultyHighscore(
     songId: number,
     difficultyId: number,
@@ -659,7 +893,7 @@ export class SongService {
 
     private getRawSongById(songId: number): SongRecord | undefined {
      const stmt = this.unit.prepare<SongRecord, { id: number }>(
-       'SELECT id, name, author, bpm, length, songUrl, coverUrl, ownerId, isPublic FROM Song WHERE id = $id',
+       'SELECT id, name, author, bpm, length, songUrl, coverUrl, ownerId, isPublic, genre, play_count FROM Song WHERE id = $id',
        { id: songId }
      );
 
@@ -675,7 +909,73 @@ export class SongService {
     return stmt.get();
   }
 
-  private toResponse(song: SongRecord): SongResponse {
+  public likeSong(songId: number, userId: number): { success: boolean; error?: string } {
+    try {
+      if (!Number.isInteger(songId) || songId <= 0) {
+        return { success: false, error: 'Invalid song ID' };
+      }
+      if (!Number.isInteger(userId) || userId <= 0) {
+        return { success: false, error: 'Invalid user ID' };
+      }
+
+      const song = this.getRawSongById(songId);
+      if (!song) {
+        return { success: false, error: 'Song not found' };
+      }
+      if (!this.isPublicSong(song.isPublic)) {
+        return { success: false, error: 'Cannot like private songs' };
+      }
+
+      this.unit.prepare<unknown, { songId: number; userId: number }>(
+        `INSERT INTO SongLike (song_id, user_id) VALUES ($songId, $userId)
+         ON CONFLICT(song_id, user_id) DO NOTHING`,
+        { songId, userId }
+      ).run();
+
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error.message || 'Failed to like song' };
+    }
+  }
+
+  public unlikeSong(songId: number, userId: number): { success: boolean; error?: string } {
+    try {
+      if (!Number.isInteger(songId) || songId <= 0) {
+        return { success: false, error: 'Invalid song ID' };
+      }
+      if (!Number.isInteger(userId) || userId <= 0) {
+        return { success: false, error: 'Invalid user ID' };
+      }
+
+      this.unit.prepare<unknown, { songId: number; userId: number }>(
+        'DELETE FROM SongLike WHERE song_id = $songId AND user_id = $userId',
+        { songId, userId }
+      ).run();
+
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error.message || 'Failed to unlike song' };
+    }
+  }
+
+  public incrementPlayCount(songId: number): { success: boolean; error?: string } {
+    try {
+      if (!Number.isInteger(songId) || songId <= 0) {
+        return { success: false, error: 'Invalid song ID' };
+      }
+
+      this.unit.prepare<unknown, { songId: number }>(
+        'UPDATE Song SET play_count = COALESCE(play_count, 0) + 1 WHERE id = $songId',
+        { songId }
+      ).run();
+
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error.message || 'Failed to increment play count' };
+    }
+  }
+
+  private toResponse(song: SongRecord, likeCount: number = 0, isLikedByUser: boolean = false): SongResponse {
     return {
       id: song.id,
       name: song.name,
@@ -686,6 +986,10 @@ export class SongService {
       coverUrl: song.coverUrl,
       ownerId: song.ownerId,
       isPublic: this.isPublicSong(song.isPublic),
+      genre: song.genre ?? null,
+      playCount: song.play_count ?? 0,
+      likeCount,
+      isLikedByUser,
       difficulties: this.getDifficultiesBySongId(song.id)
     };
   }

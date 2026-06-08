@@ -1,102 +1,18 @@
 import BetterSqlite3, { Database } from "better-sqlite3";
 
 const dbFileName = "htl.db";
-// REVERTED: Force SQLite mode regardless of DATABASE_URL
-// Previous attempt to support Postgres broke synchronous services
-const USE_POSTGRES = false;
-
-// Lazy import of Postgres client only if DATABASE_URL is set
-let sql: any;
-function getPostgresClient() {
-  if (!sql && USE_POSTGRES) {
-    sql = require('../db');
-  }
-  return sql;
-}
-
-class PostgresStmtAdapter<TResult> implements ITypedStatement<TResult> {
-  private cachedResult: any[] = [];
-  private postgresClient: any;
-  private query: string;
-  private bindings?: Record<string, unknown>;
-
-  constructor(postgresClient: any, queryStr: string, bindings?: Record<string, unknown>) {
-    this.postgresClient = postgresClient;
-    this.query = queryStr;
-    this.bindings = bindings;
-  }
-
-  private convertSQLiteToPostgres(sql: string, bindings?: Record<string, unknown>): [string, any[]] {
-    // Convert SQLite named parameters ($param) to Postgres format ($1, $2, etc.)
-    let query = sql;
-    const params: any[] = [];
-
-    if (bindings) {
-      const keys = Object.keys(bindings);
-      keys.forEach((key, idx) => {
-        // Replace $key with $idx (1-indexed for Postgres)
-        query = query.replace(new RegExp(`\\$${key}(?![0-9])`, 'g'), `$${idx + 1}`);
-        params.push(bindings[key]);
-      });
-    }
-
-    return [query, params];
-  }
-
-  private async executeQuery(): Promise<any[]> {
-    if (this.cachedResult.length > 0) {
-      return this.cachedResult;
-    }
-
-    try {
-      const [query, params] = this.convertSQLiteToPostgres(this.query, this.bindings);
-      // Execute raw query - postgres library handles the $ placeholders
-      const result = await this.postgresClient.unsafe(query, params);
-      this.cachedResult = result || [];
-    } catch (err) {
-      console.error('Postgres query error:', err, 'Query:', this.query);
-      this.cachedResult = [];
-    }
-
-    return this.cachedResult;
-  }
-
-  // CRITICAL: These methods must be called synchronously by the existing code.
-  // Since we can't block on async, we throw or return empty.
-  // For production, refactor services to use async.
-
-  get(): TResult | undefined {
-    console.warn('Synchronous .get() called on Postgres adapter. This will not work. Services must be refactored to use async.');
-    return undefined;
-  }
-
-  all(): TResult[] {
-    console.warn('Synchronous .all() called on Postgres adapter. This will not work. Services must be refactored to use async.');
-    return [];
-  }
-
-  run(): any {
-    console.warn('Synchronous .run() called on Postgres adapter. This will not work. Services must be refactored to use async.');
-    return { changes: 0 };
-  }
-}
-
 
 export class Unit {
-  private readonly db?: Database;
+  private readonly db: Database;
   private completed: boolean;
-  private isPostgres: boolean;
 
   public constructor(public readonly readOnly: boolean) {
     this.completed = false;
-    this.isPostgres = USE_POSTGRES;
+    this.db = DB.createDBConnection();
 
-    if (!this.isPostgres) {
-      this.db = DB.createDBConnection();
-      // Begin a transaction if this is not a read-only unit
-      if (!readOnly) {
-        DB.beginTransaction(this.db);
-      }
+    // Begin a transaction if this is not a read-only unit
+    if (!readOnly) {
+      DB.beginTransaction(this.db);
     }
   }
 
@@ -104,12 +20,7 @@ export class Unit {
     TResult,
     TParams extends Record<string, unknown> = Record<string, unknown>
   >(sql: string, bindings?: TParams): ITypedStatement<TResult, TParams> {
-    if (this.isPostgres) {
-      // In Postgres mode, return a stub statement object that works with the existing sync API.
-      // For production, services should be refactored to use async/await with the postgres client.
-      return new PostgresStmtAdapter<TResult>(getPostgresClient(), sql, bindings);
-    }
-    const stmt = this.db!.prepare<unknown[], TResult>(sql);
+    const stmt = this.db.prepare<unknown[], TResult>(sql);
 
     if (bindings != null) {
       stmt.bind(bindings as unknown);
@@ -118,21 +29,7 @@ export class Unit {
     return stmt as unknown as ITypedStatement<TResult, TParams>;
   }
 
-  /**
-   * For Postgres mode, use this helper to convert bound parameters to Postgres format.
-   * This is a utility for services that need to work with both SQLite and Postgres.
-   */
-  public getPostgresClientHelper() {
-    if (!this.isPostgres) {
-      throw new Error('Postgres client only available in Postgres mode');
-    }
-    return getPostgresClient();
-  }
-
   public getLastRowId(): number {
-    if (this.isPostgres) {
-      throw new Error('getLastRowId() not needed in Postgres mode; use RETURNING id in INSERT');
-    }
     const stmt = this.prepare<{ id: number }>(
       `SELECT last_insert_rowid() AS "id"`
     );
@@ -153,30 +50,22 @@ export class Unit {
 
     this.completed = true;
 
-    if (this.isPostgres) {
-      // Postgres mode: no-op (connection is shared)
-      return;
-    }
-
     if (commit !== null) {
       commit
-        ? DB.commitTransaction(this.db!)
-        : DB.rollbackTransaction(this.db!);
+        ? DB.commitTransaction(this.db)
+        : DB.rollbackTransaction(this.db);
     } else if (!this.readOnly) {
       throw new Error(
         "Transaction has been opened, requires information if commit or rollback is needed"
       );
     }
 
-    this.db!.close();
+    this.db.close();
   }
 }
 
 class DB {
   public static createDBConnection(): Database {
-    if (USE_POSTGRES) {
-      throw new Error('Cannot create SQLite connection when using Postgres');
-    }
     const db = new BetterSqlite3(dbFileName, {
       fileMustExist: false,
       verbose: (s: unknown) => DB.logStatement(s),
@@ -243,6 +132,13 @@ class DB {
       connection.exec('UPDATE Song SET isPublic = 1 WHERE isPublic IS NULL');
     }
 
+    if (!columnNames.has('genre')) {
+      connection.exec('ALTER TABLE Song ADD COLUMN genre TEXT');
+    }
+
+    if (!columnNames.has('play_count')) {
+      connection.exec('ALTER TABLE Song ADD COLUMN play_count INTEGER NOT NULL DEFAULT 0');
+    }
 
     connection.exec(`
             CREATE TABLE IF NOT EXISTS User (
@@ -298,6 +194,19 @@ class DB {
     }
 
     connection.exec("UPDATE User SET joinDate = CURRENT_TIMESTAMP WHERE joinDate IS NULL OR TRIM(joinDate) = ''");
+
+    connection.exec(`
+              CREATE TABLE IF NOT EXISTS UserControls (
+                user_id INTEGER PRIMARY KEY,
+                lane_bindings_json TEXT NOT NULL DEFAULT '["d","f","j","k"]',
+                note_speed REAL NOT NULL DEFAULT 1,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES User(id) ON DELETE CASCADE
+                ) STRICT
+          `);
+
+    DB.migrateLegacyUserControls(connection);
 
     // Ensure any NULL analytics columns are zeroed for legacy users
     connection.exec('UPDATE User SET perfect_total = 0 WHERE perfect_total IS NULL');
@@ -387,6 +296,130 @@ class DB {
 
      connection.exec('CREATE INDEX IF NOT EXISTS idx_message_conversation ON Message(sender_id, receiver_id, created_at)');
      connection.exec('CREATE INDEX IF NOT EXISTS idx_message_receiver ON Message(receiver_id, is_read)');
+
+      connection.exec(`
+              CREATE TABLE IF NOT EXISTS UserAchievement (
+                user_id INTEGER NOT NULL,
+                achievement_id TEXT NOT NULL,
+                unlocked INTEGER NOT NULL DEFAULT 0,
+                pinned INTEGER NOT NULL DEFAULT 0,
+                progress INTEGER NOT NULL DEFAULT 0,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (user_id, achievement_id),
+                CONSTRAINT fk_user_achievement_user FOREIGN KEY (user_id) REFERENCES User(id) ON DELETE CASCADE
+                ) STRICT
+          `);
+
+      connection.exec('CREATE INDEX IF NOT EXISTS idx_user_achievement_user ON UserAchievement(user_id)');
+
+      // Comments table: per-song comments with optional parent comment for replies
+      connection.exec(`
+              CREATE TABLE IF NOT EXISTS Comment (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                song_id INTEGER NOT NULL,
+                sender_id INTEGER NOT NULL,
+                parent_comment_id INTEGER,
+                content TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                CONSTRAINT fk_song_comment FOREIGN KEY (song_id) REFERENCES Song(id) ON DELETE CASCADE,
+                CONSTRAINT fk_sender_comment FOREIGN KEY (sender_id) REFERENCES User(id),
+                CONSTRAINT fk_parent_comment FOREIGN KEY (parent_comment_id) REFERENCES Comment(id)
+                ) STRICT
+          `);
+
+      connection.exec('CREATE INDEX IF NOT EXISTS idx_comment_song ON Comment(song_id, created_at)');
+
+      // Song likes: many-to-many between users and songs
+      connection.exec(`
+              CREATE TABLE IF NOT EXISTS SongLike (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                song_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                UNIQUE(song_id, user_id),
+                CONSTRAINT fk_song_like_song FOREIGN KEY (song_id) REFERENCES Song(id) ON DELETE CASCADE,
+                CONSTRAINT fk_song_like_user FOREIGN KEY (user_id) REFERENCES User(id) ON DELETE CASCADE
+                ) STRICT
+          `);
+
+      connection.exec('CREATE INDEX IF NOT EXISTS idx_song_like_song ON SongLike(song_id)');
+      connection.exec('CREATE INDEX IF NOT EXISTS idx_song_like_user ON SongLike(user_id)');
+  }
+
+  private static migrateLegacyUserControls(connection: Database): void {
+    const userColumns = connection.prepare("PRAGMA table_info(User)").all() as Array<{ name: string }>;
+    const userColumnNames = new Set(userColumns.map(column => column.name));
+
+    const defaultLaneBindings = ['d', 'f', 'j', 'k'];
+    const defaultControlsJson = JSON.stringify({ laneBindings: defaultLaneBindings, noteSpeed: 1 });
+
+    const normalizeControls = (value: unknown): { laneBindings: [string, string, string, string]; noteSpeed: number } => {
+      const fallback: [string, string, string, string] = ['d', 'f', 'j', 'k'];
+      const candidate = value && typeof value === 'object' ? value as { laneBindings?: unknown; noteSpeed?: unknown; lane_bindings?: unknown; note_speed?: unknown } : null;
+      const source = Array.isArray(candidate?.laneBindings)
+        ? candidate?.laneBindings
+        : Array.isArray(candidate?.lane_bindings)
+          ? candidate?.lane_bindings
+          : fallback;
+
+      const laneBindings = fallback.map((defaultBinding, index) => {
+        const raw = source?.[index];
+        const normalized = typeof raw === 'string' ? raw.trim().toLowerCase() : defaultBinding;
+        return normalized || defaultBinding;
+      }) as [string, string, string, string];
+
+      const numericSpeed = Number(candidate?.noteSpeed ?? candidate?.note_speed ?? 1);
+      const noteSpeed = Number.isFinite(numericSpeed) ? Math.min(2.5, Math.max(0.5, Number(numericSpeed.toFixed(2)))) : 1;
+
+      return { laneBindings, noteSpeed };
+    };
+
+    if (userColumnNames.has('settings_json')) {
+      const legacyRows = connection.prepare(
+        `SELECT id, settings_json FROM User WHERE settings_json IS NOT NULL AND TRIM(settings_json) <> ''`
+      ).all() as Array<{ id: number; settings_json: string | null }>;
+
+      const upsertStmt = connection.prepare(
+        `INSERT INTO UserControls (user_id, lane_bindings_json, note_speed, created_at, updated_at)
+         VALUES ($userId, $laneBindingsJson, $noteSpeed, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+         ON CONFLICT(user_id) DO UPDATE SET
+           lane_bindings_json = excluded.lane_bindings_json,
+           note_speed = excluded.note_speed,
+           updated_at = CURRENT_TIMESTAMP`
+      ) as any;
+
+      for (const row of legacyRows) {
+        let parsed: unknown = null;
+        try {
+          parsed = row.settings_json ? JSON.parse(row.settings_json) : null;
+        } catch {
+          parsed = null;
+        }
+
+        const normalized = normalizeControls(parsed);
+        upsertStmt.run({
+          userId: row.id,
+          laneBindingsJson: JSON.stringify({ laneBindings: normalized.laneBindings, noteSpeed: normalized.noteSpeed }),
+          noteSpeed: normalized.noteSpeed
+        });
+      }
+    }
+
+    const missingUsers = connection.prepare(
+      `SELECT id FROM User WHERE id NOT IN (SELECT user_id FROM UserControls)`
+    ).all() as Array<{ id: number }>;
+
+    const insertDefaultStmt = connection.prepare(
+      `INSERT INTO UserControls (user_id, lane_bindings_json, note_speed, created_at, updated_at)
+       VALUES ($userId, $laneBindingsJson, $noteSpeed, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`
+    ) as any;
+
+    for (const row of missingUsers) {
+      insertDefaultStmt.run({
+        userId: row.id,
+        laneBindingsJson: defaultControlsJson,
+        noteSpeed: 1
+      });
+    }
   }
 }
 

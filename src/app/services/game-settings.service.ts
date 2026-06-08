@@ -13,7 +13,7 @@ export interface UpdateBindingResult {
   error?: string;
 }
 
-const STORAGE_KEY = 'hit-the-lights.game-settings';
+const STORAGE_KEY_PREFIX = 'hit-the-lights.game-settings';
 const DEFAULT_SETTINGS: GameSettings = {
   laneBindings: ['d', 'f', 'j', 'k'],
   noteSpeed: 1
@@ -90,31 +90,22 @@ export function formatBindingList(bindings: string[]): string {
   providedIn: 'root'
 })
 export class GameSettingsService {
-  private readonly settingsSignal = signal<GameSettings>(this.loadSettings());
+  private readonly settingsSignal = signal<GameSettings>(this.cloneSettings(DEFAULT_SETTINGS));
   readonly settings = computed(() => this.settingsSignal());
   readonly laneBindings = computed(() => this.settingsSignal().laneBindings);
   readonly noteSpeed = computed(() => this.settingsSignal().noteSpeed);
   private readonly http = inject(HttpClient);
   private readonly auth = inject(AuthService);
+  private activeStorageKey = `${STORAGE_KEY_PREFIX}.guest`;
+  private loadSequence = 0;
 
   constructor() {
-    // When user logs in, attempt to load their server-stored settings and merge.
+    void this.syncForUser(this.auth.currentUser?.id ?? null);
+
+    // When user logs in/out, switch to their own local cache and server record.
     try {
-      // currentUser$ is an observable created from a signal
       this.auth.currentUser$.subscribe(async (user) => {
-        if (!user) return;
-        try {
-          const resp = await firstValueFrom(this.http.get<{ success: boolean; settings?: any }>(`/api/auth/user/${user.id}/settings`));
-          if (resp && resp.success && resp.settings) {
-            // merge server settings into local settings and persist
-            const server = resp.settings as Partial<GameSettings>;
-            const merged: GameSettings = this.normalizeSettings({ ...this.settings(), ...server });
-            this.saveSettings(merged);
-          }
-        } catch (e) {
-          // ignore fetch errors; fall back to local settings
-          console.warn('Failed to load server settings:', e);
-        }
+        void this.syncForUser(user?.id ?? null);
       });
     } catch (e) {
       // ignore subscription issues in test environments
@@ -157,25 +148,8 @@ export class GameSettingsService {
     this.saveSettings(this.cloneSettings(DEFAULT_SETTINGS));
   }
 
-  private loadSettings(): GameSettings {
-    if (typeof window === 'undefined') {
-      return this.cloneSettings(DEFAULT_SETTINGS);
-    }
 
-    try {
-      const stored = window.localStorage.getItem(STORAGE_KEY);
-      if (!stored) {
-        return this.cloneSettings(DEFAULT_SETTINGS);
-      }
-
-      const parsed = JSON.parse(stored) as Partial<GameSettings>;
-      return this.normalizeSettings(parsed);
-    } catch {
-      return this.cloneSettings(DEFAULT_SETTINGS);
-    }
-  }
-
-  private saveSettings(settings: GameSettings): void {
+  private saveSettings(settings: GameSettings, options?: { persistServer?: boolean }): void {
     const normalized = this.normalizeSettings(settings);
     this.settingsSignal.set(normalized);
 
@@ -184,9 +158,13 @@ export class GameSettingsService {
     }
 
     try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
+      window.localStorage.setItem(this.activeStorageKey, JSON.stringify(normalized));
     } catch {
       // Ignore storage failures so gameplay still works.
+    }
+
+    if (options?.persistServer === false) {
+      return;
     }
 
     // Also persist to server if user is logged in
@@ -233,6 +211,97 @@ export class GameSettingsService {
       laneBindings: [...settings.laneBindings] as [string, string, string, string],
       noteSpeed: settings.noteSpeed
     };
+  }
+
+  private async syncForUser(userId: number | null): Promise<void> {
+    const sequence = ++this.loadSequence;
+    this.activeStorageKey = this.buildStorageKey(userId);
+
+    const localSettings = this.loadSettingsForUser(userId);
+    this.settingsSignal.set(localSettings);
+
+    if (!userId) {
+      return;
+    }
+
+    try {
+      const resp = await firstValueFrom(
+        this.http.get<{ success: boolean; settings?: Partial<GameSettings> | null }>(
+          `/api/auth/user/${userId}/settings`
+        )
+      );
+
+      if (sequence !== this.loadSequence || !resp?.success || resp.settings == null) {
+        return;
+      }
+
+      const normalized = this.normalizeSettings(resp.settings);
+      this.saveSettings(normalized, { persistServer: false });
+    } catch (e) {
+      console.warn('Failed to load server settings:', e);
+    }
+  }
+
+  private loadSettingsForUser(userId: number | null): GameSettings {
+    if (typeof window === 'undefined') {
+      return this.cloneSettings(DEFAULT_SETTINGS);
+    }
+
+    const userStorageKey = this.buildStorageKey(userId);
+    const userSettings = this.readSettingsFromStorage(userStorageKey);
+    if (userSettings) {
+      return userSettings;
+    }
+
+    if (userId === null) {
+      const legacySettings = this.readSettingsFromStorage(STORAGE_KEY_PREFIX);
+      if (legacySettings) {
+        return legacySettings;
+      }
+    }
+
+    if (userId !== null) {
+      const legacySettings = this.readSettingsFromStorage(STORAGE_KEY_PREFIX);
+      if (legacySettings) {
+        this.writeSettingsToStorage(userStorageKey, legacySettings);
+        try {
+          window.localStorage.removeItem(STORAGE_KEY_PREFIX);
+        } catch {
+          // ignore legacy cleanup failures
+        }
+        return legacySettings;
+      }
+    }
+
+    return this.cloneSettings(DEFAULT_SETTINGS);
+  }
+
+  private readSettingsFromStorage(storageKey: string): GameSettings | null {
+    try {
+      const stored = window.localStorage.getItem(storageKey);
+      if (!stored) {
+        return null;
+      }
+
+      const parsed = JSON.parse(stored) as Partial<GameSettings>;
+      return this.normalizeSettings(parsed);
+    } catch {
+      return null;
+    }
+  }
+
+  private writeSettingsToStorage(storageKey: string, settings: GameSettings): void {
+    try {
+      window.localStorage.setItem(storageKey, JSON.stringify(settings));
+    } catch {
+      // Ignore storage failures so gameplay still works.
+    }
+  }
+
+  private buildStorageKey(userId: number | null): string {
+    return userId === null
+      ? `${STORAGE_KEY_PREFIX}.guest`
+      : `${STORAGE_KEY_PREFIX}.user.${userId}`;
   }
 }
 

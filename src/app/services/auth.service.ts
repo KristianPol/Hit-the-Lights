@@ -230,6 +230,25 @@ export class AuthService {
     );
   }
 
+  /**
+   * Get public user data by ID (does not update current user)
+   */
+  getUserById(userId: number): Observable<{ success: boolean; user?: User; error?: string }> {
+    return this.http.get<{ success: boolean; user?: User; error?: string }>(
+      `${this.apiUrl}/user/${userId}`
+    ).pipe(
+      map(response => {
+        if (response.success && response.user) {
+          return { success: true, user: this.normalizeUser(response.user) };
+        }
+        return response;
+      }),
+      catchError(error => {
+        return throwError(() => new Error(error.error?.error || 'Failed to fetch user'));
+      })
+    );
+  }
+
   private normalizeUser(user: User): User {
     return {
       ...user,

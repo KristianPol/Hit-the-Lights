@@ -3,48 +3,64 @@
 
     <!-- Hero Section -->
     <section class="hero-section">
-
-      <!-- Logo + Branding -->
-      <div class="branding">
-        <div class="game-logo">
-          <img src="assets/HTL(proj).png" alt="Hit The Lights Logo">
-        </div>
-        <h1 class="game-title">Hit-The-Lights</h1>
-        <p class="game-tagline">Tap the beat. Hit the notes. Light up the score.</p>
+      <div class="hero-glow"></div>
+      <div class="hero-particles">
+        @for (i of [1,2,3,4,5,6,7,8,9,10,11,12]; track i) {
+          <span class="particle" [style.--i]="i"></span>
+        }
       </div>
 
-      <!-- Description -->
+      <h1 class="hero-title">Hit-<span class="highlight">The-Lights</span></h1>
+      <p class="hero-subtitle">Tap the beat. Hit the notes. Light up the score.</p>
+
+      <div class="hero-divider">
+        <span class="divider-bar"></span>
+        <i class="fas fa-bolt divider-icon"></i>
+        <span class="divider-bar"></span>
+      </div>
+
       <p class="game-description">
         Challenge yourself across songs and difficulties — can you keep up with the rhythm?
       </p>
 
-      <!-- Call to Action -->
       <div class="cta-group">
         <a class="register-btn btn-primary" routerLink="/register">Get Started</a>
         <a class="login-btn btn-secondary" routerLink="/login">I Have an Account</a>
       </div>
-
     </section>
 
-    <!-- Feature Highlights -->
+    <!-- Features Section -->
+    <div class="section-header">
+      <div class="section-icon">
+        <i class="fas fa-star"></i>
+      </div>
+      <h2>Features</h2>
+      <p class="section-sub">Everything you need to master the rhythm</p>
+    </div>
+
     <section class="features-section">
       <div class="feature-card">
-        <span class="feature-icon">🎵</span>
+        <div class="feature-icon-wrap">
+          <i class="feature-icon fas fa-music"></i>
+        </div>
         <h3 class="feature-title">Rhythm Gameplay</h3>
         <p class="feature-description">Tap in sync with the beat across a growing library of tracks.</p>
       </div>
       <div class="feature-card">
-        <span class="feature-icon">⚡</span>
+        <div class="feature-icon-wrap">
+          <i class="feature-icon fas fa-bolt"></i>
+        </div>
         <h3 class="feature-title">Multiple Difficulties</h3>
         <p class="feature-description">From easy grooves to expert-level challenges — pick your pace.</p>
       </div>
       <div class="feature-card">
-        <span class="feature-icon">🏆</span>
+        <div class="feature-icon-wrap">
+          <i class="feature-icon fas fa-trophy"></i>
+        </div>
         <h3 class="feature-title">Track Your Score</h3>
         <p class="feature-description">Climb the leaderboard and beat your personal best every run.</p>
       </div>
     </section>
-
 
   </div>
 </div>
