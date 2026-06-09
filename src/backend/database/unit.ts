@@ -220,7 +220,8 @@ export class Unit {
     });
 
     for (const name of paramNames) {
-      args.push(bindings[name]);
+      const value = bindings[name];
+      args.push(value === undefined ? null : value);
     }
 
     return { sql: transformedSql, args };
@@ -237,7 +238,38 @@ export class Unit {
       .replace(/\bDELETE\s+FROM\s+User\b/g, 'DELETE FROM "User"');
   }
 
+  private static async reverseMigrateColumnNames(): Promise<void> {
+    // Previous deploy renamed columns to quoted camelCase. Rename them back to lowercase
+    // so unquoted SQL references work correctly with normalizeRow().
+    const migrations = [
+      // Song table
+      `DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'song' AND column_name = 'songUrl') THEN ALTER TABLE Song RENAME COLUMN "songUrl" TO songurl; END IF; END $$;`,
+      `DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'song' AND column_name = 'coverUrl') THEN ALTER TABLE Song RENAME COLUMN "coverUrl" TO coverurl; END IF; END $$;`,
+      `DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'song' AND column_name = 'ownerId') THEN ALTER TABLE Song RENAME COLUMN "ownerId" TO ownerid; END IF; END $$;`,
+      `DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'song' AND column_name = 'isPublic') THEN ALTER TABLE Song RENAME COLUMN "isPublic" TO ispublic; END IF; END $$;`,
+      // User table
+      `DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'profilePicture') THEN ALTER TABLE "User" RENAME COLUMN "profilePicture" TO profilepicture; END IF; END $$;`,
+      `DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'joinDate') THEN ALTER TABLE "User" RENAME COLUMN "joinDate" TO joindate; END IF; END $$;`,
+      `DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'perfectTotal') THEN ALTER TABLE "User" RENAME COLUMN "perfectTotal" TO perfecttotal; END IF; END $$;`,
+      `DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'goodTotal') THEN ALTER TABLE "User" RENAME COLUMN "goodTotal" TO goodtotal; END IF; END $$;`,
+      `DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'glimmerTotal') THEN ALTER TABLE "User" RENAME COLUMN "glimmerTotal" TO glimmertotal; END IF; END $$;`,
+      `DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'missTotal') THEN ALTER TABLE "User" RENAME COLUMN "missTotal" TO misstotal; END IF; END $$;`,
+      `DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'totalScore') THEN ALTER TABLE "User" RENAME COLUMN "totalScore" TO totalscore; END IF; END $$;`,
+      `DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'totalAccuracy') THEN ALTER TABLE "User" RENAME COLUMN "totalAccuracy" TO totalaccuracy; END IF; END $$;`,
+      `DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'runsCount') THEN ALTER TABLE "User" RENAME COLUMN "runsCount" TO runscount; END IF; END $$;`,
+    ];
+    for (const sql of migrations) {
+      try {
+        await getSql().unsafe(sql);
+      } catch (err: any) {
+        console.warn('Reverse migration warning (may be already applied):', err.message);
+      }
+    }
+  }
+
   public static async ensureTablesCreated(): Promise<void> {
+    await Unit.reverseMigrateColumnNames();
+
     await getSql().unsafe(`
       CREATE TABLE IF NOT EXISTS "User" (
         id SERIAL PRIMARY KEY,

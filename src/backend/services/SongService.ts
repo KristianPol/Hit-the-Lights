@@ -300,10 +300,10 @@ export class SongService {
     // Visibility filter
     if (viewerId != null) {
       conditions.push('(s.isPublic = 1 OR s.ownerId = $viewerId)');
-      params.viewerId = viewerId;
     } else {
       conditions.push('s.isPublic = 1');
     }
+    params.viewerId = viewerId ?? null;
 
     // Owner filter
     if (ownerId != null) {
