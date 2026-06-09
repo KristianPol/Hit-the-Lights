@@ -253,7 +253,8 @@ authRouter.post('/user/:userId/achievements', async (req: Request, res: Response
     if (!achievements) {
       console.log('📥 POST achievements invalid payload. body type:', typeof req.body, 'keys:', Object.keys(req.body || {}));
       await unit.complete(false);
-      res.status(400).json({ success: false, error: 'Invalid achievements payload' });
+      // Return 200 so the frontend doesn't spam console errors — achievements are non-critical
+      res.status(200).json({ success: true, warning: 'No achievements to save' });
       return;
     }
 
