@@ -351,9 +351,9 @@ export class SongService {
 
     const sql = `
       SELECT
-        s.id, s.name, s.author, s.bpm, s.length, s.songUrl, s.coverUrl, s.ownerId, s.isPublic, s.genre, s.play_count,
-        (SELECT COUNT(*) FROM SongLike WHERE song_id = s.id) as likeCount,
-        EXISTS(SELECT 1 FROM SongLike WHERE song_id = s.id AND user_id = $viewerId) as isLikedByUser
+        s.id, s.name, s.author, s.bpm, s.length, s."songUrl", s."coverUrl", s."ownerId", s."isPublic", s.genre, s.play_count,
+        (SELECT COUNT(*) FROM SongLike WHERE song_id = s.id) as "likeCount",
+        EXISTS(SELECT 1 FROM SongLike WHERE song_id = s.id AND user_id = $viewerId) as "isLikedByUser"
       FROM Song s
       ${whereClause}
       ORDER BY ${orderBy}
@@ -482,9 +482,9 @@ export class SongService {
 
     const stmt = this.unit.prepare<EnrichedSongRecord, { id: number; viewerId: number | null }>(
       `SELECT
-        s.id, s.name, s.author, s.bpm, s.length, s.songUrl, s.coverUrl, s.ownerId, s.isPublic, s.genre, s.play_count,
-        (SELECT COUNT(*) FROM SongLike WHERE song_id = s.id) as likeCount,
-        EXISTS(SELECT 1 FROM SongLike WHERE song_id = s.id AND user_id = $viewerId) as isLikedByUser
+        s.id, s.name, s.author, s.bpm, s.length, s."songUrl", s."coverUrl", s."ownerId", s."isPublic", s.genre, s.play_count,
+        (SELECT COUNT(*) FROM SongLike WHERE song_id = s.id) as "likeCount",
+        EXISTS(SELECT 1 FROM SongLike WHERE song_id = s.id AND user_id = $viewerId) as "isLikedByUser"
       FROM Song s
       WHERE s.id = $id`,
       { id: songId, viewerId: viewerId ?? null }
@@ -1041,7 +1041,11 @@ export class SongService {
     return false;
   }
 
-  private isPublicSong(value: number | boolean | string): boolean {
+  private isPublicSong(value: unknown): boolean {
+    if (value === undefined || value === null) {
+      return true;
+    }
+
     if (typeof value === 'boolean') {
       return value;
     }
@@ -1050,8 +1054,12 @@ export class SongService {
       return value !== 0;
     }
 
-    const normalized = value.trim().toLowerCase();
-    return normalized === '1' || normalized === 'true';
+    if (typeof value === 'string') {
+      const normalized = value.trim().toLowerCase();
+      return normalized === '1' || normalized === 'true';
+    }
+
+    return true;
   }
 
   private parseVisibilityInput(value: boolean | number | string | undefined, fallback: boolean): boolean {

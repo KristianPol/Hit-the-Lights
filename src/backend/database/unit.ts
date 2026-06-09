@@ -190,23 +190,53 @@ export class Unit {
       .replace(/\bDELETE\s+FROM\s+User\b/g, 'DELETE FROM "User"');
   }
 
+  private static async migrateColumnNames(): Promise<void> {
+    const migrations = [
+      // Song table: rename lowercased columns back to quoted camelCase
+      `DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'song' AND column_name = 'songurl') THEN ALTER TABLE Song RENAME COLUMN songurl TO "songUrl"; END IF; END $$;`,
+      `DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'song' AND column_name = 'coverurl') THEN ALTER TABLE Song RENAME COLUMN coverurl TO "coverUrl"; END IF; END $$;`,
+      `DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'song' AND column_name = 'ownerid') THEN ALTER TABLE Song RENAME COLUMN ownerid TO "ownerId"; END IF; END $$;`,
+      `DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'song' AND column_name = 'ispublic') THEN ALTER TABLE Song RENAME COLUMN ispublic TO "isPublic"; END IF; END $$;`,
+      // User table
+      `DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'profilepicture') THEN ALTER TABLE "User" RENAME COLUMN profilepicture TO "profilePicture"; END IF; END $$;`,
+      `DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'joindate') THEN ALTER TABLE "User" RENAME COLUMN joindate TO "joinDate"; END IF; END $$;`,
+      `DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'perfecttotal') THEN ALTER TABLE "User" RENAME COLUMN perfecttotal TO "perfectTotal"; END IF; END $$;`,
+      `DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'goodtotal') THEN ALTER TABLE "User" RENAME COLUMN goodtotal TO "goodTotal"; END IF; END $$;`,
+      `DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'glimmertotal') THEN ALTER TABLE "User" RENAME COLUMN glimmertotal TO "glimmerTotal"; END IF; END $$;`,
+      `DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'misstotal') THEN ALTER TABLE "User" RENAME COLUMN misstotal TO "missTotal"; END IF; END $$;`,
+      `DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'totalscore') THEN ALTER TABLE "User" RENAME COLUMN totalscore TO "totalScore"; END IF; END $$;`,
+      `DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'totalaccuracy') THEN ALTER TABLE "User" RENAME COLUMN totalaccuracy TO "totalAccuracy"; END IF; END $$;`,
+      `DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'runscount') THEN ALTER TABLE "User" RENAME COLUMN runscount TO "runsCount"; END IF; END $$;`,
+    ];
+    for (const sql of migrations) {
+      try {
+        await getSql().unsafe(sql);
+      } catch (err: any) {
+        console.warn('Migration warning (may be already applied):', err.message);
+      }
+    }
+  }
+
   public static async ensureTablesCreated(): Promise<void> {
+    // Fix existing tables that were created with lowercased column names
+    await Unit.migrateColumnNames();
+
     await getSql().unsafe(`
       CREATE TABLE IF NOT EXISTS "User" (
         id SERIAL PRIMARY KEY,
         username TEXT NOT NULL,
         password TEXT NOT NULL,
-        profilePicture BYTEA,
-        joinDate TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "profilePicture" BYTEA,
+        "joinDate" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
         playtime_seconds INTEGER NOT NULL DEFAULT 0,
         settings_json TEXT,
-        perfect_total INTEGER NOT NULL DEFAULT 0,
-        good_total INTEGER NOT NULL DEFAULT 0,
-        glimmer_total INTEGER NOT NULL DEFAULT 0,
-        miss_total INTEGER NOT NULL DEFAULT 0,
-        total_score INTEGER NOT NULL DEFAULT 0,
-        total_accuracy REAL NOT NULL DEFAULT 0,
-        runs_count INTEGER NOT NULL DEFAULT 0,
+        "perfectTotal" INTEGER NOT NULL DEFAULT 0,
+        "goodTotal" INTEGER NOT NULL DEFAULT 0,
+        "glimmerTotal" INTEGER NOT NULL DEFAULT 0,
+        "missTotal" INTEGER NOT NULL DEFAULT 0,
+        "totalScore" INTEGER NOT NULL DEFAULT 0,
+        "totalAccuracy" REAL NOT NULL DEFAULT 0,
+        "runsCount" INTEGER NOT NULL DEFAULT 0,
         CONSTRAINT uq_username UNIQUE (username)
       )
     `);
@@ -218,10 +248,10 @@ export class Unit {
         author TEXT NOT NULL,
         bpm INTEGER NOT NULL,
         length TEXT NOT NULL,
-        songUrl TEXT NOT NULL,
-        coverUrl TEXT NOT NULL,
-        ownerId INTEGER,
-        isPublic INTEGER NOT NULL DEFAULT 1,
+        "songUrl" TEXT NOT NULL,
+        "coverUrl" TEXT NOT NULL,
+        "ownerId" INTEGER,
+        "isPublic" INTEGER NOT NULL DEFAULT 1,
         genre TEXT,
         play_count INTEGER NOT NULL DEFAULT 0
       )
