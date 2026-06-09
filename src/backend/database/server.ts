@@ -1,6 +1,6 @@
 import path from "path";
 import dotenv from 'dotenv';
-dotenv.config({ path: path.resolve(__dirname, '..', '..', '..', '.env') });
+dotenv.config({ path: path.resolve(__dirname, '..', '..', '..', '.env'), quiet: true });
 
 import express from "express";
 import cors from "cors";
@@ -9,6 +9,7 @@ import { Unit, sql } from './unit';
 
 const DATABASE_URL = process.env['DATABASE_URL'];
 console.log('🔍 DATABASE_URL loaded:', DATABASE_URL ? 'yes' : 'NO — .env file may be missing');
+console.log('📋 Available env vars:', Object.keys(process.env).filter(k => k.includes('DATABASE') || k.includes('PORT') || k.includes('URL')));
 
 const app = express();
 const PORT = Number(process.env['PORT']) || 3000;
