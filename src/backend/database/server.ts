@@ -6,7 +6,8 @@ dotenv.config({ path: path.resolve(__dirname, '..', '..', '..', '.env'), quiet: 
 function findProjectRoot(): string {
   let dir = __dirname;
   while (dir !== path.dirname(dir)) {
-    if (fs.existsSync(path.join(dir, 'angular.json')) || fs.existsSync(path.join(dir, 'package.json'))) {
+    // angular.json is the definitive project-root marker (skip backend/package.json)
+    if (fs.existsSync(path.join(dir, 'angular.json'))) {
       return dir;
     }
     dir = path.dirname(dir);
