@@ -1,0 +1,28 @@
+// Theme variables - default black-yellow theme
+// These map to CSS custom properties set by ThemeService
+
+// Accent colors (yellow/gold)
+$yellow-primary: #ffd700;
+$yellow-bright: #ffed4e;
+$yellow-glow: rgba(255, 215, 0, 0.3);
+
+// Text colors
+$text-primary: #ffffff;
+$text-secondary: rgba(255, 255, 255, 0.72);
+$text-muted: rgba(255, 255, 255, 0.55);
+
+// Background colors
+$black-primary: #050505;
+$black-secondary: #0f0f0f;
+$black-tertiary: #111111;
+$black-light: #1a1a1a;
+
+// Status colors
+$error-color: #ff4444;
+$success-color: #44ff44;
+
+// Gameplay hit rating colors
+$hit-perfect: #44ff44;
+$hit-good: #ffd700;
+$hit-okay: #ffaa00;
+$hit-miss: #ff4444;
