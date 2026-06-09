@@ -243,27 +243,42 @@ export class Unit {
     // so unquoted SQL references work correctly with normalizeRow().
     const migrations = [
       // Song table
-      `DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'song' AND column_name = 'songUrl') THEN ALTER TABLE Song RENAME COLUMN "songUrl" TO songurl; END IF; END $$;`,
-      `DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'song' AND column_name = 'coverUrl') THEN ALTER TABLE Song RENAME COLUMN "coverUrl" TO coverurl; END IF; END $$;`,
-      `DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'song' AND column_name = 'ownerId') THEN ALTER TABLE Song RENAME COLUMN "ownerId" TO ownerid; END IF; END $$;`,
-      `DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'song' AND column_name = 'isPublic') THEN ALTER TABLE Song RENAME COLUMN "isPublic" TO ispublic; END IF; END $$;`,
+      `ALTER TABLE Song RENAME COLUMN "songUrl" TO songurl;`,
+      `ALTER TABLE Song RENAME COLUMN "coverUrl" TO coverurl;`,
+      `ALTER TABLE Song RENAME COLUMN "ownerId" TO ownerid;`,
+      `ALTER TABLE Song RENAME COLUMN "isPublic" TO ispublic;`,
       // User table
-      `DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'profilePicture') THEN ALTER TABLE "User" RENAME COLUMN "profilePicture" TO profilepicture; END IF; END $$;`,
-      `DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'joinDate') THEN ALTER TABLE "User" RENAME COLUMN "joinDate" TO joindate; END IF; END $$;`,
-      `DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'perfectTotal') THEN ALTER TABLE "User" RENAME COLUMN "perfectTotal" TO perfecttotal; END IF; END $$;`,
-      `DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'goodTotal') THEN ALTER TABLE "User" RENAME COLUMN "goodTotal" TO goodtotal; END IF; END $$;`,
-      `DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'glimmerTotal') THEN ALTER TABLE "User" RENAME COLUMN "glimmerTotal" TO glimmertotal; END IF; END $$;`,
-      `DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'missTotal') THEN ALTER TABLE "User" RENAME COLUMN "missTotal" TO misstotal; END IF; END $$;`,
-      `DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'totalScore') THEN ALTER TABLE "User" RENAME COLUMN "totalScore" TO totalscore; END IF; END $$;`,
-      `DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'totalAccuracy') THEN ALTER TABLE "User" RENAME COLUMN "totalAccuracy" TO totalaccuracy; END IF; END $$;`,
-      `DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'runsCount') THEN ALTER TABLE "User" RENAME COLUMN "runsCount" TO runscount; END IF; END $$;`,
+      `ALTER TABLE "User" RENAME COLUMN "profilePicture" TO profilepicture;`,
+      `ALTER TABLE "User" RENAME COLUMN "joinDate" TO joindate;`,
+      `ALTER TABLE "User" RENAME COLUMN "perfectTotal" TO perfecttotal;`,
+      `ALTER TABLE "User" RENAME COLUMN "goodTotal" TO goodtotal;`,
+      `ALTER TABLE "User" RENAME COLUMN "glimmerTotal" TO glimmertotal;`,
+      `ALTER TABLE "User" RENAME COLUMN "missTotal" TO misstotal;`,
+      `ALTER TABLE "User" RENAME COLUMN "totalScore" TO totalscore;`,
+      `ALTER TABLE "User" RENAME COLUMN "totalAccuracy" TO totalaccuracy;`,
+      `ALTER TABLE "User" RENAME COLUMN "runsCount" TO runscount;`,
     ];
     for (const sql of migrations) {
       try {
         await getSql().unsafe(sql);
+        console.log('✅ Migration applied:', sql.split('RENAME COLUMN')[1]?.split('TO')[0]?.trim(), '-> lowercase');
       } catch (err: any) {
-        console.warn('Reverse migration warning (may be already applied):', err.message);
+        if (err.message?.includes('does not exist')) {
+          // Already renamed or was never quoted — expected on subsequent runs
+        } else {
+          console.warn('Migration warning:', err.message);
+        }
       }
+    }
+
+    // Diagnostic: log current column names
+    try {
+      const songCols = await getSql().unsafe(`SELECT column_name FROM information_schema.columns WHERE table_name = 'song' ORDER BY ordinal_position`);
+      console.log('📊 Song columns:', songCols.map((r: any) => r.column_name));
+      const userCols = await getSql().unsafe(`SELECT column_name FROM information_schema.columns WHERE table_name = 'User' ORDER BY ordinal_position`);
+      console.log('📊 User columns:', userCols.map((r: any) => r.column_name));
+    } catch (e: any) {
+      console.warn('Could not read column diagnostics:', e.message);
     }
   }
 
