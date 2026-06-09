@@ -13,13 +13,16 @@ console.log('📋 Available env vars:', Object.keys(process.env).filter(k => k.i
 
 const app = express();
 const PORT = Number(process.env['PORT']) || 3000;
-const PROJECT_ROOT = path.resolve(process.cwd(), '..', '..');
+// __dirname is dist/database when compiled, or database/ when run with tsx
+const PROJECT_ROOT = path.resolve(__dirname, '..', '..', '..');
 const FRONTEND_DIST = path.resolve(PROJECT_ROOT, 'dist', 'Hit-The-Lights', 'browser');
 
 console.log('🗄️  Database Mode: PostgreSQL');
+console.log('📁 PROJECT_ROOT:', PROJECT_ROOT);
+console.log('📁 FRONTEND_DIST:', FRONTEND_DIST);
 
 // Ensure tables exist before accepting requests
-Unit.ensureTablesCreated().then(() => {
+Unit.initTables().then(() => {
   console.log('✅ Database schema ensured');
 }).catch((err) => {
   console.error('❌ Failed to ensure database schema:', err);
@@ -27,7 +30,7 @@ Unit.ensureTablesCreated().then(() => {
 
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
-app.use('/uploads', express.static(path.resolve(process.cwd(), 'uploads')));
+app.use('/uploads', express.static(path.resolve(PROJECT_ROOT, 'uploads')));
 app.use(express.static(FRONTEND_DIST));
 
 app.use('/api/auth', authRouter);

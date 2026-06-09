@@ -16,6 +16,7 @@ function getSql(): postgres.Sql {
       max: 10,
       idle_timeout: 20,
       connect_timeout: 10,
+      ssl: { rejectUnauthorized: false },
     });
   }
   return sqlInstance;
@@ -31,18 +32,44 @@ export class Unit {
   private static tablesEnsured: boolean = false;
   private static tablesEnsurePromise: Promise<void> | null = null;
 
+  public static initTables(): Promise<void> {
+    if (Unit.tablesEnsured) {
+      return Promise.resolve();
+    }
+    if (!Unit.tablesEnsurePromise) {
+      Unit.tablesEnsurePromise = Unit.ensureTablesCreated().then(() => {
+        Unit.tablesEnsured = true;
+      }).catch((err) => {
+        console.error('❌ ensureTablesCreated failed, will retry on next request:', err.message || err);
+        Unit.tablesEnsurePromise = null;
+        throw err;
+      });
+    }
+    return Unit.tablesEnsurePromise;
+  }
+
   public constructor(public readonly readOnly: boolean) {
     this.completed = false;
     if (!Unit.tablesEnsured && !Unit.tablesEnsurePromise) {
       Unit.tablesEnsurePromise = Unit.ensureTablesCreated().then(() => {
         Unit.tablesEnsured = true;
+      }).catch((err) => {
+        console.error('❌ ensureTablesCreated failed, will retry on next request:', err.message || err);
+        Unit.tablesEnsurePromise = null;
+        throw err;
       });
     }
   }
 
   private async ensureConnection(): Promise<postgres.Sql | postgres.ReservedSql> {
     if (Unit.tablesEnsurePromise) {
-      await Unit.tablesEnsurePromise;
+      try {
+        await Unit.tablesEnsurePromise;
+      } catch {
+        // If the promise rejected, clear it so the next Unit constructor retries
+        Unit.tablesEnsurePromise = null;
+        throw new Error('Database schema initialization failed');
+      }
     }
     if (this.readOnly) {
       return getSql();

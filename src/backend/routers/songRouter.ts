@@ -99,7 +99,8 @@ songRouter.get('/all', async (req: Request, res: Response) => {
     await unit.complete();
     res.status(200).json({ success: true, songs });
   } catch (error: any) {
-    console.error('❌ Backend: Error fetching songs', error);
+    console.error('❌ Backend: Error fetching songs', error?.message || error);
+    console.error('❌ Backend: Error stack', error?.stack || 'no stack');
     await unit.complete();
     res.status(500).json({ success: false, error: error.message || 'Internal server error' });
   }

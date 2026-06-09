@@ -248,8 +248,10 @@ authRouter.post('/user/:userId/achievements', async (req: Request, res: Response
       return;
     }
 
+    console.log('📥 POST achievements body:', JSON.stringify(req.body));
     const achievements = Array.isArray(req.body?.achievements) ? req.body.achievements : null;
     if (!achievements) {
+      console.log('📥 POST achievements invalid payload. body type:', typeof req.body, 'keys:', Object.keys(req.body || {}));
       await unit.complete(false);
       res.status(400).json({ success: false, error: 'Invalid achievements payload' });
       return;
