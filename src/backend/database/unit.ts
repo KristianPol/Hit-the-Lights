@@ -24,6 +24,52 @@ function getSql(): postgres.Sql {
 
 export { getSql as sql };
 
+// PostgreSQL lowercases unquoted camelCase column names. This maps them back.
+const COLUMN_MAP: Record<string, string> = {
+  songurl: 'songUrl',
+  coverurl: 'coverUrl',
+  ownerid: 'ownerId',
+  ispublic: 'isPublic',
+  songid: 'songId',
+  userid: 'userId',
+  difficultyid: 'difficultyId',
+  noteid: 'noteId',
+  achievementid: 'achievementId',
+  parentcommentid: 'parentCommentId',
+  senderid: 'senderId',
+  receiverid: 'receiverId',
+  profilepicture: 'profilePicture',
+  joindate: 'joinDate',
+  playtimeseconds: 'playtimeSeconds',
+  settingsjson: 'settingsJson',
+  perfecttotal: 'perfectTotal',
+  goodtotal: 'goodTotal',
+  glimmertotal: 'glimmerTotal',
+  misstotal: 'missTotal',
+  totalscore: 'totalScore',
+  totalaccuracy: 'totalAccuracy',
+  runscount: 'runsCount',
+  isread: 'isRead',
+  lanebindingsjson: 'laneBindingsJson',
+  notespeed: 'noteSpeed',
+  updatedat: 'updatedAt',
+  maxcombo: 'maxCombo',
+  timems: 'timeMs',
+  durationms: 'durationMs',
+  playcount: 'playCount',
+  notecount: 'noteCount',
+  likecount: 'likeCount',
+  islikedbyuser: 'isLikedByUser',
+};
+
+function normalizeRow(row: Record<string, unknown>): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(row)) {
+    result[COLUMN_MAP[key] ?? key] = value;
+  }
+  return result;
+}
+
 export class Unit {
   private completed: boolean;
   private reservedConn: postgres.ReservedSql | null = null;
@@ -99,12 +145,13 @@ export class Unit {
       get: async (): Promise<TResult | undefined> => {
         const conn = await this.ensureConnection();
         const rows = await conn.unsafe(quotedSql, args as any[]);
-        return (rows[0] as unknown as TResult) ?? undefined;
+        const normalized = rows[0] ? normalizeRow(rows[0]) : undefined;
+        return normalized as unknown as TResult ?? undefined;
       },
       all: async (): Promise<TResult[]> => {
         const conn = await this.ensureConnection();
         const rows = await conn.unsafe(quotedSql, args as any[]);
-        return rows as unknown as TResult[];
+        return rows.map(normalizeRow) as unknown as TResult[];
       },
       run: async (): Promise<RunResult> => {
         const conn = await this.ensureConnection();
@@ -190,53 +237,23 @@ export class Unit {
       .replace(/\bDELETE\s+FROM\s+User\b/g, 'DELETE FROM "User"');
   }
 
-  private static async migrateColumnNames(): Promise<void> {
-    const migrations = [
-      // Song table: rename lowercased columns back to quoted camelCase
-      `DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'song' AND column_name = 'songurl') THEN ALTER TABLE Song RENAME COLUMN songurl TO "songUrl"; END IF; END $$;`,
-      `DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'song' AND column_name = 'coverurl') THEN ALTER TABLE Song RENAME COLUMN coverurl TO "coverUrl"; END IF; END $$;`,
-      `DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'song' AND column_name = 'ownerid') THEN ALTER TABLE Song RENAME COLUMN ownerid TO "ownerId"; END IF; END $$;`,
-      `DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'song' AND column_name = 'ispublic') THEN ALTER TABLE Song RENAME COLUMN ispublic TO "isPublic"; END IF; END $$;`,
-      // User table
-      `DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'profilepicture') THEN ALTER TABLE "User" RENAME COLUMN profilepicture TO "profilePicture"; END IF; END $$;`,
-      `DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'joindate') THEN ALTER TABLE "User" RENAME COLUMN joindate TO "joinDate"; END IF; END $$;`,
-      `DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'perfecttotal') THEN ALTER TABLE "User" RENAME COLUMN perfecttotal TO "perfectTotal"; END IF; END $$;`,
-      `DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'goodtotal') THEN ALTER TABLE "User" RENAME COLUMN goodtotal TO "goodTotal"; END IF; END $$;`,
-      `DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'glimmertotal') THEN ALTER TABLE "User" RENAME COLUMN glimmertotal TO "glimmerTotal"; END IF; END $$;`,
-      `DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'misstotal') THEN ALTER TABLE "User" RENAME COLUMN misstotal TO "missTotal"; END IF; END $$;`,
-      `DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'totalscore') THEN ALTER TABLE "User" RENAME COLUMN totalscore TO "totalScore"; END IF; END $$;`,
-      `DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'totalaccuracy') THEN ALTER TABLE "User" RENAME COLUMN totalaccuracy TO "totalAccuracy"; END IF; END $$;`,
-      `DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'User' AND column_name = 'runscount') THEN ALTER TABLE "User" RENAME COLUMN runscount TO "runsCount"; END IF; END $$;`,
-    ];
-    for (const sql of migrations) {
-      try {
-        await getSql().unsafe(sql);
-      } catch (err: any) {
-        console.warn('Migration warning (may be already applied):', err.message);
-      }
-    }
-  }
-
   public static async ensureTablesCreated(): Promise<void> {
-    // Fix existing tables that were created with lowercased column names
-    await Unit.migrateColumnNames();
-
     await getSql().unsafe(`
       CREATE TABLE IF NOT EXISTS "User" (
         id SERIAL PRIMARY KEY,
         username TEXT NOT NULL,
         password TEXT NOT NULL,
-        "profilePicture" BYTEA,
-        "joinDate" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        profilePicture BYTEA,
+        joinDate TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
         playtime_seconds INTEGER NOT NULL DEFAULT 0,
         settings_json TEXT,
-        "perfectTotal" INTEGER NOT NULL DEFAULT 0,
-        "goodTotal" INTEGER NOT NULL DEFAULT 0,
-        "glimmerTotal" INTEGER NOT NULL DEFAULT 0,
-        "missTotal" INTEGER NOT NULL DEFAULT 0,
-        "totalScore" INTEGER NOT NULL DEFAULT 0,
-        "totalAccuracy" REAL NOT NULL DEFAULT 0,
-        "runsCount" INTEGER NOT NULL DEFAULT 0,
+        perfectTotal INTEGER NOT NULL DEFAULT 0,
+        goodTotal INTEGER NOT NULL DEFAULT 0,
+        glimmerTotal INTEGER NOT NULL DEFAULT 0,
+        missTotal INTEGER NOT NULL DEFAULT 0,
+        totalScore INTEGER NOT NULL DEFAULT 0,
+        totalAccuracy REAL NOT NULL DEFAULT 0,
+        runsCount INTEGER NOT NULL DEFAULT 0,
         CONSTRAINT uq_username UNIQUE (username)
       )
     `);
@@ -248,10 +265,10 @@ export class Unit {
         author TEXT NOT NULL,
         bpm INTEGER NOT NULL,
         length TEXT NOT NULL,
-        "songUrl" TEXT NOT NULL,
-        "coverUrl" TEXT NOT NULL,
-        "ownerId" INTEGER,
-        "isPublic" INTEGER NOT NULL DEFAULT 1,
+        songUrl TEXT NOT NULL,
+        coverUrl TEXT NOT NULL,
+        ownerId INTEGER,
+        isPublic INTEGER NOT NULL DEFAULT 1,
         genre TEXT,
         play_count INTEGER NOT NULL DEFAULT 0
       )
