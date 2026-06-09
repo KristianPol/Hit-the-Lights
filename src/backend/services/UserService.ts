@@ -360,7 +360,8 @@ export class UserService {
 
         const unlocked = achievement.unlocked ? 1 : 0;
         const pinned = achievement.pinned && unlocked ? 1 : 0;
-        const progress = Math.max(0, Math.floor(Number(achievement.progress ?? 0)));
+        const rawProgress = Number(achievement.progress ?? 0);
+        const progress = Number.isFinite(rawProgress) ? Math.max(0, Math.floor(rawProgress)) : 0;
 
         await this.unit.prepare<
           unknown,

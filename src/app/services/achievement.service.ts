@@ -304,6 +304,8 @@ export class AchievementService {
   // ---------------------------------------------------------------------------
   // Private helpers
   // ---------------------------------------------------------------------------
+  private persistTimeoutId: ReturnType<typeof setTimeout> | null = null;
+
   private setProgressIfHigher(id: string, value: number): void {
     const list = this.all().map(a => ({ ...a }));
     const idx = list.findIndex(x => x.id === id);
@@ -313,13 +315,14 @@ export class AchievementService {
     if (typeof item.target !== 'number') return;
 
     const currentProgress = item.progress ?? 0;
-    const nextProgress = Math.min(value, item.target);
-    if (nextProgress <= currentProgress && !!item.unlocked) return;
+    const nextProgress = Math.min(Math.max(0, Math.floor(Number(value))), item.target);
+    if (!Number.isFinite(nextProgress)) return;
+
+    const willUnlock = nextProgress >= item.target;
+    if (nextProgress <= currentProgress && item.unlocked === willUnlock) return;
 
     item.progress = nextProgress;
-    if (nextProgress >= item.target) {
-      item.unlocked = true;
-    }
+    item.unlocked = willUnlock;
 
     this.achievementsSignal.set(list);
     this.persistState();
@@ -332,14 +335,20 @@ export class AchievementService {
       return;
     }
 
-    this.http.post(`/api/auth/user/${userId}/achievements`, {
-      achievements: this.all().map(a => ({
-        id: a.id,
-        unlocked: !!a.unlocked,
-        pinned: !!a.pinned,
-        progress: a.progress ?? 0
-      }))
-    }).subscribe({ error: () => {} });
+    if (this.persistTimeoutId) {
+      clearTimeout(this.persistTimeoutId);
+    }
+    this.persistTimeoutId = setTimeout(() => {
+      this.persistTimeoutId = null;
+      this.http.post(`/api/auth/user/${userId}/achievements`, {
+        achievements: this.all().map(a => ({
+          id: a.id,
+          unlocked: !!a.unlocked,
+          pinned: !!a.pinned,
+          progress: a.progress ?? 0
+        }))
+      }).subscribe({ error: () => {} });
+    }, 300);
   }
 
   private saveStateToLocal(key: string): void {

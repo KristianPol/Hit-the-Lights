@@ -226,6 +226,7 @@ authRouter.get('/user/:userId/achievements', async (req: Request, res: Response)
     await unit.complete();
 
     if (!result.success) {
+      console.error('GET achievements error for user', userId, ':', result.error);
       res.status(400).json({ success: false, error: result.error });
       return;
     }
@@ -263,6 +264,7 @@ authRouter.post('/user/:userId/achievements', async (req: Request, res: Response
 
     if (!result.success) {
       await unit.complete(false);
+      console.error('POST achievements error for user', userId, ':', result.error);
       res.status(400).json({ success: false, error: result.error });
       return;
     }

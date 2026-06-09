@@ -15,7 +15,7 @@ function getSql(): postgres.Sql {
     sqlInstance = postgres(DATABASE_URL, {
       max: 10,
       idle_timeout: 20,
-      connect_timeout: 10,
+      connect_timeout: 30,
       ssl: { rejectUnauthorized: false },
     });
   }
@@ -425,6 +425,13 @@ export class Unit {
     await getSql().unsafe(`
       CREATE INDEX IF NOT EXISTS idx_user_achievement_user ON UserAchievement(user_id)
     `);
+
+    // Ensure updated_at exists on older UserAchievement tables
+    try {
+      await getSql().unsafe(`ALTER TABLE UserAchievement ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP`);
+    } catch (e: any) {
+      // ignore
+    }
 
     await getSql().unsafe(`
       CREATE TABLE IF NOT EXISTS Comment (

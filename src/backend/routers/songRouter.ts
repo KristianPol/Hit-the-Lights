@@ -14,7 +14,10 @@ fs.mkdirSync(AUDIO_DIR, { recursive: true });
 fs.mkdirSync(COVER_DIR, { recursive: true });
 
 function saveBase64File(base64: string, mimeType: string, dir: string): string {
-  const ext = mimeType.split('/')[1].replace('mpeg', 'mp3').replace('jpeg', 'jpg');
+  const subType = mimeType.split('/')[1];
+  const ext = subType
+    ? subType.replace('mpeg', 'mp3').replace('jpeg', 'jpg').replace('x-matroska', 'webm')
+    : 'bin';
   const filename = `${Date.now()}-${Math.round(Math.random() * 1e9)}.${ext}`;
   const filepath = path.join(dir, filename);
   fs.writeFileSync(filepath, Buffer.from(base64, 'base64'));
