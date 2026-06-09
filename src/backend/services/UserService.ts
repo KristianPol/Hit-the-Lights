@@ -50,9 +50,9 @@ export class UserService {
    * @param request Contains userId and base64 encoded image
    * @returns Response with success status and URL or error
    */
-  public updateProfilePicture(
+  public async updateProfilePicture(
     request: UpdateProfilePictureRequest
-  ): UpdateProfilePictureResponse {
+  ): Promise<UpdateProfilePictureResponse> {
     console.log('UserService.updateProfilePicture called with userId:', request.userId);
     try {
       // Validate input
@@ -93,7 +93,7 @@ export class UserService {
         'SELECT id FROM User WHERE id = $userId',
         { userId: request.userId }
       );
-      const user = userStmt.get();
+      const user = await userStmt.get();
       console.log('User lookup result:', user);
 
       if (!user) {
@@ -117,7 +117,7 @@ export class UserService {
             profilePicture: buffer
           }
         );
-        updateStmt.run();
+        await updateStmt.run();
         console.log('Profile picture updated successfully');
       } catch (updateError: any) {
         console.error('Error during UPDATE:', updateError);
@@ -145,7 +145,7 @@ export class UserService {
    * @param userId The user ID
    * @returns The profile picture buffer or undefined
    */
-  public getProfilePicture(userId: number): Buffer | undefined {
+  public async getProfilePicture(userId: number): Promise<Buffer | undefined> {
     const stmt = this.unit.prepare<
       { profilePicture: Buffer },
       { userId: number }
@@ -153,7 +153,7 @@ export class UserService {
       'SELECT profilePicture FROM User WHERE id = $userId',
       { userId }
     );
-    const result = stmt.get();
+    const result = await stmt.get();
     return result?.profilePicture;
   }
 
@@ -162,7 +162,7 @@ export class UserService {
    * @param userId The user ID
    * @returns User data or undefined
    */
-  public getUserById(userId: number): GetUserResponse | undefined {
+  public async getUserById(userId: number): Promise<GetUserResponse | undefined> {
     const stmt = this.unit.prepare<
       { id: number; username: string; joinDate: string; profilePicture: Buffer | null; playtime_seconds?: number },
       { userId: number }
@@ -170,7 +170,7 @@ export class UserService {
       'SELECT id, username, joinDate, profilePicture, playtime_seconds FROM User WHERE id = $userId',
       { userId }
     );
-    const result = stmt.get();
+    const result = await stmt.get();
 
     if (!result) {
       return undefined;
@@ -190,12 +190,12 @@ export class UserService {
   /**
    * Get stored settings JSON string for a user (may be null)
    */
-  public getUserSettings(userId: number): string | null | undefined {
+  public async getUserSettings(userId: number): Promise<string | null | undefined> {
     if (!userId || userId <= 0) {
       return undefined;
     }
 
-    const userExists = this.unit.prepare<{ id: number }, { userId: number }>(
+    const userExists = await this.unit.prepare<{ id: number }, { userId: number }>(
       'SELECT id FROM User WHERE id = $userId',
       { userId }
     ).get();
@@ -211,10 +211,10 @@ export class UserService {
       'SELECT lane_bindings_json, note_speed FROM UserControls WHERE user_id = $userId',
       { userId }
     );
-    const result = stmt.get();
+    const result = await stmt.get();
 
     if (!result) {
-      this.upsertUserControls(userId, DEFAULT_CONTROLS);
+      await this.upsertUserControls(userId, DEFAULT_CONTROLS);
       return JSON.stringify(DEFAULT_CONTROLS);
     }
 
@@ -233,21 +233,21 @@ export class UserService {
   /**
    * Update stored controls for a user
    */
-  public updateUserSettings(userId: number, settingsJson: string): { success: boolean; error?: string } {
+  public async updateUserSettings(userId: number, settingsJson: string): Promise<{ success: boolean; error?: string }> {
     if (!userId || userId <= 0) {
       return { success: false, error: 'Invalid user ID' };
     }
 
     try {
       const checkStmt = this.unit.prepare<{ id: number }, { userId: number }>('SELECT id FROM User WHERE id = $userId', { userId });
-      const user = checkStmt.get();
+      const user = await checkStmt.get();
       if (!user) {
         return { success: false, error: 'User not found' };
       }
 
       const parsedSettings = this.parseSettingsJson(settingsJson);
       const normalized = this.normalizeControls(parsedSettings);
-      this.upsertUserControls(userId, normalized);
+      await this.upsertUserControls(userId, normalized);
       return { success: true };
     } catch (error: any) {
       return { success: false, error: error.message || 'Database error' };
@@ -257,7 +257,7 @@ export class UserService {
   /**
    * Adds playtime seconds to a user's total playtime and returns the new total
    */
-  public addPlaytime(userId: number, seconds: number): { success: boolean; playtimeSeconds?: number; error?: string } {
+  public async addPlaytime(userId: number, seconds: number): Promise<{ success: boolean; playtimeSeconds?: number; error?: string }> {
     if (!userId || userId <= 0) {
       return { success: false, error: 'Invalid user ID' };
     }
@@ -268,7 +268,7 @@ export class UserService {
 
     try {
       const checkStmt = this.unit.prepare<{ id: number }, { userId: number }>('SELECT id FROM User WHERE id = $userId', { userId });
-      const user = checkStmt.get();
+      const user = await checkStmt.get();
       if (!user) {
         return { success: false, error: 'User not found' };
       }
@@ -277,23 +277,23 @@ export class UserService {
         'UPDATE User SET playtime_seconds = COALESCE(playtime_seconds, 0) + $seconds WHERE id = $userId',
         { seconds, userId }
       );
-      updateStmt.run();
+      await updateStmt.run();
 
       const resultStmt = this.unit.prepare<{ playtime_seconds: number }, { userId: number }>('SELECT playtime_seconds FROM User WHERE id = $userId', { userId });
-      const result = resultStmt.get();
+      const result = await resultStmt.get();
       return { success: true, playtimeSeconds: typeof result?.playtime_seconds === 'number' ? result.playtime_seconds : 0 };
     } catch (error: any) {
       return { success: false, error: error.message || 'Database error' };
     }
   }
 
-  public getUserAchievements(userId: number): { success: boolean; achievements?: UserAchievementState[]; error?: string } {
+  public async getUserAchievements(userId: number): Promise<{ success: boolean; achievements?: UserAchievementState[]; error?: string }> {
     if (!userId || userId <= 0) {
       return { success: false, error: 'Invalid user ID' };
     }
 
     try {
-      const user = this.unit.prepare<{ id: number }, { userId: number }>(
+      const user = await this.unit.prepare<{ id: number }, { userId: number }>(
         'SELECT id FROM User WHERE id = $userId',
         { userId }
       ).get();
@@ -302,7 +302,7 @@ export class UserService {
         return { success: false, error: 'User not found' };
       }
 
-      const rows = this.unit.prepare<
+      const rows = await this.unit.prepare<
         { achievement_id: string; unlocked: number; pinned: number; progress: number },
         { userId: number }
       >(
@@ -326,10 +326,10 @@ export class UserService {
     }
   }
 
-  public saveUserAchievements(
+  public async saveUserAchievements(
     userId: number,
     achievements: UserAchievementState[]
-  ): { success: boolean; error?: string } {
+  ): Promise<{ success: boolean; error?: string }> {
     if (!userId || userId <= 0) {
       return { success: false, error: 'Invalid user ID' };
     }
@@ -339,7 +339,7 @@ export class UserService {
     }
 
     try {
-      const user = this.unit.prepare<{ id: number }, { userId: number }>(
+      const user = await this.unit.prepare<{ id: number }, { userId: number }>(
         'SELECT id FROM User WHERE id = $userId',
         { userId }
       ).get();
@@ -348,7 +348,7 @@ export class UserService {
         return { success: false, error: 'User not found' };
       }
 
-      this.unit.prepare<unknown, { userId: number }>(
+      await this.unit.prepare<unknown, { userId: number }>(
         'DELETE FROM UserAchievement WHERE user_id = $userId',
         { userId }
       ).run();
@@ -362,7 +362,7 @@ export class UserService {
         const pinned = achievement.pinned && unlocked ? 1 : 0;
         const progress = Math.max(0, Math.floor(Number(achievement.progress ?? 0)));
 
-        this.unit.prepare<
+        await this.unit.prepare<
           unknown,
           { userId: number; achievementId: string; unlocked: number; pinned: number; progress: number }
         >(
@@ -384,7 +384,7 @@ export class UserService {
     }
   }
 
-  private upsertUserControls(userId: number, controls: StoredControls): void {
+  private async upsertUserControls(userId: number, controls: StoredControls): Promise<void> {
     const payload: UserControls = {
       userId,
       laneBindingsJson: JSON.stringify({
@@ -409,7 +409,7 @@ export class UserService {
       }
     );
 
-    stmt.run();
+    await stmt.run();
   }
 
   private parseSettingsJson(settingsJson: string): unknown {

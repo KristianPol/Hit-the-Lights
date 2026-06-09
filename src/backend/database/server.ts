@@ -1,14 +1,28 @@
+import path from "path";
+import dotenv from 'dotenv';
+dotenv.config({ path: path.resolve(__dirname, '..', '..', '..', '.env') });
+
 import express from "express";
 import cors from "cors";
-import path from "path";
 import { authRouter, songRouter, friendshipRouter, messageRouter } from "../routers";
+import { Unit, sql } from './unit';
+
+const DATABASE_URL = process.env['DATABASE_URL'];
+console.log('🔍 DATABASE_URL loaded:', DATABASE_URL ? 'yes' : 'NO — .env file may be missing');
 
 const app = express();
 const PORT = Number(process.env['PORT']) || 3000;
 const PROJECT_ROOT = path.resolve(process.cwd(), '..', '..');
 const FRONTEND_DIST = path.resolve(PROJECT_ROOT, 'dist', 'Hit-The-Lights', 'browser');
 
-console.log('🗄️  Database Mode: SQLite');
+console.log('🗄️  Database Mode: PostgreSQL');
+
+// Ensure tables exist before accepting requests
+Unit.ensureTablesCreated().then(() => {
+  console.log('✅ Database schema ensured');
+}).catch((err) => {
+  console.error('❌ Failed to ensure database schema:', err);
+});
 
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
@@ -24,7 +38,7 @@ app.get('/api/health', (_req: any, res: any) => {
   res.json({
     status: 'OK',
     timestamp: new Date().toISOString(),
-    database: 'SQLite'
+    database: 'PostgreSQL'
   });
 });
 
@@ -83,7 +97,8 @@ process.on('unhandledRejection', (reason: any, promise: Promise<any>) => {
 // Handle graceful shutdown
 process.on('SIGTERM', () => {
   console.log('SIGTERM received, shutting down gracefully');
-  server.close(() => {
+  server.close(async () => {
+    await sql().end();
     console.log('Server closed');
     process.exit(0);
   });
@@ -91,9 +106,9 @@ process.on('SIGTERM', () => {
 
 process.on('SIGINT', () => {
   console.log('SIGINT received, shutting down gracefully');
-  server.close(() => {
+  server.close(async () => {
+    await sql().end();
     console.log('Server closed');
     process.exit(0);
   });
 });
-

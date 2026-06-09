@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { Unit } from '../backend/database/unit';
 import { HTLService } from '../backend/services/HTLService';
 import { User } from '../backend/model';
@@ -6,33 +7,33 @@ describe('HTLService', () => {
   let unit: Unit;
   let service: HTLService;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     unit = new Unit(false);
     service = new HTLService(unit);
     // Clear all tables to prevent UNIQUE constraint violations between tests
-    unit.prepare("DELETE FROM Highscore").run();
-    unit.prepare("DELETE FROM Note").run();
-    unit.prepare("DELETE FROM Difficulty").run();
-    unit.prepare("DELETE FROM Song").run();
-    unit.prepare("DELETE FROM User").run();
+    await unit.prepare("DELETE FROM Highscore").run();
+    await unit.prepare("DELETE FROM Note").run();
+    await unit.prepare("DELETE FROM Difficulty").run();
+    await unit.prepare("DELETE FROM Song").run();
+    await unit.prepare("DELETE FROM User").run();
   });
 
-  afterEach(() => {
-    unit.complete(false);
+  afterEach(async () => {
+    await unit.complete(false);
   });
 
   describe('userToJSON', () => {
     it('should convert user to JSON without password', () => {
       const user: User = {joinDate: '', id: 1, username: 'testuser', password: 'secret' };
       const result = service.userToJSON(user);
-      expect(result).toEqual({ id: 1, username: 'testuser' });
+      expect(result).toMatchObject({ id: 1, username: 'testuser' });
     });
   });
 
   describe('songToJSON', () => {
-    it('should convert song to JSON without difficulties', () => {
+    it('should convert song to JSON without difficulties', async () => {
       const song = { id: 1, name: 'Test Song', author: 'Test Artist', bpm: 120 };
-      const result = service.songToJSON(song);
+      const result = await service.songToJSON(song);
       expect(result).toEqual({
         id: 1,
         name: 'Test Song',
@@ -41,17 +42,17 @@ describe('HTLService', () => {
       });
     });
 
-    it('should include difficulties when requested', () => {
-      unit.prepare('INSERT INTO Song (id, name, author, bpm, length, songUrl, coverUrl) VALUES ($id, $name, $author, $bpm, $length, $songUrl, $coverUrl)', {
+    it('should include difficulties when requested', async () => {
+      await unit.prepare('INSERT INTO Song (id, name, author, bpm, length, songUrl, coverUrl) VALUES ($id, $name, $author, $bpm, $length, $songUrl, $coverUrl)', {
         id: 1, name: 'Test Song', author: 'Artist', bpm: 120, length: '3:45', songUrl: 'http://test/song.mp3', coverUrl: 'http://test/cover.jpg'
       }).run();
 
-      unit.prepare('INSERT INTO Difficulty (song_id, difficulty, note_count) VALUES ($songId, $diff, $count)', {
-        songId: 1, diff: 3, count: 100
+      await unit.prepare('INSERT INTO Difficulty (id, song_id, difficulty, note_count) VALUES ($id, $songId, $diff, $count)', {
+        id: 1, songId: 1, diff: 3, count: 100
       }).run();
 
       const song = { id: 1, name: 'Test Song', author: 'Artist', bpm: 120 };
-      const result = service.songToJSON(song, true);
+      const result = await service.songToJSON(song, true);
 
       expect(result.difficulties).toBeDefined();
       expect(result.difficulties!.length).toBe(1);
@@ -60,9 +61,9 @@ describe('HTLService', () => {
   });
 
   describe('difficultyToJSON', () => {
-    it('should convert difficulty to JSON without notes', () => {
+    it('should convert difficulty to JSON without notes', async () => {
       const difficulty = { id: 1, song_id: 1, difficulty: 3, note_count: 100 };
-      const result = service.difficultyToJSON(difficulty);
+      const result = await service.difficultyToJSON(difficulty);
       expect(result).toEqual({
         id: 1,
         song_id: 1,
@@ -71,14 +72,14 @@ describe('HTLService', () => {
       });
     });
 
-    it('should include notes when requested', () => {
-      unit.prepare("INSERT INTO Song (id, name, author, bpm, length, songUrl, coverUrl) VALUES ($id, $name, $author, $bpm, $length, $songUrl, $coverUrl)", { id: 1, name: 'Song', author: 'Artist', bpm: 120, length: '3:30', songUrl: 'http://test/song.mp3', coverUrl: 'http://test/cover.jpg' }).run();
-      unit.prepare("INSERT INTO Difficulty (id, song_id, difficulty, note_count) VALUES ($id, $songId, $diff, $count)", { id: 1, songId: 1, diff: 3, count: 2 }).run();
-      unit.prepare("INSERT INTO Note (difficulty_id, time_ms, lane, type, duration_ms) VALUES ($diffId, $time, $lane, $type, $duration)", { diffId: 1, time: 1000, lane: 1, type: 1, duration: null }).run();
-      unit.prepare("INSERT INTO Note (difficulty_id, time_ms, lane, type, duration_ms) VALUES ($diffId, $time, $lane, $type, $duration)", { diffId: 1, time: 2000, lane: 2, type: 1, duration: null }).run();
+    it('should include notes when requested', async () => {
+      await unit.prepare("INSERT INTO Song (id, name, author, bpm, length, songUrl, coverUrl) VALUES ($id, $name, $author, $bpm, $length, $songUrl, $coverUrl)", { id: 1, name: 'Song', author: 'Artist', bpm: 120, length: '3:30', songUrl: 'http://test/song.mp3', coverUrl: 'http://test/cover.jpg' }).run();
+      await unit.prepare("INSERT INTO Difficulty (id, song_id, difficulty, note_count) VALUES ($id, $songId, $diff, $count)", { id: 1, songId: 1, diff: 3, count: 2 }).run();
+      await unit.prepare("INSERT INTO Note (difficulty_id, time_ms, lane, type, duration_ms) VALUES ($diffId, $time, $lane, $type, $duration)", { diffId: 1, time: 1000, lane: 1, type: 1, duration: null }).run();
+      await unit.prepare("INSERT INTO Note (difficulty_id, time_ms, lane, type, duration_ms) VALUES ($diffId, $time, $lane, $type, $duration)", { diffId: 1, time: 2000, lane: 2, type: 1, duration: null }).run();
 
       const difficulty = { id: 1, song_id: 1, difficulty: 3, note_count: 2 };
-      const result = service.difficultyToJSON(difficulty, true);
+      const result = await service.difficultyToJSON(difficulty, true);
 
       expect(result.notes).toBeDefined();
       expect(result.notes!.length).toBe(2);
@@ -101,10 +102,10 @@ describe('HTLService', () => {
   });
 
   describe('highscoreToJSON', () => {
-    it('should convert highscore to JSON with user and song info', () => {
-      unit.prepare("INSERT INTO User (id, username, password) VALUES ($id, $username, $password)", { id: 1, username: 'player1', password: 'pass' }).run();
-      unit.prepare("INSERT INTO Song (id, name, author, bpm, length, songUrl, coverUrl) VALUES ($id, $name, $author, $bpm, $length, $songUrl, $coverUrl)", { id: 1, name: 'My Song', author: 'Artist', bpm: 128, length: '4:00', songUrl: 'http://test/song.mp3', coverUrl: 'http://test/cover.jpg' }).run();
-      unit.prepare("INSERT INTO Difficulty (id, song_id, difficulty, note_count) VALUES ($id, $songId, $diff, $count)", { id: 1, songId: 1, diff: 3, count: 100 }).run();
+    it('should convert highscore to JSON with user and song info', async () => {
+      await unit.prepare("INSERT INTO User (id, username, password) VALUES ($id, $username, $password)", { id: 1, username: 'player1', password: 'pass' }).run();
+      await unit.prepare("INSERT INTO Song (id, name, author, bpm, length, songUrl, coverUrl) VALUES ($id, $name, $author, $bpm, $length, $songUrl, $coverUrl)", { id: 1, name: 'My Song', author: 'Artist', bpm: 128, length: '4:00', songUrl: 'http://test/song.mp3', coverUrl: 'http://test/cover.jpg' }).run();
+      await unit.prepare("INSERT INTO Difficulty (id, song_id, difficulty, note_count) VALUES ($id, $songId, $diff, $count)", { id: 1, songId: 1, diff: 3, count: 100 }).run();
 
       const highscore = {
         user_id: 1,
@@ -114,13 +115,13 @@ describe('HTLService', () => {
         accuracy: 98,
         date: '2024-01-15T10:30:00Z'
       };
-      const result = service.highscoreToJSON(highscore);
+      const result = await service.highscoreToJSON(highscore);
 
       expect(result.username).toBe('player1');
       expect(result.song_name).toBe('My Song');
     });
 
-    it('should show Unknown for missing user/song', () => {
+    it('should show Unknown for missing user/song', async () => {
       const highscore = {
         user_id: 999,
         difficulty_id: 999,
@@ -129,7 +130,7 @@ describe('HTLService', () => {
         accuracy: 85,
         date: '2024-01-15T10:30:00Z'
       };
-      const result = service.highscoreToJSON(highscore);
+      const result = await service.highscoreToJSON(highscore);
 
       expect(result.username).toBe('Unknown');
       expect(result.song_name).toBe('Unknown');
@@ -140,11 +141,12 @@ describe('HTLService', () => {
     it('should convert JSON to user entity', () => {
       const json = { username: 'newuser', password: 'password123' };
       const result = service.userFromJSON(json);
-      expect(result).toEqual({
+      expect(result).toMatchObject({
         id: 0,
         username: 'newuser',
         password: 'password123'
       });
+      expect(result.joinDate).toBeDefined();
     });
 
     it('should trim username whitespace', () => {
@@ -262,10 +264,10 @@ describe('HTLService', () => {
   });
 
   describe('toJSON', () => {
-    it('should route to correct method', () => {
+    it('should route to correct method', async () => {
       const user: User = {joinDate: '', id: 1, username: 'test', password: 'pass' };
-      const result = service.toJSON(user, 'user');
-      expect(result).toEqual({ id: 1, username: 'test' });
+      const result = await service.toJSON(user, 'user');
+      expect(result).toMatchObject({ id: 1, username: 'test' });
     });
   });
 

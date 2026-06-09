@@ -27,7 +27,7 @@ export class RegistrationService {
    * @param request Registration request with username and password
    * @returns Registration response with success status and userId or error
    */
-  public register(request: RegistrationRequest): RegistrationResponse {
+  public async register(request: RegistrationRequest): Promise<RegistrationResponse> {
     try {
       // Validate input using HTLService
       const user = this.htlService.userFromJSON({
@@ -36,7 +36,7 @@ export class RegistrationService {
       });
 
       // Check if username already exists
-      const existingUser = this.findUserByUsername(user.username);
+      const existingUser = await this.findUserByUsername(user.username);
       if (existingUser) {
         return {
           success: false,
@@ -47,14 +47,14 @@ export class RegistrationService {
       // Hash password before storing
       const hashedPassword = PasswordHasher.hash(user.password);
 
-      // Insert new user using SQLite-safe insert + last_insert_rowid()
+      // Insert new user
       const insertStmt = this.unit.prepare<unknown, { username: string; password: string }>(
-        'INSERT INTO User (username, password, joinDate) VALUES ($username, $password, CURRENT_TIMESTAMP)',
+        'INSERT INTO "User" (username, password, joinDate) VALUES ($username, $password, CURRENT_TIMESTAMP)',
         { username: user.username, password: hashedPassword }
       );
-      insertStmt.run();
+      await insertStmt.run();
 
-      const userId = this.unit.getLastRowId();
+      const userId = await this.unit.getLastRowId();
       if (!userId) {
         return {
           success: false,
@@ -65,7 +65,7 @@ export class RegistrationService {
       return {
         success: true,
         userId,
-        user: this.findUserById(userId)
+        user: await this.findUserById(userId)
       };
     } catch (error: any) {
       return {
@@ -80,19 +80,19 @@ export class RegistrationService {
    * @param username The username to search for
    * @returns The user if found, undefined otherwise
    */
-  private findUserByUsername(username: string): User | undefined {
+  private async findUserByUsername(username: string): Promise<User | undefined> {
     const stmt = this.unit.prepare<User, { username: string }>(
-      'SELECT id, username, password, profilePicture, joinDate FROM User WHERE username = $username',
+      'SELECT id, username, password, profilePicture, joinDate FROM "User" WHERE username = $username',
       { username }
     );
-    return stmt.get();
+    return await stmt.get();
   }
 
-  private findUserById(userId: number): User | undefined {
+  private async findUserById(userId: number): Promise<User | undefined> {
     const stmt = this.unit.prepare<User, { userId: number }>(
-      'SELECT id, username, password, profilePicture, joinDate FROM User WHERE id = $userId',
+      'SELECT id, username, password, profilePicture, joinDate FROM "User" WHERE id = $userId',
       { userId }
     );
-    return stmt.get();
+    return await stmt.get();
   }
 }

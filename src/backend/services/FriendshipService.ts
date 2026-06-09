@@ -39,7 +39,7 @@ export class FriendshipService {
   /**
    * Search users by username or exact id
    */
-  public searchUsers(query: string, excludeUserId?: number): SearchUserResult[] {
+  public async searchUsers(query: string, excludeUserId?: number): Promise<SearchUserResult[]> {
     const trimmed = query.trim();
     if (!trimmed) {
       return [];
@@ -59,7 +59,7 @@ export class FriendshipService {
          LIMIT 20`,
         { query: trimmed, idQuery: parseInt(trimmed, 10), excludeId: excludeUserId ?? null }
       );
-      const rows = stmt.all();
+      const rows = await stmt.all();
       return rows.map(row => ({
         id: row.id,
         username: row.username,
@@ -79,7 +79,7 @@ export class FriendshipService {
          LIMIT 20`,
         { query: trimmed, excludeId: excludeUserId ?? null }
       );
-      const rows = stmt.all();
+      const rows = await stmt.all();
       return rows.map(row => ({
         id: row.id,
         username: row.username,
@@ -93,7 +93,7 @@ export class FriendshipService {
   /**
    * Send a friend request
    */
-  public sendFriendRequest(requesterId: number, addresseeId: number): FriendRequestResult {
+  public async sendFriendRequest(requesterId: number, addresseeId: number): Promise<FriendRequestResult> {
     if (requesterId === addresseeId) {
       return { success: false, error: 'Cannot send friend request to yourself' };
     }
@@ -103,7 +103,7 @@ export class FriendshipService {
       'SELECT id FROM User WHERE id = $userId',
       { userId: requesterId }
     );
-    if (!requesterStmt.get()) {
+    if (!(await requesterStmt.get())) {
       return { success: false, error: 'Requester not found' };
     }
 
@@ -111,7 +111,7 @@ export class FriendshipService {
       'SELECT id FROM User WHERE id = $userId',
       { userId: addresseeId }
     );
-    if (!addresseeStmt.get()) {
+    if (!(await addresseeStmt.get())) {
       return { success: false, error: 'User not found' };
     }
 
@@ -125,7 +125,7 @@ export class FriendshipService {
           OR (requester_id = $addresseeId AND addressee_id = $requesterId)`,
       { requesterId, addresseeId }
     );
-    const existing = existingStmt.get();
+    const existing = await existingStmt.get();
     if (existing) {
       if (existing.status === 'accepted') {
         return { success: false, error: 'Already friends with this user' };
@@ -139,7 +139,7 @@ export class FriendshipService {
         'DELETE FROM Friendship WHERE id = $id',
         { id: existing.id }
       );
-      delStmt.run();
+      await delStmt.run();
     }
 
     const insertStmt = this.unit.prepare<
@@ -151,7 +151,7 @@ export class FriendshipService {
        RETURNING id`,
       { requesterId, addresseeId, createdAt: getLocalTimestamp() }
     );
-    const result = insertStmt.get();
+    const result = await insertStmt.get();
     if (!result) {
       return { success: false, error: 'Failed to send friend request' };
     }
@@ -162,7 +162,7 @@ export class FriendshipService {
   /**
    * Accept a friend request
    */
-  public acceptFriendRequest(friendshipId: number, userId: number): FriendActionResult {
+  public async acceptFriendRequest(friendshipId: number, userId: number): Promise<FriendActionResult> {
     const stmt = this.unit.prepare<
       { requester_id: number; addressee_id: number; status: string },
       { id: number }
@@ -170,7 +170,7 @@ export class FriendshipService {
       'SELECT requester_id, addressee_id, status FROM Friendship WHERE id = $id',
       { id: friendshipId }
     );
-    const friendship = stmt.get();
+    const friendship = await stmt.get();
     if (!friendship) {
       return { success: false, error: 'Friend request not found' };
     }
@@ -185,14 +185,14 @@ export class FriendshipService {
       "UPDATE Friendship SET status = 'accepted' WHERE id = $id",
       { id: friendshipId }
     );
-    updateStmt.run();
+    await updateStmt.run();
     return { success: true };
   }
 
   /**
    * Decline a friend request
    */
-  public declineFriendRequest(friendshipId: number, userId: number): FriendActionResult {
+  public async declineFriendRequest(friendshipId: number, userId: number): Promise<FriendActionResult> {
     const stmt = this.unit.prepare<
       { requester_id: number; addressee_id: number; status: string },
       { id: number }
@@ -200,7 +200,7 @@ export class FriendshipService {
       'SELECT requester_id, addressee_id, status FROM Friendship WHERE id = $id',
       { id: friendshipId }
     );
-    const friendship = stmt.get();
+    const friendship = await stmt.get();
     if (!friendship) {
       return { success: false, error: 'Friend request not found' };
     }
@@ -215,14 +215,14 @@ export class FriendshipService {
       "UPDATE Friendship SET status = 'declined' WHERE id = $id",
       { id: friendshipId }
     );
-    updateStmt.run();
+    await updateStmt.run();
     return { success: true };
   }
 
   /**
    * Get accepted friends for a user
    */
-  public getFriends(userId: number): FriendshipResult[] {
+  public async getFriends(userId: number): Promise<FriendshipResult[]> {
     const stmt = this.unit.prepare<
       { id: number; requester_id: number; addressee_id: number; status: string; created_at: string },
       { userId: number }
@@ -233,14 +233,14 @@ export class FriendshipService {
        ORDER BY created_at DESC`,
       { userId }
     );
-    const rows = stmt.all();
-    return rows.map(row => this.toFriendshipResult(row, userId));
+    const rows = await stmt.all();
+    return await Promise.all(rows.map(row => this.toFriendshipResult(row, userId)));
   }
 
   /**
    * Get pending friend requests received by a user
    */
-  public getPendingRequests(userId: number): FriendshipResult[] {
+  public async getPendingRequests(userId: number): Promise<FriendshipResult[]> {
     const stmt = this.unit.prepare<
       { id: number; requester_id: number; addressee_id: number; status: string; created_at: string },
       { userId: number }
@@ -250,9 +250,9 @@ export class FriendshipService {
        ORDER BY created_at DESC`,
       { userId }
     );
-    const rows = stmt.all();
-    return rows.map(row => {
-      const result = this.toFriendshipResult(row, userId);
+    const rows = await stmt.all();
+    const results = await Promise.all(rows.map(async row => {
+      const result = await this.toFriendshipResult(row, userId);
       // Fetch initial message for this request
       const msgStmt = this.unit.prepare<
         { content: string },
@@ -264,18 +264,19 @@ export class FriendshipService {
          LIMIT 1`,
         { requesterId: row.requester_id, addresseeId: row.addressee_id }
       );
-      const msg = msgStmt.get();
+      const msg = await msgStmt.get();
       if (msg) {
         result.initialMessage = msg.content;
       }
       return result;
-    });
+    }));
+    return results;
   }
 
   /**
    * Get pending friend requests sent by a user
    */
-  public getSentRequests(userId: number): FriendshipResult[] {
+  public async getSentRequests(userId: number): Promise<FriendshipResult[]> {
     const stmt = this.unit.prepare<
       { id: number; requester_id: number; addressee_id: number; status: string; created_at: string },
       { userId: number }
@@ -285,9 +286,9 @@ export class FriendshipService {
        ORDER BY created_at DESC`,
       { userId }
     );
-    const rows = stmt.all();
-    return rows.map(row => {
-      const result = this.toFriendshipResult(row, userId);
+    const rows = await stmt.all();
+    const results = await Promise.all(rows.map(async row => {
+      const result = await this.toFriendshipResult(row, userId);
       // Fetch initial message for this request
       const msgStmt = this.unit.prepare<
         { content: string },
@@ -299,32 +300,33 @@ export class FriendshipService {
          LIMIT 1`,
         { requesterId: row.requester_id, addresseeId: row.addressee_id }
       );
-      const msg = msgStmt.get();
+      const msg = await msgStmt.get();
       if (msg) {
         result.initialMessage = msg.content;
       }
       return result;
-    });
+    }));
+    return results;
   }
 
   /**
    * Remove a friend or cancel a request
    */
-  public removeFriend(userId: number, friendId: number): FriendActionResult {
+  public async removeFriend(userId: number, friendId: number): Promise<FriendActionResult> {
     const stmt = this.unit.prepare<unknown, { userId: number; friendId: number }>(
       `DELETE FROM Friendship
        WHERE ((requester_id = $userId AND addressee_id = $friendId)
           OR (requester_id = $friendId AND addressee_id = $userId))`,
       { userId, friendId }
     );
-    stmt.run();
+    await stmt.run();
     return { success: true };
   }
 
   /**
    * Check if two users are friends
    */
-  public areFriends(userId1: number, userId2: number): boolean {
+  public async areFriends(userId1: number, userId2: number): Promise<boolean> {
     const stmt = this.unit.prepare<
       { id: number },
       { userId1: number; userId2: number }
@@ -335,13 +337,13 @@ export class FriendshipService {
            OR (requester_id = $userId2 AND addressee_id = $userId1))`,
       { userId1, userId2 }
     );
-    return !!stmt.get();
+    return !!(await stmt.get());
   }
 
-  private toFriendshipResult(
+  private async toFriendshipResult(
     row: { id: number; requester_id: number; addressee_id: number; status: string; created_at: string },
     currentUserId: number
-  ): FriendshipResult {
+  ): Promise<FriendshipResult> {
     const otherUserId = row.requester_id === currentUserId ? row.addressee_id : row.requester_id;
     const userStmt = this.unit.prepare<
       { id: number; username: string; profilePicture: Buffer | null },
@@ -350,7 +352,7 @@ export class FriendshipService {
       'SELECT id, username, profilePicture FROM User WHERE id = $userId',
       { userId: otherUserId }
     );
-    const user = userStmt.get();
+    const user = await userStmt.get();
 
     return {
       id: row.id,

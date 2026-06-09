@@ -41,7 +41,7 @@ export class MessageService {
   /**
    * Send a message from sender to receiver
    */
-  public sendMessage(request: SendMessageRequest): SendMessageResult {
+  public async sendMessage(request: SendMessageRequest): Promise<SendMessageResult> {
     if (!request.content || request.content.trim().length === 0) {
       return { success: false, error: 'Message content cannot be empty' };
     }
@@ -57,7 +57,7 @@ export class MessageService {
       'SELECT id FROM User WHERE id = $userId',
       { userId: request.senderId }
     );
-    if (!senderStmt.get()) {
+    if (!(await senderStmt.get())) {
       return { success: false, error: 'Sender not found' };
     }
 
@@ -65,7 +65,7 @@ export class MessageService {
       'SELECT id FROM User WHERE id = $userId',
       { userId: request.receiverId }
     );
-    if (!receiverStmt.get()) {
+    if (!(await receiverStmt.get())) {
       return { success: false, error: 'Receiver not found' };
     }
 
@@ -78,7 +78,7 @@ export class MessageService {
        RETURNING id`,
       { senderId: request.senderId, receiverId: request.receiverId, content: request.content.trim(), createdAt: getLocalTimestamp() }
     );
-    const result = insertStmt.get();
+    const result = await insertStmt.get();
     if (!result) {
       return { success: false, error: 'Failed to send message' };
     }
@@ -89,7 +89,7 @@ export class MessageService {
   /**
    * Get conversation between two users (all messages, ordered by time)
    */
-  public getConversation(userId1: number, userId2: number): MessageResult[] {
+  public async getConversation(userId1: number, userId2: number): Promise<MessageResult[]> {
     const stmt = this.unit.prepare<
       { id: number; sender_id: number; receiver_id: number; content: string; created_at: string; is_read: number },
       { userId1: number; userId2: number }
@@ -100,7 +100,7 @@ export class MessageService {
        ORDER BY created_at ASC`,
       { userId1, userId2 }
     );
-    const rows = stmt.all();
+    const rows = await stmt.all();
     return rows.map(row => ({
       id: row.id,
       senderId: row.sender_id,
@@ -114,7 +114,7 @@ export class MessageService {
   /**
    * Get conversation previews for a user (one per other user, with latest message)
    */
-  public getConversations(userId: number): ConversationPreview[] {
+  public async getConversations(userId: number): Promise<ConversationPreview[]> {
     // Get all messages where user is sender or receiver
     const stmt = this.unit.prepare<
       { other_user_id: number; other_username: string; other_profile_picture: Buffer | null; last_message_id: number; last_content: string; last_sender_id: number; last_receiver_id: number; last_created_at: string; last_is_read: number; unread_count: number },
@@ -154,7 +154,7 @@ export class MessageService {
        ORDER BY um.created_at DESC`,
       { userId }
     );
-    const rows = stmt.all();
+    const rows = await stmt.all();
     return rows.map(row => ({
       otherUserId: row.other_user_id,
       otherUsername: row.other_username,
@@ -176,7 +176,7 @@ export class MessageService {
   /**
    * Mark messages as read
    */
-  public markAsRead(messageIds: number[], userId: number): { success: boolean; error?: string } {
+  public async markAsRead(messageIds: number[], userId: number): Promise<{ success: boolean; error?: string }> {
     if (!messageIds.length) {
       return { success: true };
     }
@@ -187,7 +187,7 @@ export class MessageService {
         'UPDATE Message SET is_read = 1 WHERE id = $id AND receiver_id = $userId',
         { id, userId }
       );
-      stmt.run();
+      await stmt.run();
     }
 
     return { success: true };
@@ -196,19 +196,19 @@ export class MessageService {
   /**
    * Mark all messages from a sender as read for a receiver
    */
-  public markConversationAsRead(senderId: number, receiverId: number): { success: boolean; error?: string } {
+  public async markConversationAsRead(senderId: number, receiverId: number): Promise<{ success: boolean; error?: string }> {
     const stmt = this.unit.prepare<unknown, { senderId: number; receiverId: number }>(
       'UPDATE Message SET is_read = 1 WHERE sender_id = $senderId AND receiver_id = $receiverId AND is_read = 0',
       { senderId, receiverId }
     );
-    stmt.run();
+    await stmt.run();
     return { success: true };
   }
 
   /**
    * Store a message directly without friendship check (used for request messages)
    */
-  public storeMessageDirectly(senderId: number, receiverId: number, content: string): SendMessageResult {
+  public async storeMessageDirectly(senderId: number, receiverId: number, content: string): Promise<SendMessageResult> {
     if (!content || content.trim().length === 0) {
       return { success: false, error: 'Message content cannot be empty' };
     }
@@ -225,7 +225,7 @@ export class MessageService {
        RETURNING id`,
       { senderId, receiverId, content: content.trim(), createdAt: getLocalTimestamp() }
     );
-    const result = insertStmt.get();
+    const result = await insertStmt.get();
     if (!result) {
       return { success: false, error: 'Failed to send message' };
     }
@@ -236,7 +236,7 @@ export class MessageService {
   /**
    * Get the initial message for a pending friend request (if any)
    */
-  public getRequestMessage(requesterId: number, addresseeId: number): MessageResult | undefined {
+  public async getRequestMessage(requesterId: number, addresseeId: number): Promise<MessageResult | undefined> {
     const stmt = this.unit.prepare<
       { id: number; sender_id: number; receiver_id: number; content: string; created_at: string; is_read: number },
       { requesterId: number; addresseeId: number }
@@ -247,7 +247,7 @@ export class MessageService {
        LIMIT 1`,
       { requesterId, addresseeId }
     );
-    const row = stmt.get();
+    const row = await stmt.get();
     if (!row) return undefined;
     return {
       id: row.id,
@@ -262,12 +262,12 @@ export class MessageService {
   /**
    * Get unread message count for a user
    */
-  public getUnreadCount(userId: number): number {
+  public async getUnreadCount(userId: number): Promise<number> {
     const stmt = this.unit.prepare<{ count: number }, { userId: number }>(
       'SELECT COUNT(*) AS count FROM Message WHERE receiver_id = $userId AND is_read = 0',
       { userId }
     );
-    const result = stmt.get();
+    const result = await stmt.get();
     return result?.count ?? 0;
   }
 }

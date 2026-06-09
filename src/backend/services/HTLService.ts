@@ -1,4 +1,4 @@
-﻿import {Unit} from '../database/unit';
+import {Unit} from '../database/unit';
 import {User} from '../model';
 
 export interface SongJSON {
@@ -64,12 +64,12 @@ export class HTLService {
   }
 
 
-  public songToJSON(song: {
+  public async songToJSON(song: {
     id: number;
     name: string;
     author: string;
     bpm: number;
-  }, includeDifficulties: boolean = false): SongJSON {
+  }, includeDifficulties: boolean = false): Promise<SongJSON> {
     const result: SongJSON = {
       id: song.id,
       name: song.name,
@@ -82,19 +82,19 @@ export class HTLService {
         'SELECT id, song_id, difficulty, note_count FROM Difficulty WHERE song_id = $songId',
         { songId: song.id }
       );
-      result.difficulties = stmt.all();
+      result.difficulties = await stmt.all();
     }
 
     return result;
   }
 
 
-  public difficultyToJSON(difficulty: {
+  public async difficultyToJSON(difficulty: {
     id: number;
     song_id: number;
     difficulty: number;
     note_count: number;
-  }, includeNotes: boolean = false): DifficultyJSON {
+  }, includeNotes: boolean = false): Promise<DifficultyJSON> {
     const result: DifficultyJSON = {
       id: difficulty.id,
       song_id: difficulty.song_id,
@@ -107,7 +107,7 @@ export class HTLService {
         'SELECT id, difficulty_id, time_ms, lane, type, duration_ms FROM Note WHERE difficulty_id = $diffId',
         { diffId: difficulty.id }
       );
-      result.notes = stmt.all();
+      result.notes = await stmt.all();
     }
 
     return result;
@@ -133,19 +133,19 @@ export class HTLService {
   }
 
 
-  public highscoreToJSON(highscore: {
+  public async highscoreToJSON(highscore: {
     user_id: number;
     difficulty_id: number;
     score: number;
     max_combo: number;
     accuracy: number;
     date: string;
-  }): HighscoreJSON {
+  }): Promise<HighscoreJSON> {
     const userStmt = this.unit.prepare<{ username: string }, { userId: number }>(
       'SELECT username FROM User WHERE id = $userId',
       { userId: highscore.user_id }
     );
-    const user = userStmt.get();
+    const user = await userStmt.get();
 
     const songStmt = this.unit.prepare<{ name: string }, { diffId: number }>(
       `SELECT s.name FROM Song s
@@ -153,7 +153,7 @@ export class HTLService {
        WHERE d.id = $diffId`,
       { diffId: highscore.difficulty_id }
     );
-    const song = songStmt.get();
+    const song = await songStmt.get();
 
     return {
       user_id: highscore.user_id,
@@ -168,7 +168,7 @@ export class HTLService {
   }
 
 
-  public toJSON(
+  public async toJSON(
     entity: unknown,
     entityType: 'user' | 'song' | 'difficulty' | 'note' | 'highscore',
     options?: {
@@ -176,7 +176,7 @@ export class HTLService {
       includeNotes?: boolean;
       includeUserInfo?: boolean;
     }
-  ): UserJSON | SongJSON | DifficultyJSON | NoteJSON | HighscoreJSON {
+  ): Promise<UserJSON | SongJSON | DifficultyJSON | NoteJSON | HighscoreJSON> {
     switch (entityType) {
       case 'user':
         return this.userToJSON(entity as User);

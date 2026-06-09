@@ -207,7 +207,7 @@ export class SongService {
     this.htlService = new HTLService(unit);
   }
 
-  public addSong(request: AddSongRequest): AddSongResponse {
+  public async addSong(request: AddSongRequest): Promise<AddSongResponse> {
     try {
       if (!request.name || request.name.trim().length === 0) {
         return { success: false, error: 'Song name is required' };
@@ -267,9 +267,9 @@ export class SongService {
           genre
         }
       );
-      insertStmt.run();
+      await insertStmt.run();
 
-      const songId = this.unit.getLastRowId();
+      const songId = await this.unit.getLastRowId();
       if (!songId) {
         return { success: false, error: 'Failed to insert song' };
       }
@@ -287,13 +287,13 @@ export class SongService {
     }
   }
 
-  public getAllSongs(
+  public async getAllSongs(
     viewerId?: number,
     searchQuery?: string,
     genreFilter?: string,
     sortBy?: string,
     ownerId?: number
-  ): SongResponse[] {
+  ): Promise<SongResponse[]> {
     const conditions: string[] = [];
     const params: Record<string, unknown> = {};
 
@@ -313,7 +313,7 @@ export class SongService {
 
     // Search filter (name or author)
     if (searchQuery && searchQuery.trim().length > 0) {
-      conditions.push('(LOWER(s.name) LIKE $search OR LOWER(s.author) LIKE $search)');
+      conditions.push("(LOWER(s.name) LIKE $search OR LOWER(s.author) LIKE $search)");
       params.search = `%${searchQuery.trim().toLowerCase()}%`;
     }
 
@@ -366,11 +366,12 @@ export class SongService {
 
     const stmt = this.unit.prepare<EnrichedSongRecord>(sql, params);
 
-    return stmt.all().map(song => this.toResponse(song, song.likeCount, !!song.isLikedByUser));
+    const rows = await stmt.all();
+    return await Promise.all(rows.map(song => this.toResponse(song, song.likeCount, !!song.isLikedByUser)));
   }
 
-  public getSongDifficulties(songId: number, viewerId?: number): SongDifficultyResponse[] | undefined {
-    const song = this.getRawSongById(songId);
+  public async getSongDifficulties(songId: number, viewerId?: number): Promise<SongDifficultyResponse[] | undefined> {
+    const song = await this.getRawSongById(songId);
     if (!song) {
       return undefined;
     }
@@ -382,12 +383,12 @@ export class SongService {
     return this.getDifficultiesBySongId(songId);
   }
 
-  public addSongDifficulty(
+  public async addSongDifficulty(
     songId: number,
     ownerId: number,
     difficulty: number,
     notes: ChartNoteInput[]
-  ): AddSongDifficultyResponse {
+  ): Promise<AddSongDifficultyResponse> {
     try {
       if (!Number.isInteger(songId) || songId <= 0) {
         return { success: false, error: 'Invalid song ID' };
@@ -414,7 +415,7 @@ export class SongService {
         }
       }
 
-      const song = this.getRawSongById(songId);
+      const song = await this.getRawSongById(songId);
       if (!song) {
         return { success: false, error: 'Song not found' };
       }
@@ -428,7 +429,7 @@ export class SongService {
         { songId, difficulty }
       );
 
-      if (existingStmt.get()) {
+      if (await existingStmt.get()) {
         return { success: false, error: 'This difficulty already exists for the selected song' };
       }
 
@@ -437,15 +438,15 @@ export class SongService {
          VALUES ($songId, $difficulty, $noteCount)`,
         { songId, difficulty, noteCount: notes.length }
       );
-      insertDifficulty.run();
+      await insertDifficulty.run();
 
-      const difficultyId = this.unit.getLastRowId();
+      const difficultyId = await this.unit.getLastRowId();
       if (!difficultyId) {
         return { success: false, error: 'Failed to create difficulty' };
       }
 
       for (const note of notes) {
-        this.unit.prepare(
+        await this.unit.prepare(
           `INSERT INTO Note (difficulty_id, time_ms, lane, type, duration_ms)
            VALUES ($difficultyId, $timeMs, $lane, $type, $durationMs)`,
           {
@@ -471,9 +472,9 @@ export class SongService {
     }
   }
 
-  public getSongById(
+  public async getSongById(
     songId: number
-  , viewerId?: number): SongResponse | undefined {
+  , viewerId?: number): Promise<SongResponse | undefined> {
     interface EnrichedSongRecord extends SongRecord {
       likeCount: number;
       isLikedByUser: number;
@@ -489,7 +490,7 @@ export class SongService {
       { id: songId, viewerId: viewerId ?? null }
     );
 
-    const song = stmt.get();
+    const song = await stmt.get();
     if (!song) {
       return undefined;
     }
@@ -498,16 +499,16 @@ export class SongService {
       return undefined;
     }
 
-    return this.toResponse(song, song.likeCount, !!song.isLikedByUser);
+    return await this.toResponse(song, song.likeCount, !!song.isLikedByUser);
   }
 
-  public updateSongVisibility(
+  public async updateSongVisibility(
     songId: number,
     ownerId: number,
     isPublic: boolean
-  ): UpdateSongVisibilityResponse {
+  ): Promise<UpdateSongVisibilityResponse> {
     try {
-      const song = this.getRawSongById(songId);
+      const song = await this.getRawSongById(songId);
       if (!song) {
         return { success: false, error: 'Song not found' };
       }
@@ -520,28 +521,28 @@ export class SongService {
         'UPDATE Song SET isPublic = $isPublic WHERE id = $id',
         { id: songId, isPublic: isPublic ? 1 : 0 }
       );
-      const result = stmt.run();
+      const result = await stmt.run();
 
       if (result.changes === 0) {
         return { success: false, error: 'Failed to update song visibility' };
       }
 
-      const updatedSong = this.getRawSongById(songId);
+      const updatedSong = await this.getRawSongById(songId);
       return {
         success: true,
-        song: updatedSong ? this.toResponse(updatedSong) : undefined
+        song: updatedSong ? await this.toResponse(updatedSong) : undefined
       };
     } catch (error: any) {
       return { success: false, error: error.message || 'Failed to update song visibility' };
     }
   }
 
-  public deleteSong(
+  public async deleteSong(
     songId: number,
     requesterId?: number
-  ): { success: boolean; error?: string; song?: SongRecord } {
+  ): Promise<{ success: boolean; error?: string; song?: SongRecord }> {
     try {
-      const song = this.getRawSongById(songId);
+      const song = await this.getRawSongById(songId);
       if (!song) {
         return { success: false, error: 'Song not found' };
       }
@@ -554,17 +555,17 @@ export class SongService {
         return { success: false, error: 'Only the uploader can delete this song' };
       }
 
-      this.unit.prepare<unknown, { songId: number }>(
+      await this.unit.prepare<unknown, { songId: number }>(
         'DELETE FROM Note WHERE difficulty_id IN (SELECT id FROM Difficulty WHERE song_id = $songId)',
         { songId }
       ).run();
 
-      this.unit.prepare<unknown, { songId: number }>(
+      await this.unit.prepare<unknown, { songId: number }>(
         'DELETE FROM Highscore WHERE difficulty_id IN (SELECT id FROM Difficulty WHERE song_id = $songId)',
         { songId }
       ).run();
 
-      this.unit.prepare<unknown, { songId: number }>(
+      await this.unit.prepare<unknown, { songId: number }>(
         'DELETE FROM Difficulty WHERE song_id = $songId',
         { songId }
       ).run();
@@ -573,7 +574,7 @@ export class SongService {
         'DELETE FROM Song WHERE id = $id',
         { id: songId }
       );
-      const result = stmt.run();
+      const result = await stmt.run();
 
       if (result.changes === 0) {
         return { success: false, error: 'Failed to delete song' };
@@ -585,7 +586,7 @@ export class SongService {
     }
   }
 
-  public getUploadedSongCount(ownerId: number, viewerId?: number): number {
+  public async getUploadedSongCount(ownerId: number, viewerId?: number): Promise<number> {
     const stmt = this.unit.prepare<UploadedSongCountResult, { ownerId: number; viewerId: number | null }>(
       `SELECT COUNT(*) as count
        FROM Song
@@ -594,21 +595,21 @@ export class SongService {
       { ownerId, viewerId: viewerId ?? null }
     );
 
-    const result = stmt.get();
+    const result = await stmt.get();
     return result?.count ?? 0;
   }
 
-  public getDifficultyLeaderboard(
+  public async getDifficultyLeaderboard(
     songId: number,
     difficultyId: number,
     viewerId?: number
-  ): DifficultyLeaderboardResponse | undefined {
-    const song = this.getRawSongById(songId);
+  ): Promise<DifficultyLeaderboardResponse | undefined> {
+    const song = await this.getRawSongById(songId);
     if (!song || !this.canViewSong(song, viewerId)) {
       return undefined;
     }
 
-    const difficulty = this.getRawDifficultyById(difficultyId);
+    const difficulty = await this.getRawDifficultyById(difficultyId);
     if (!difficulty || difficulty.song_id !== songId) {
       return undefined;
     }
@@ -635,7 +636,7 @@ export class SongService {
       { difficultyId }
     );
 
-    const rows = stmt.all();
+    const rows = await stmt.all();
     const topRows = rows.slice(0, 10);
     const viewerRow = viewerId == null ? undefined : rows.find(row => row.user_id === viewerId);
     const entries = [...topRows, ...(viewerRow && viewerRow.position > 10 ? [viewerRow] : [])]
@@ -649,17 +650,17 @@ export class SongService {
     };
   }
 
-  public getDifficultyChart(
+  public async getDifficultyChart(
     songId: number,
     difficultyId: number,
     viewerId?: number
-  ): DifficultyChartResponse | undefined {
-    const song = this.getRawSongById(songId);
+  ): Promise<DifficultyChartResponse | undefined> {
+    const song = await this.getRawSongById(songId);
     if (!song || !this.canViewSong(song, viewerId)) {
       return undefined;
     }
 
-    const difficulty = this.getRawDifficultyById(difficultyId);
+    const difficulty = await this.getRawDifficultyById(difficultyId);
     if (!difficulty || difficulty.song_id !== songId) {
       return undefined;
     }
@@ -669,7 +670,7 @@ export class SongService {
       { difficultyId }
     );
 
-    const notes = stmt.all().map(note => ({
+    const notes = (await stmt.all()).map(note => ({
       time: note.time_ms,
       lane: note.lane
     }));
@@ -692,8 +693,8 @@ export class SongService {
   /**
    * Retrieve comments for a song (only if song is public or viewer is owner)
    */
-  public getCommentsForSong(songId: number, viewerId?: number): CommentResponse[] | undefined {
-    const song = this.getRawSongById(songId);
+  public async getCommentsForSong(songId: number, viewerId?: number): Promise<CommentResponse[] | undefined> {
+    const song = await this.getRawSongById(songId);
     if (!song || !this.canViewSong(song, viewerId)) {
       return undefined;
     }
@@ -712,7 +713,7 @@ export class SongService {
       { songId }
     );
 
-    const rows = stmt.all();
+    const rows = await stmt.all();
     return rows.map(r => ({
       id: r.id,
       songId: r.song_id,
@@ -727,9 +728,9 @@ export class SongService {
   /**
    * Add a comment to a song. Comments are only allowed on public songs.
    */
-  public addCommentToSong(songId: number, request: AddCommentRequest): AddCommentResponse {
+  public async addCommentToSong(songId: number, request: AddCommentRequest): Promise<AddCommentResponse> {
     try {
-      const song = this.getRawSongById(songId);
+      const song = await this.getRawSongById(songId);
       if (!song) return { success: false, error: 'Song not found' };
 
       if (!this.isPublicSong(song.isPublic)) {
@@ -751,18 +752,18 @@ export class SongService {
           'SELECT id, song_id FROM Comment WHERE id = $id',
           { id: parentId }
         );
-        const parent = parentStmt.get();
+        const parent = await parentStmt.get();
         if (!parent) return { success: false, error: 'Parent comment not found' };
         if (parent.song_id !== songId) return { success: false, error: 'Parent comment does not belong to this song' };
       }
 
-      this.unit.prepare<unknown, { songId: number; senderId: number; parentId: number | null; content: string }>(
+      await this.unit.prepare<unknown, { songId: number; senderId: number; parentId: number | null; content: string }>(
         `INSERT INTO Comment (song_id, sender_id, parent_comment_id, content)
          VALUES ($songId, $senderId, $parentId, $content)`,
         { songId, senderId: request.senderId, parentId, content: request.content.trim() }
       ).run();
 
-      const commentId = this.unit.getLastRowId();
+      const commentId = await this.unit.getLastRowId();
       if (!commentId) return { success: false, error: 'Failed to insert comment' };
 
       const fetchStmt = this.unit.prepare<CommentRecord, { id: number }>(
@@ -773,7 +774,7 @@ export class SongService {
         { id: commentId }
       );
 
-      const row = fetchStmt.get();
+      const row = await fetchStmt.get();
       if (!row) return { success: false, error: 'Failed to fetch created comment' };
 
       return {
@@ -793,12 +794,12 @@ export class SongService {
     }
   }
 
-  public submitDifficultyHighscore(
+  public async submitDifficultyHighscore(
     songId: number,
     difficultyId: number,
     userId: number,
     request: SubmitHighscoreRequest
-  ): SubmitHighscoreResponse {
+  ): Promise<SubmitHighscoreResponse> {
     try {
       if (!Number.isInteger(songId) || songId <= 0) {
         return { success: false, improved: false, error: 'Invalid song ID' };
@@ -824,12 +825,12 @@ export class SongService {
         return { success: false, improved: false, error: 'Accuracy must be between 0 and 100' };
       }
 
-      const song = this.getRawSongById(songId);
+      const song = await this.getRawSongById(songId);
       if (!song || !this.canViewSong(song, userId)) {
         return { success: false, improved: false, error: 'Song not found or not accessible' };
       }
 
-      const difficulty = this.getRawDifficultyById(difficultyId);
+      const difficulty = await this.getRawDifficultyById(difficultyId);
       if (!difficulty || difficulty.song_id !== songId) {
         return { success: false, improved: false, error: 'Difficulty not found' };
       }
@@ -847,10 +848,10 @@ export class SongService {
         'SELECT user_id, difficulty_id, score, max_combo, accuracy, date FROM Highscore WHERE user_id = $userId AND difficulty_id = $difficultyId',
         { userId, difficultyId }
       );
-      const existing = existingStmt.get();
+      const existing = await existingStmt.get();
 
       if (!existing) {
-        this.unit.prepare(
+        await this.unit.prepare(
           `INSERT INTO Highscore (user_id, difficulty_id, score, max_combo, accuracy, date)
            VALUES ($userId, $difficultyId, $score, $maxCombo, $accuracy, $date)`,
           {
@@ -863,7 +864,7 @@ export class SongService {
           }
         ).run();
       } else if (this.isBetterHighscore(candidate, existing)) {
-        this.unit.prepare(
+        await this.unit.prepare(
           `UPDATE Highscore
            SET score = $score, max_combo = $maxCombo, accuracy = $accuracy, date = $date
            WHERE user_id = $userId AND difficulty_id = $difficultyId`,
@@ -877,12 +878,12 @@ export class SongService {
           }
         ).run();
       } else {
-        const current = this.getDifficultyLeaderboard(songId, difficultyId, userId);
+        const current = await this.getDifficultyLeaderboard(songId, difficultyId, userId);
         const entry = current?.entries.find(row => row.userId === userId);
         return { success: true, improved: false, entry };
       }
 
-      const updatedLeaderboard = this.getDifficultyLeaderboard(songId, difficultyId, userId);
+      const updatedLeaderboard = await this.getDifficultyLeaderboard(songId, difficultyId, userId);
       const entry = updatedLeaderboard?.entries.find(row => row.userId === userId);
 
       return { success: true, improved: true, entry };
@@ -891,25 +892,25 @@ export class SongService {
     }
   }
 
-    private getRawSongById(songId: number): SongRecord | undefined {
-     const stmt = this.unit.prepare<SongRecord, { id: number }>(
-       'SELECT id, name, author, bpm, length, songUrl, coverUrl, ownerId, isPublic, genre, play_count FROM Song WHERE id = $id',
-       { id: songId }
-     );
+  private async getRawSongById(songId: number): Promise<SongRecord | undefined> {
+    const stmt = this.unit.prepare<SongRecord, { id: number }>(
+      'SELECT id, name, author, bpm, length, songUrl, coverUrl, ownerId, isPublic, genre, play_count FROM Song WHERE id = $id',
+      { id: songId }
+    );
 
-     return stmt.get();
-   }
+    return await stmt.get();
+  }
 
-  private getRawDifficultyById(difficultyId: number): SongDifficultyRecord | undefined {
+  private async getRawDifficultyById(difficultyId: number): Promise<SongDifficultyRecord | undefined> {
     const stmt = this.unit.prepare<SongDifficultyRecord, { id: number }>(
       'SELECT id, song_id, difficulty, note_count FROM Difficulty WHERE id = $id',
       { id: difficultyId }
     );
 
-    return stmt.get();
+    return await stmt.get();
   }
 
-  public likeSong(songId: number, userId: number): { success: boolean; error?: string } {
+  public async likeSong(songId: number, userId: number): Promise<{ success: boolean; error?: string }> {
     try {
       if (!Number.isInteger(songId) || songId <= 0) {
         return { success: false, error: 'Invalid song ID' };
@@ -918,7 +919,7 @@ export class SongService {
         return { success: false, error: 'Invalid user ID' };
       }
 
-      const song = this.getRawSongById(songId);
+      const song = await this.getRawSongById(songId);
       if (!song) {
         return { success: false, error: 'Song not found' };
       }
@@ -926,7 +927,7 @@ export class SongService {
         return { success: false, error: 'Cannot like private songs' };
       }
 
-      this.unit.prepare<unknown, { songId: number; userId: number }>(
+      await this.unit.prepare<unknown, { songId: number; userId: number }>(
         `INSERT INTO SongLike (song_id, user_id) VALUES ($songId, $userId)
          ON CONFLICT(song_id, user_id) DO NOTHING`,
         { songId, userId }
@@ -938,7 +939,7 @@ export class SongService {
     }
   }
 
-  public unlikeSong(songId: number, userId: number): { success: boolean; error?: string } {
+  public async unlikeSong(songId: number, userId: number): Promise<{ success: boolean; error?: string }> {
     try {
       if (!Number.isInteger(songId) || songId <= 0) {
         return { success: false, error: 'Invalid song ID' };
@@ -947,7 +948,7 @@ export class SongService {
         return { success: false, error: 'Invalid user ID' };
       }
 
-      this.unit.prepare<unknown, { songId: number; userId: number }>(
+      await this.unit.prepare<unknown, { songId: number; userId: number }>(
         'DELETE FROM SongLike WHERE song_id = $songId AND user_id = $userId',
         { songId, userId }
       ).run();
@@ -958,13 +959,13 @@ export class SongService {
     }
   }
 
-  public incrementPlayCount(songId: number): { success: boolean; error?: string } {
+  public async incrementPlayCount(songId: number): Promise<{ success: boolean; error?: string }> {
     try {
       if (!Number.isInteger(songId) || songId <= 0) {
         return { success: false, error: 'Invalid song ID' };
       }
 
-      this.unit.prepare<unknown, { songId: number }>(
+      await this.unit.prepare<unknown, { songId: number }>(
         'UPDATE Song SET play_count = COALESCE(play_count, 0) + 1 WHERE id = $songId',
         { songId }
       ).run();
@@ -975,7 +976,7 @@ export class SongService {
     }
   }
 
-  private toResponse(song: SongRecord, likeCount: number = 0, isLikedByUser: boolean = false): SongResponse {
+  private async toResponse(song: SongRecord, likeCount: number = 0, isLikedByUser: boolean = false): Promise<SongResponse> {
     return {
       id: song.id,
       name: song.name,
@@ -990,17 +991,17 @@ export class SongService {
       playCount: song.play_count ?? 0,
       likeCount,
       isLikedByUser,
-      difficulties: this.getDifficultiesBySongId(song.id)
+      difficulties: await this.getDifficultiesBySongId(song.id)
     };
   }
 
-  private getDifficultiesBySongId(songId: number): SongDifficultyResponse[] {
+  private async getDifficultiesBySongId(songId: number): Promise<SongDifficultyResponse[]> {
     const stmt = this.unit.prepare<SongDifficultyRecord, { songId: number }>(
       'SELECT id, song_id, difficulty, note_count FROM Difficulty WHERE song_id = $songId ORDER BY difficulty ASC',
       { songId }
     );
 
-    return stmt.all().map(difficulty => ({
+    return (await stmt.all()).map(difficulty => ({
       id: difficulty.id,
       difficulty: difficulty.difficulty,
       noteCount: difficulty.note_count

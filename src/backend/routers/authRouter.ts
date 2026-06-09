@@ -7,10 +7,12 @@ import { Unit } from '../database/unit';
 export const authRouter = Router();
 
 authRouter.post('/register', async (req: Request, res: Response) => {
+  const unit = new Unit(false);
   try {
     const { username, password } = req.body;
 
     if (!username || !password) {
+      await unit.complete(false);
       res.status(400).json({
         success: false,
         error: 'Username and password are required'
@@ -18,10 +20,9 @@ authRouter.post('/register', async (req: Request, res: Response) => {
       return;
     }
 
-    const unit = new Unit(false);
     const registrationService = new RegistrationService(unit);
-    const result = registrationService.register({ username, password });
-    unit.complete(true);
+    const result = await registrationService.register({ username, password });
+    await unit.complete(true);
 
     if (result.success) {
       const htlService = new HTLService(null as any);
@@ -39,6 +40,7 @@ authRouter.post('/register', async (req: Request, res: Response) => {
       });
     }
   } catch (error: any) {
+    await unit.complete(false);
     console.error('Register endpoint error:', error);
     res.status(500).json({
       success: false,
@@ -49,10 +51,13 @@ authRouter.post('/register', async (req: Request, res: Response) => {
 
 
 authRouter.post('/login', async (req: Request, res: Response) => {
+  const unit = new Unit(true);
   try {
     const { username, password } = req.body;
+    console.log('📥 Login request body:', req.body);
 
     if (!username || !password) {
+      await unit.complete();
       res.status(400).json({
         success: false,
         error: 'Username and password are required'
@@ -60,10 +65,9 @@ authRouter.post('/login', async (req: Request, res: Response) => {
       return;
     }
 
-    const unit = new Unit(true);
     const authService = new AuthenticationService(unit);
-    const result = authService.login({ username, password });
-    unit.complete();
+    const result = await authService.login({ username, password });
+    await unit.complete();
 
     if (result.success) {
       // Return user without password
@@ -82,6 +86,7 @@ authRouter.post('/login', async (req: Request, res: Response) => {
       });
     }
   } catch (error: any) {
+    await unit.complete();
     console.error('Login endpoint error:', error);
     res.status(500).json({
       success: false,
@@ -99,24 +104,26 @@ authRouter.get('/health', (_req: Request, res: Response) => {
 });
 
 // Profile picture upload: accepts { userId, profilePictureBase64 }
-authRouter.post('/profile-picture', (req: Request, res: Response) => {
+authRouter.post('/profile-picture', async (req: Request, res: Response) => {
+  const unit = new Unit(false);
   try {
     const userId = Number(req.body?.userId);
     const base64 = req.body?.profilePictureBase64;
     if (!Number.isFinite(userId) || userId <= 0) {
+      await unit.complete(false);
       res.status(400).json({ success: false, error: 'Invalid userId' });
       return;
     }
 
     if (!base64 || typeof base64 !== 'string') {
+      await unit.complete(false);
       res.status(400).json({ success: false, error: 'profilePictureBase64 is required' });
       return;
     }
 
-    const unit = new Unit(false);
     const userService = new (require('../services/UserService').UserService)(unit);
-    const result = userService.updateProfilePicture({ userId, profilePictureBase64: base64 });
-    unit.complete(true);
+    const result = await userService.updateProfilePicture({ userId, profilePictureBase64: base64 });
+    await unit.complete(true);
 
     if (!result.success) {
       res.status(400).json(result);
@@ -125,24 +132,26 @@ authRouter.post('/profile-picture', (req: Request, res: Response) => {
 
     res.status(200).json(result);
   } catch (err: any) {
+    await unit.complete(false);
     console.error('POST profile-picture error', err);
     res.status(500).json({ success: false, error: err.message || 'Internal error' });
   }
 });
 
 // Serve stored profile picture binary for a user
-authRouter.get('/profile-picture/:userId', (req: Request, res: Response) => {
+authRouter.get('/profile-picture/:userId', async (req: Request, res: Response) => {
+  const unit = new Unit(true);
   try {
     const userId = Number(req.params['userId']);
     if (!Number.isFinite(userId) || userId <= 0) {
+      await unit.complete();
       res.status(400).json({ success: false, error: 'Invalid userId' });
       return;
     }
 
-    const unit = new Unit(true);
     const userService = new (require('../services/UserService').UserService)(unit);
-    const buffer = userService.getProfilePicture(userId);
-    unit.complete();
+    const buffer = await userService.getProfilePicture(userId);
+    await unit.complete();
 
     if (!buffer) {
       res.status(404).json({ success: false, error: 'Profile picture not found' });
@@ -168,24 +177,26 @@ authRouter.get('/profile-picture/:userId', (req: Request, res: Response) => {
     res.setHeader('Content-Type', contentType);
     res.send(buffer);
   } catch (err: any) {
+    await unit.complete();
     console.error('GET profile-picture error', err);
     res.status(500).json({ success: false, error: err.message || 'Internal error' });
   }
 });
 
 // Get basic user info (without password)
-authRouter.get('/user/:userId', (req: Request, res: Response) => {
+authRouter.get('/user/:userId', async (req: Request, res: Response) => {
+  const unit = new Unit(true);
   try {
     const userId = Number(req.params['userId']);
     if (!Number.isFinite(userId) || userId <= 0) {
+      await unit.complete();
       res.status(400).json({ success: false, error: 'Invalid userId' });
       return;
     }
 
-    const unit = new Unit(true);
     const userService = new (require('../services/UserService').UserService)(unit);
-    const user = userService.getUserById(userId);
-    unit.complete();
+    const user = await userService.getUserById(userId);
+    await unit.complete();
 
     if (!user) {
       res.status(404).json({ success: false, error: 'User not found' });
@@ -194,23 +205,25 @@ authRouter.get('/user/:userId', (req: Request, res: Response) => {
 
     res.status(200).json({ success: true, user });
   } catch (err: any) {
+    await unit.complete();
     console.error('GET user error', err);
     res.status(500).json({ success: false, error: err.message || 'Internal error' });
   }
 });
 
-authRouter.get('/user/:userId/achievements', (req: Request, res: Response) => {
+authRouter.get('/user/:userId/achievements', async (req: Request, res: Response) => {
+  const unit = new Unit(true);
   try {
     const userId = Number(req.params['userId']);
     if (!Number.isFinite(userId) || userId <= 0) {
+      await unit.complete();
       res.status(400).json({ success: false, error: 'Invalid userId' });
       return;
     }
 
-    const unit = new Unit(true);
     const userService = new (require('../services/UserService').UserService)(unit);
-    const result = userService.getUserAchievements(userId);
-    unit.complete();
+    const result = await userService.getUserAchievements(userId);
+    await unit.complete();
 
     if (!result.success) {
       res.status(400).json({ success: false, error: result.error });
@@ -219,62 +232,68 @@ authRouter.get('/user/:userId/achievements', (req: Request, res: Response) => {
 
     res.status(200).json({ success: true, achievements: result.achievements ?? [] });
   } catch (err: any) {
+    await unit.complete();
     console.error('GET user achievements error', err);
     res.status(500).json({ success: false, error: err.message || 'Internal error' });
   }
 });
 
-authRouter.post('/user/:userId/achievements', (req: Request, res: Response) => {
+authRouter.post('/user/:userId/achievements', async (req: Request, res: Response) => {
+  const unit = new Unit(false);
   try {
     const userId = Number(req.params['userId']);
     if (!Number.isFinite(userId) || userId <= 0) {
+      await unit.complete(false);
       res.status(400).json({ success: false, error: 'Invalid userId' });
       return;
     }
 
     const achievements = Array.isArray(req.body?.achievements) ? req.body.achievements : null;
     if (!achievements) {
+      await unit.complete(false);
       res.status(400).json({ success: false, error: 'Invalid achievements payload' });
       return;
     }
 
-    const unit = new Unit(false);
     const userService = new (require('../services/UserService').UserService)(unit);
-    const result = userService.saveUserAchievements(userId, achievements);
+    const result = await userService.saveUserAchievements(userId, achievements);
 
     if (!result.success) {
-      unit.complete(false);
+      await unit.complete(false);
       res.status(400).json({ success: false, error: result.error });
       return;
     }
 
-    unit.complete(true);
+    await unit.complete(true);
     res.status(200).json({ success: true });
   } catch (err: any) {
+    await unit.complete(false);
     console.error('POST user achievements error', err);
     res.status(500).json({ success: false, error: err.message || 'Internal error' });
   }
 });
 
 // Add playtime seconds to user's total and return new total
-authRouter.post('/playtime', (req: Request, res: Response) => {
+authRouter.post('/playtime', async (req: Request, res: Response) => {
+  const unit = new Unit(false);
   try {
     const userId = Number(req.body?.userId);
     const seconds = Number(req.body?.seconds);
     if (!Number.isFinite(userId) || userId <= 0) {
+      await unit.complete(false);
       res.status(400).json({ success: false, error: 'Invalid userId' });
       return;
     }
 
     if (!Number.isFinite(seconds) || seconds <= 0) {
+      await unit.complete(false);
       res.status(400).json({ success: false, error: 'Invalid seconds value' });
       return;
     }
 
-    const unit = new Unit(false);
     const userService = new (require('../services/UserService').UserService)(unit);
-    const result = userService.addPlaytime(userId, Math.round(seconds));
-    unit.complete(true);
+    const result = await userService.addPlaytime(userId, Math.round(seconds));
+    await unit.complete(true);
 
     if (!result.success) {
       res.status(400).json(result);
@@ -283,24 +302,26 @@ authRouter.post('/playtime', (req: Request, res: Response) => {
 
     res.status(200).json({ success: true, playtimeSeconds: result.playtimeSeconds });
   } catch (err: any) {
+    await unit.complete(false);
     console.error('POST playtime error', err);
     res.status(500).json({ success: false, error: err.message || 'Internal error' });
   }
 });
 
 // Per-user settings endpoints
-authRouter.get('/user/:userId/settings', (req: Request, res: Response) => {
+authRouter.get('/user/:userId/settings', async (req: Request, res: Response) => {
+  const unit = new Unit(true);
   try {
     const userId = Number(req.params['userId']);
     if (!Number.isFinite(userId) || userId <= 0) {
+      await unit.complete();
       res.status(400).json({ success: false, error: 'Invalid userId' });
       return;
     }
 
-    const unit = new Unit(true);
     const userService = new (require('../services/UserService').UserService)(unit);
-    const settingsJson = userService.getUserSettings(userId);
-    unit.complete();
+    const settingsJson = await userService.getUserSettings(userId);
+    await unit.complete();
 
     if (settingsJson === undefined) {
       res.status(404).json({ success: false, error: 'User not found' });
@@ -316,15 +337,18 @@ authRouter.get('/user/:userId/settings', (req: Request, res: Response) => {
 
     res.status(200).json({ success: true, settings });
   } catch (err: any) {
+    await unit.complete();
     console.error('GET settings error', err);
     res.status(500).json({ success: false, error: err.message || 'Internal error' });
   }
 });
 
-authRouter.post('/user/:userId/settings', (req: Request, res: Response) => {
+authRouter.post('/user/:userId/settings', async (req: Request, res: Response) => {
+  const unit = new Unit(false);
   try {
     const userId = Number(req.params['userId']);
     if (!Number.isFinite(userId) || userId <= 0) {
+      await unit.complete(false);
       res.status(400).json({ success: false, error: 'Invalid userId' });
       return;
     }
@@ -332,10 +356,9 @@ authRouter.post('/user/:userId/settings', (req: Request, res: Response) => {
     const settings = req.body?.settings ?? null;
     const settingsJson = settings ? JSON.stringify(settings) : null;
 
-    const unit = new Unit(false);
     const userService = new (require('../services/UserService').UserService)(unit);
-    const result = userService.updateUserSettings(userId, settingsJson ?? '');
-    unit.complete(true);
+    const result = await userService.updateUserSettings(userId, settingsJson ?? '');
+    await unit.complete(true);
 
     if (!result.success) {
       res.status(400).json({ success: false, error: result.error });
@@ -344,16 +367,19 @@ authRouter.post('/user/:userId/settings', (req: Request, res: Response) => {
 
     res.status(200).json({ success: true });
   } catch (err: any) {
+    await unit.complete(false);
     console.error('POST settings error', err);
     res.status(500).json({ success: false, error: err.message || 'Internal error' });
   }
 });
 
 // Submit per-run gameplay stats to be accumulated on the user's record
-authRouter.post('/user/:userId/run', (req: Request, res: Response) => {
+authRouter.post('/user/:userId/run', async (req: Request, res: Response) => {
+  const unit = new Unit(false);
   try {
     const userId = Number(req.params['userId']);
     if (!Number.isFinite(userId) || userId <= 0) {
+      await unit.complete(false);
       res.status(400).json({ success: false, error: 'Invalid userId' });
       return;
     }
@@ -366,18 +392,17 @@ authRouter.post('/user/:userId/run', (req: Request, res: Response) => {
     const score = Number(payload.score) || 0;
     const accuracy = Number(payload.accuracy) || 0;
 
-    const unit = new Unit(false);
     const userService = new (require('../services/UserService').UserService)(unit);
 
     // Verify user exists
-    const check = unit.prepare<{ id: number }, { userId: number }>('SELECT id FROM User WHERE id = $userId', { userId }).get();
+    const check = await unit.prepare<{ id: number }, { userId: number }>('SELECT id FROM User WHERE id = $userId', { userId }).get();
     if (!check) {
-      unit.complete();
+      await unit.complete();
       res.status(404).json({ success: false, error: 'User not found' });
       return;
     }
 
-    unit.prepare(
+    await unit.prepare(
       `UPDATE User SET
          perfect_total = COALESCE(perfect_total, 0) + $perfect,
          good_total = COALESCE(good_total, 0) + $good,
@@ -390,24 +415,26 @@ authRouter.post('/user/:userId/run', (req: Request, res: Response) => {
       { perfect, good, glimmer, miss, score, accuracy, userId }
     ).run();
 
-    unit.complete(true);
+    await unit.complete(true);
     res.status(200).json({ success: true });
   } catch (err: any) {
+    await unit.complete(false);
     console.error('POST run stats error', err);
     res.status(500).json({ success: false, error: err.message || 'Internal error' });
   }
 });
 
 // Retrieve aggregated analytics for a user
-authRouter.get('/user/:userId/analytics', (req: Request, res: Response) => {
+authRouter.get('/user/:userId/analytics', async (req: Request, res: Response) => {
+  const unit = new Unit(true);
   try {
     const userId = Number(req.params['userId']);
     if (!Number.isFinite(userId) || userId <= 0) {
+      await unit.complete();
       res.status(400).json({ success: false, error: 'Invalid userId' });
       return;
     }
 
-    const unit = new Unit(true);
     const stmt = unit.prepare<{
       perfect_total: number; good_total: number; glimmer_total: number; miss_total: number;
       total_score: number; total_accuracy: number; runs_count: number; playtime_seconds?: number
@@ -417,8 +444,8 @@ authRouter.get('/user/:userId/analytics', (req: Request, res: Response) => {
       { userId }
     );
 
-    const row = stmt.get();
-    unit.complete();
+    const row = await stmt.get();
+    await unit.complete();
 
     if (!row) {
       res.status(404).json({ success: false, error: 'User not found' });
@@ -443,8 +470,8 @@ authRouter.get('/user/:userId/analytics', (req: Request, res: Response) => {
       }
     });
   } catch (err: any) {
+    await unit.complete();
     console.error('GET analytics error', err);
     res.status(500).json({ success: false, error: err.message || 'Internal error' });
   }
 });
-

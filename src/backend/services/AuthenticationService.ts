@@ -21,7 +21,7 @@ export class AuthenticationService {
    * @param request Login request with username and password
    * @returns Login response with success status and user or error
    */
-  public login(request: LoginRequest): LoginResponse {
+  public async login(request: LoginRequest): Promise<LoginResponse> {
     try {
       // Validate input
       if (!request.username || request.username.length < 3) {
@@ -39,7 +39,7 @@ export class AuthenticationService {
       }
 
       // Find user by username
-      const user = this.findUserByUsername(request.username);
+      const user = await this.findUserByUsername(request.username);
       if (!user) {
         return {
           success: false,
@@ -58,10 +58,10 @@ export class AuthenticationService {
           unknown,
           { userId: number; password: string }
         >(
-          'UPDATE User SET password = $password WHERE id = $userId',
+          'UPDATE "User" SET password = $password WHERE id = $userId',
           { userId: user.id, password: hashedPassword }
         );
-        updateStmt.run();
+        await updateStmt.run();
       }
 
       if (!passwordValid) {
@@ -96,12 +96,12 @@ export class AuthenticationService {
    * @param username The username to search for
    * @returns The user if found, undefined otherwise
    */
-  private findUserByUsername(username: string): User | undefined {
+  private async findUserByUsername(username: string): Promise<User | undefined> {
     // Include playtime_seconds so callers can see cumulative playtime
     const stmt = this.unit.prepare<any, { username: string }>(
-      'SELECT id, username, password, profilePicture, joinDate, playtime_seconds FROM User WHERE username = $username',
+      'SELECT id, username, password, profilePicture, joinDate, playtime_seconds FROM "User" WHERE username = $username',
       { username }
     );
-    return stmt.get();
+    return await stmt.get();
   }
 }
