@@ -8,7 +8,7 @@
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "test:backend": "jest",
-    "postinstall": "cd src/backend && npm ci --include=dev"
+    "postinstall": "cd src/backend && npm install"
   },
   "prettier": {
     "printWidth": 100,
