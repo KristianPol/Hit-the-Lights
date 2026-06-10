@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import fs from 'fs';
 import path from 'path';
 import { Unit } from '../database/unit';
-import { SongService } from '../services';
+import { SongService, R2Service } from '../services';
 
 export const songRouter = Router();
 
@@ -13,15 +13,12 @@ const COVER_DIR = path.join(UPLOADS_ROOT, 'covers');
 fs.mkdirSync(AUDIO_DIR, { recursive: true });
 fs.mkdirSync(COVER_DIR, { recursive: true });
 
-function saveBase64File(base64: string, mimeType: string, dir: string): string {
+function generateFilename(mimeType: string): string {
   const subType = mimeType.split('/')[1];
   const ext = subType
     ? subType.replace('mpeg', 'mp3').replace('jpeg', 'jpg').replace('x-matroska', 'webm')
     : 'bin';
-  const filename = `${Date.now()}-${Math.round(Math.random() * 1e9)}.${ext}`;
-  const filepath = path.join(dir, filename);
-  fs.writeFileSync(filepath, Buffer.from(base64, 'base64'));
-  return filename;
+  return `${Date.now()}-${Math.round(Math.random() * 1e9)}.${ext}`;
 }
 
 function parseOptionalNumber(value: unknown): number | undefined {
@@ -67,10 +64,14 @@ songRouter.post('/add', async (req: Request, res: Response) => {
       return;
     }
 
-    const audioFilename = saveBase64File(audioBase64, audioMimeType || 'audio/mpeg', AUDIO_DIR);
-    const coverFilename = saveBase64File(coverBase64, coverMimeType || 'image/jpeg', COVER_DIR);
-    const songUrl = `/uploads/audio/${audioFilename}`;
-    const coverUrl = `/uploads/covers/${coverFilename}`;
+    const audioFilename = generateFilename(audioMimeType || 'audio/mpeg');
+    const coverFilename = generateFilename(coverMimeType || 'image/jpeg');
+
+    const audioBuffer = Buffer.from(audioBase64, 'base64');
+    const coverBuffer = Buffer.from(coverBase64, 'base64');
+
+    const songUrl = await R2Service.uploadFile(audioBuffer, `songs/${audioFilename}`, audioMimeType || 'audio/mpeg');
+    const coverUrl = await R2Service.uploadFile(coverBuffer, `images/covers/${coverFilename}`, coverMimeType || 'image/jpeg');
 
     const svc = new SongService(unit);
     const result = await svc.addSong({ name, author, bpm: parseInt(bpm, 10), length, songUrl, coverUrl, ownerId: parseOptionalNumber(ownerId) ?? null, isPublic: parseVisibility(isPublic, true), genre });
@@ -221,12 +222,25 @@ songRouter.delete('/:id', async (req: Request, res: Response) => {
     const svc = new SongService(unit);
     const result = await svc.deleteSong(songId, viewerId);
     if (result.success) {
-      const audioFilename = result.song?.songUrl.split('/').pop();
-      const coverFilename = result.song?.coverUrl.split('/').pop();
-      const audioPath = path.join(AUDIO_DIR, audioFilename!);
-      const coverPath = path.join(COVER_DIR, coverFilename!);
-      if (fs.existsSync(audioPath)) fs.unlinkSync(audioPath);
-      if (fs.existsSync(coverPath)) fs.unlinkSync(coverPath);
+      const audioKey = R2Service.extractKey(result.song?.songUrl ?? '');
+      const coverKey = R2Service.extractKey(result.song?.coverUrl ?? '');
+
+      if (audioKey) {
+        try { await R2Service.deleteFile(audioKey); } catch (e) { /* ignore cleanup errors */ }
+      } else {
+        const audioFilename = result.song?.songUrl.split('/').pop();
+        const audioPath = path.join(AUDIO_DIR, audioFilename!);
+        if (fs.existsSync(audioPath)) fs.unlinkSync(audioPath);
+      }
+
+      if (coverKey) {
+        try { await R2Service.deleteFile(coverKey); } catch (e) { /* ignore cleanup errors */ }
+      } else {
+        const coverFilename = result.song?.coverUrl.split('/').pop();
+        const coverPath = path.join(COVER_DIR, coverFilename!);
+        if (fs.existsSync(coverPath)) fs.unlinkSync(coverPath);
+      }
+
       await unit.complete(true);
       res.json({ success: true, message: 'Song deleted successfully' });
     } else {

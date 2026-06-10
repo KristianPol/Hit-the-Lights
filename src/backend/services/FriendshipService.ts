@@ -50,10 +50,10 @@ export class FriendshipService {
     if (isNumeric) {
       // Search by exact ID or username contains
       const stmt = this.unit.prepare<
-        { id: number; username: string; profilePicture: Buffer | null },
+        { id: number; username: string; profilePicture: Buffer | null; profilePictureUrl: string | null },
         { query: string; idQuery: number; excludeId: number | null }
       >(
-        `SELECT id, username, profilePicture FROM User
+        `SELECT id, username, profilePicture, profilePictureUrl FROM User
          WHERE (id = $idQuery OR username LIKE '%' || $query || '%')
          AND ($excludeId IS NULL OR id != $excludeId)
          LIMIT 20`,
@@ -63,17 +63,19 @@ export class FriendshipService {
       return rows.map(row => ({
         id: row.id,
         username: row.username,
-        profilePictureUrl: row.profilePicture
-          ? `/api/auth/profile-picture/${row.id}?t=${Date.now()}`
-          : undefined
+        profilePictureUrl: row.profilePictureUrl
+          ? row.profilePictureUrl
+          : row.profilePicture
+            ? `/api/auth/profile-picture/${row.id}?t=${Date.now()}`
+            : undefined
       }));
     } else {
       // Search by username only
       const stmt = this.unit.prepare<
-        { id: number; username: string; profilePicture: Buffer | null },
+        { id: number; username: string; profilePicture: Buffer | null; profilePictureUrl: string | null },
         { query: string; excludeId: number | null }
       >(
-        `SELECT id, username, profilePicture FROM User
+        `SELECT id, username, profilePicture, profilePictureUrl FROM User
          WHERE username LIKE '%' || $query || '%'
          AND ($excludeId IS NULL OR id != $excludeId)
          LIMIT 20`,
@@ -83,9 +85,11 @@ export class FriendshipService {
       return rows.map(row => ({
         id: row.id,
         username: row.username,
-        profilePictureUrl: row.profilePicture
-          ? `/api/auth/profile-picture/${row.id}?t=${Date.now()}`
-          : undefined
+        profilePictureUrl: row.profilePictureUrl
+          ? row.profilePictureUrl
+          : row.profilePicture
+            ? `/api/auth/profile-picture/${row.id}?t=${Date.now()}`
+            : undefined
       }));
     }
   }
@@ -346,10 +350,10 @@ export class FriendshipService {
   ): Promise<FriendshipResult> {
     const otherUserId = row.requester_id === currentUserId ? row.addressee_id : row.requester_id;
     const userStmt = this.unit.prepare<
-      { id: number; username: string; profilePicture: Buffer | null },
+      { id: number; username: string; profilePicture: Buffer | null; profilePictureUrl: string | null },
       { userId: number }
     >(
-      'SELECT id, username, profilePicture FROM User WHERE id = $userId',
+      'SELECT id, username, profilePicture, profilePictureUrl FROM User WHERE id = $userId',
       { userId: otherUserId }
     );
     const user = await userStmt.get();
@@ -363,9 +367,11 @@ export class FriendshipService {
       otherUser: {
         id: user?.id ?? otherUserId,
         username: user?.username ?? 'Unknown',
-        profilePictureUrl: user?.profilePicture
-          ? `/api/auth/profile-picture/${user.id}?t=${Date.now()}`
-          : undefined
+        profilePictureUrl: user?.profilePictureUrl
+          ? user.profilePictureUrl
+          : user?.profilePicture
+            ? `/api/auth/profile-picture/${user.id}?t=${Date.now()}`
+            : undefined
       }
     };
   }

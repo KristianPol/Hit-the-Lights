@@ -39,6 +39,7 @@ const COLUMN_MAP: Record<string, string> = {
   senderid: 'senderId',
   receiverid: 'receiverId',
   profilepicture: 'profilePicture',
+  profilepictureurl: 'profilePictureUrl',
   joindate: 'joinDate',
   playtimeseconds: 'playtimeSeconds',
   settingsjson: 'settingsJson',
@@ -291,6 +292,7 @@ export class Unit {
         username TEXT NOT NULL,
         password TEXT NOT NULL,
         profilePicture BYTEA,
+        profilePictureUrl TEXT,
         joinDate TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
         playtime_seconds INTEGER NOT NULL DEFAULT 0,
         settings_json TEXT,
@@ -304,6 +306,13 @@ export class Unit {
         CONSTRAINT uq_username UNIQUE (username)
       )
     `);
+
+    // Ensure profilePictureUrl exists on older User tables
+    try {
+      await getSql().unsafe(`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS profilePictureUrl TEXT`);
+    } catch (e: any) {
+      // ignore
+    }
 
     await getSql().unsafe(`
       CREATE TABLE IF NOT EXISTS Song (

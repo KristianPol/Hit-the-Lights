@@ -3,6 +3,7 @@ export type User = {
   username: string,
   password: string,
   profilePicture?: Buffer | null,
+  profilePictureUrl?: string | null,
   joinDate: string,
   playtimeSeconds?: number
 };

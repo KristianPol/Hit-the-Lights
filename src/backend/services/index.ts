@@ -17,6 +17,7 @@ import type { SearchUserResult, FriendRequestResult, FriendshipResult, FriendAct
 import { MessageService } from './MessageService';
 import type { SendMessageRequest, SendMessageResult, MessageResult, ConversationPreview } from './MessageService';
 import { HTLService } from './HTLService';
+import { R2Service } from './R2Service';
 
 export type { RegistrationRequest, RegistrationResponse };
 export type { LoginRequest, LoginResponse };
@@ -31,4 +32,4 @@ export type { UpdateProfilePictureRequest, UpdateProfilePictureResponse, GetUser
 export type { SearchUserResult, FriendRequestResult, FriendshipResult, FriendActionResult };
 export type { SendMessageRequest, SendMessageResult, MessageResult, ConversationPreview };
 
-export { RegistrationService, AuthenticationService, SongService, UserService, FriendshipService, MessageService, HTLService };
+export { RegistrationService, AuthenticationService, SongService, UserService, FriendshipService, MessageService, HTLService, R2Service };

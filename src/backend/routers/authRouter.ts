@@ -150,6 +150,16 @@ authRouter.get('/profile-picture/:userId', async (req: Request, res: Response) =
     }
 
     const userService = new (require('../services/UserService').UserService)(unit);
+
+    // Check for R2 URL first
+    const r2Url = await userService.getProfilePictureUrl(userId);
+    if (r2Url) {
+      await unit.complete();
+      res.redirect(302, r2Url);
+      return;
+    }
+
+    // Fall back to legacy BYTEA storage
     const buffer = await userService.getProfilePicture(userId);
     await unit.complete();
 

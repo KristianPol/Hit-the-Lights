@@ -1,5 +1,6 @@
 import { Unit } from '../database/unit';
 import { UserControls } from '../model';
+import { R2Service } from './R2Service';
 
 type StoredControls = {
   laneBindings: [string, string, string, string];
@@ -104,21 +105,43 @@ export class UserService {
         };
       }
 
-      // Update profile picture - use run() instead of get() for UPDATE
-      console.log('Updating profile picture...');
+      // Detect image MIME type from header bytes
+      let contentType = 'image/png';
+      try {
+        if (buffer.length >= 2 && buffer[0] === 0xFF && buffer[1] === 0xD8) {
+          contentType = 'image/jpeg';
+        } else if (buffer.length >= 3 && buffer.slice(0, 3).toString('ascii') === 'GIF') {
+          contentType = 'image/gif';
+        } else if (buffer.length >= 12 && buffer.slice(0, 4).toString('ascii') === 'RIFF' && buffer.slice(8, 12).toString('ascii') === 'WEBP') {
+          contentType = 'image/webp';
+        }
+      } catch (e) {
+        // ignore detection errors
+      }
+
+      const ext = contentType.split('/')[1];
+      const key = `images/profile-pictures/${request.userId}-${Date.now()}.${ext}`;
+
+      // Upload to R2
+      console.log('Uploading profile picture to R2...');
+      const publicUrl = await R2Service.uploadFile(buffer, key, contentType);
+      console.log('Profile picture uploaded to R2:', publicUrl);
+
+      // Update profile picture URL in DB and clear old BYTEA
+      console.log('Updating profile picture URL in database...');
       try {
         const updateStmt = this.unit.prepare<
           unknown,
-          { userId: number; profilePicture: Buffer }
+          { userId: number; profilePictureUrl: string }
         >(
-          'UPDATE User SET profilePicture = $profilePicture WHERE id = $userId',
+          'UPDATE User SET profilePictureUrl = $profilePictureUrl, profilePicture = NULL WHERE id = $userId',
           {
             userId: request.userId,
-            profilePicture: buffer
+            profilePictureUrl: publicUrl
           }
         );
         await updateStmt.run();
-        console.log('Profile picture updated successfully');
+        console.log('Profile picture URL updated successfully');
       } catch (updateError: any) {
         console.error('Error during UPDATE:', updateError);
         return {
@@ -129,7 +152,7 @@ export class UserService {
 
       return {
         success: true,
-        profilePictureUrl: `/api/auth/profile-picture/${request.userId}`
+        profilePictureUrl: publicUrl
       };
     } catch (error: any) {
       console.error('Error in updateProfilePicture:', error);
@@ -164,10 +187,10 @@ export class UserService {
    */
   public async getUserById(userId: number): Promise<GetUserResponse | undefined> {
     const stmt = this.unit.prepare<
-      { id: number; username: string; joinDate: string; profilePicture: Buffer | null; playtime_seconds?: number },
+      { id: number; username: string; joinDate: string; profilePicture: Buffer | null; profilePictureUrl: string | null; playtime_seconds?: number },
       { userId: number }
     >(
-      'SELECT id, username, joinDate, profilePicture, playtime_seconds FROM User WHERE id = $userId',
+      'SELECT id, username, joinDate, profilePicture, profilePictureUrl, playtime_seconds FROM User WHERE id = $userId',
       { userId }
     );
     const result = await stmt.get();
@@ -181,10 +204,32 @@ export class UserService {
       username: result.username,
       joinDate: result.joinDate,
       playtimeSeconds: typeof result.playtime_seconds === 'number' ? result.playtime_seconds : 0,
-      profilePictureUrl: result.profilePicture
-        ? `/api/auth/profile-picture/${result.id}?t=${Date.now()}`
-        : undefined
+      profilePictureUrl: result.profilePictureUrl
+        ? result.profilePictureUrl
+        : result.profilePicture
+          ? `/api/auth/profile-picture/${result.id}?t=${Date.now()}`
+          : undefined
     };
+  }
+
+  /**
+   * Gets a user's profile picture URL (R2) or undefined
+   * @param userId The user ID
+   * @returns The profile picture public URL or undefined
+   */
+  public async getProfilePictureUrl(userId: number): Promise<string | undefined> {
+    const stmt = this.unit.prepare<
+      { profilePictureUrl: string | null; profilePicture: Buffer | null },
+      { userId: number }
+    >(
+      'SELECT profilePictureUrl, profilePicture FROM User WHERE id = $userId',
+      { userId }
+    );
+    const result = await stmt.get();
+    if (result?.profilePictureUrl) {
+      return result.profilePictureUrl;
+    }
+    return undefined;
   }
 
   /**

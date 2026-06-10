@@ -51,13 +51,16 @@ export class HTLService {
 
 
   public userToJSON(user: User): UserJSON {
+    const profilePictureUrl = (user as any).profilePictureUrl
+      ? (user as any).profilePictureUrl
+      : user.profilePicture
+        ? `/api/auth/profile-picture/${user.id}?t=${Date.now()}`
+        : undefined;
     return {
       id: user.id,
       username: user.username,
       joinDate: user.joinDate,
-      profilePictureUrl: user.profilePicture
-        ? `/api/auth/profile-picture/${user.id}?t=${Date.now()}`
-        : undefined,
+      profilePictureUrl,
       // include cumulative playtime so front-end always receives the total
       playtimeSeconds: typeof (user as any).playtimeSeconds === 'number' ? (user as any).playtimeSeconds : 0
     };

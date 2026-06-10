@@ -82,7 +82,7 @@ export class RegistrationService {
    */
   private async findUserByUsername(username: string): Promise<User | undefined> {
     const stmt = this.unit.prepare<User, { username: string }>(
-      'SELECT id, username, password, profilePicture, joinDate FROM "User" WHERE username = $username',
+      'SELECT id, username, password, profilePicture, profilePictureUrl, joinDate FROM "User" WHERE username = $username',
       { username }
     );
     return await stmt.get();
@@ -90,7 +90,7 @@ export class RegistrationService {
 
   private async findUserById(userId: number): Promise<User | undefined> {
     const stmt = this.unit.prepare<User, { userId: number }>(
-      'SELECT id, username, password, profilePicture, joinDate FROM "User" WHERE id = $userId',
+      'SELECT id, username, password, profilePicture, profilePictureUrl, joinDate FROM "User" WHERE id = $userId',
       { userId }
     );
     return await stmt.get();

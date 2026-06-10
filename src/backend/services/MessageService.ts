@@ -117,7 +117,7 @@ export class MessageService {
   public async getConversations(userId: number): Promise<ConversationPreview[]> {
     // Get all messages where user is sender or receiver
     const stmt = this.unit.prepare<
-      { other_user_id: number; other_username: string; other_profile_picture: Buffer | null; last_message_id: number; last_content: string; last_sender_id: number; last_receiver_id: number; last_created_at: string; last_is_read: number; unread_count: number },
+      { other_user_id: number; other_username: string; other_profile_picture: Buffer | null; other_profile_picture_url: string | null; last_message_id: number; last_content: string; last_sender_id: number; last_receiver_id: number; last_created_at: string; last_is_read: number; unread_count: number },
       { userId: number }
     >(
       `WITH user_messages AS (
@@ -141,6 +141,7 @@ export class MessageService {
          um.other_user_id,
          u.username AS other_username,
          u.profilePicture AS other_profile_picture,
+         u.profilePictureUrl AS other_profile_picture_url,
          um.id AS last_message_id,
          um.content AS last_content,
          um.sender_id AS last_sender_id,
@@ -158,9 +159,11 @@ export class MessageService {
     return rows.map(row => ({
       otherUserId: row.other_user_id,
       otherUsername: row.other_username,
-      otherUserProfilePictureUrl: row.other_profile_picture
-        ? `/api/auth/profile-picture/${row.other_user_id}?t=${Date.now()}`
-        : undefined,
+      otherUserProfilePictureUrl: row.other_profile_picture_url
+        ? row.other_profile_picture_url
+        : row.other_profile_picture
+          ? `/api/auth/profile-picture/${row.other_user_id}?t=${Date.now()}`
+          : undefined,
       lastMessage: {
         id: row.last_message_id,
         senderId: row.last_sender_id,

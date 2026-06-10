@@ -99,7 +99,7 @@ export class AuthenticationService {
   private async findUserByUsername(username: string): Promise<User | undefined> {
     // Include playtime_seconds so callers can see cumulative playtime
     const stmt = this.unit.prepare<any, { username: string }>(
-      'SELECT id, username, password, profilePicture, joinDate, playtime_seconds FROM "User" WHERE username = $username',
+      'SELECT id, username, password, profilePicture, profilePictureUrl, joinDate, playtime_seconds FROM "User" WHERE username = $username',
       { username }
     );
     return await stmt.get();
