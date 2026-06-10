@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, ViewChild, ElementRef } from '@angular/core';
 import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
@@ -58,6 +58,8 @@ export class Messages implements OnInit, OnDestroy {
 
   private refreshSubscription: Subscription | null = null;
   private authSubscription: Subscription | null = null;
+
+  @ViewChild('messagesScroll') messagesScrollRef!: ElementRef<HTMLDivElement>;
 
   get selectedOtherUserId(): number | null {
     const friend = this.selectedFriend();
@@ -396,6 +398,7 @@ export class Messages implements OnInit, OnDestroy {
             this.messageService.markAsRead(unreadIds).subscribe();
           }
           this.messageService.markConversationAsRead(otherUserId, this.currentUser!.id).subscribe();
+          setTimeout(() => this.scrollToBottom(), 0);
         }
         this.loadingChat.set(false);
       },
@@ -420,6 +423,7 @@ export class Messages implements OnInit, OnDestroy {
           this.newMessageContent.set('');
           this.loadChat(receiverId, false);
           this.loadConversations();
+          setTimeout(() => this.scrollToBottom(), 0);
         } else {
           this.chatError.set(response.error || 'Failed to send message');
         }
@@ -486,6 +490,13 @@ export class Messages implements OnInit, OnDestroy {
       return 'You';
     }
     return this.selectedOtherUserName ?? 'Unknown';
+  }
+
+  private scrollToBottom(): void {
+    const el = this.messagesScrollRef?.nativeElement;
+    if (el) {
+      el.scrollTop = el.scrollHeight;
+    }
   }
 
   isScoreShareMessage(content: string): boolean {

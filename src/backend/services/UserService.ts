@@ -33,6 +33,7 @@ export interface GetUserResponse {
   username: string;
   joinDate: string;
   playtimeSeconds?: number;
+  gamesPlayed?: number;
   profilePictureUrl?: string;
 }
 
@@ -187,10 +188,10 @@ export class UserService {
    */
   public async getUserById(userId: number): Promise<GetUserResponse | undefined> {
     const stmt = this.unit.prepare<
-      { id: number; username: string; joinDate: string; profilePicture: Buffer | null; profilePictureUrl: string | null; playtime_seconds?: number },
+      { id: number; username: string; joinDate: string; profilePicture: Buffer | null; profilePictureUrl: string | null; playtime_seconds?: number; runs_count?: number },
       { userId: number }
     >(
-      'SELECT id, username, joinDate, profilePicture, profilePictureUrl, playtime_seconds FROM User WHERE id = $userId',
+      'SELECT id, username, joinDate, profilePicture, profilePictureUrl, playtime_seconds, runs_count FROM User WHERE id = $userId',
       { userId }
     );
     const result = await stmt.get();
@@ -204,6 +205,7 @@ export class UserService {
       username: result.username,
       joinDate: result.joinDate,
       playtimeSeconds: typeof result.playtime_seconds === 'number' ? result.playtime_seconds : 0,
+      gamesPlayed: typeof result.runs_count === 'number' ? result.runs_count : 0,
       profilePictureUrl: result.profilePictureUrl
         ? result.profilePictureUrl
         : result.profilePicture

@@ -171,11 +171,14 @@ export class ProfileComponent implements OnInit {
   private loadOwnProfile(): void {
     const currentUser = this.authService.currentUser;
     if (currentUser) {
+      // Refresh fresh user data from server (playtime, gamesPlayed, etc.)
+      this.authService.refreshUser(currentUser.id).subscribe();
       // Load counts immediately
       this.loadUploadedSongCount(currentUser.id);
       this.loadUnreadCount(currentUser.id);
       this.loadPinnedAchievements(currentUser.id);
       this.loadCreations(currentUser.id);
+      this.totalGamesPlayed = currentUser.gamesPlayed ?? 0;
     }
 
     this.authService.currentUser$.pipe(
@@ -187,7 +190,7 @@ export class ProfileComponent implements OnInit {
         });
 
         if (user) {
-          // Update user data in UI
+          this.totalGamesPlayed = user.gamesPlayed ?? 0;
         } else {
           this.ngZone.run(() => {
             this.uploadedSongCount = 0;
@@ -236,7 +239,7 @@ export class ProfileComponent implements OnInit {
           this.loadPinnedAchievements(userId);
           this.loadCreations(userId);
           this.unreadMessageCount = 0;
-          this.totalGamesPlayed = 0;
+          this.totalGamesPlayed = response.user.gamesPlayed ?? 0;
         } else {
           this.error = response.error || 'User not found';
           this.user = null;

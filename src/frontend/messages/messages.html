@@ -315,7 +315,7 @@
       </div>
 
       <!-- Messages -->
-      <div class="messages-scroll">
+      <div class="messages-scroll" #messagesScroll>
         @if (loadingChat()) {
           <div class="loading-state"><div class="spinner"></div></div>
         } @else if (chatMessages().length === 0) {

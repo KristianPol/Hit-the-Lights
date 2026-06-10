@@ -20,6 +20,7 @@ export interface User {
   joinDate?: string;
   profilePictureUrl?: string;
   playtimeSeconds?: number;
+  gamesPlayed?: number;
 }
 
 export interface UpdateProfilePictureResponse {

@@ -258,8 +258,6 @@ export class Gameplay implements AfterViewInit, OnDestroy {
     } finally {
       this.isLoading.set(false);
       this.render(this.getAudioTimeMs());
-      // start background playtime tracking when component is initialized
-      this.startPlaytimeTracking();
     }
   }
 
@@ -511,6 +509,7 @@ export class Gameplay implements AfterViewInit, OnDestroy {
     });
 
     this.gameLoop();
+    this.startPlaytimeTracking();
   }
 
   private gameLoop = (): void => {
@@ -931,6 +930,7 @@ export class Gameplay implements AfterViewInit, OnDestroy {
   }
 
   private resetGameState(): void {
+    this.stopPlaytimeTracking();
     this.stats.set(this.createInitialStats());
     this.scoreUnits = 0;
     this.keyStates = [false, false, false, false]; // Reset key states
@@ -991,6 +991,7 @@ export class Gameplay implements AfterViewInit, OnDestroy {
     } catch (e) {
       // ignore
     }
+    this.stopPlaytimeTracking();
     this.gameRunning.set(false);
     this.gameFinished.set(true);
 
