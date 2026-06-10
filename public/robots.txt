@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://hit-the-lights-j6bl.onrender.com/sitemap.xml
