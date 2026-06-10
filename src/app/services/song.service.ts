@@ -66,7 +66,6 @@ export interface AddSongRequest {
   audioMimeType: string;
   coverBase64: string;
   coverMimeType: string;
-  ownerId?: number | null;
   isPublic?: boolean;
   genre?: string | null;
 }
@@ -89,7 +88,6 @@ export interface GetSongsResponse {
 }
 
 export interface UpdateSongVisibilityRequest {
-  ownerId: number;
   isPublic: boolean;
 }
 
@@ -113,7 +111,6 @@ export interface GetDifficultiesResponse {
 }
 
 export interface AddDifficultyRequest {
-  ownerId: number;
   difficulty: number;
   notes: ChartNote[];
 }
@@ -145,7 +142,6 @@ export interface GetLeaderboardResponse {
 }
 
 export interface SubmitLeaderboardRequest {
-  userId: number;
   score: number;
   maxCombo: number;
   accuracy: number;
@@ -198,7 +194,6 @@ export interface GetCommentsResponse {
 }
 
 export interface PostCommentRequest {
-  senderId: number;
   content: string;
   parentCommentId?: number | null;
 }
@@ -217,8 +212,8 @@ export class SongService {
 
   constructor(private http: HttpClient) {}
 
-  private buildViewerParams(viewerId?: number): HttpParams {
-    return viewerId == null ? new HttpParams() : new HttpParams().set('viewerId', viewerId.toString());
+  private buildViewerParams(): HttpParams {
+    return new HttpParams();
   }
 
   addSong(song: AddSongRequest): Observable<AddSongResponse> {
@@ -231,9 +226,9 @@ export class SongService {
     );
   }
 
-  getAllSongs(viewerId?: number, options?: { search?: string; genre?: string; sort?: string; ownerId?: number }): Observable<GetSongsResponse> {
+  getAllSongs(options?: { search?: string; genre?: string; sort?: string; ownerId?: number }): Observable<GetSongsResponse> {
     const endpoint = `${this.apiUrl}/all`;
-    let params = this.buildViewerParams(viewerId);
+    let params = new HttpParams();
     if (options?.search) {
       params = params.set('search', options.search);
     }
@@ -257,19 +252,18 @@ export class SongService {
     );
   }
 
-  likeSong(songId: number, userId: number): Observable<{ success: boolean; message?: string; error?: string }> {
+  likeSong(songId: number): Observable<{ success: boolean; message?: string; error?: string }> {
     return this.http.post<{ success: boolean; message?: string; error?: string }>(
       `${this.apiUrl}/${songId}/like`,
-      { userId }
+      {}
     ).pipe(
       catchError(error => throwError(() => new Error(error.error?.error || 'Failed to like song')))
     );
   }
 
-  unlikeSong(songId: number, userId: number): Observable<{ success: boolean; message?: string; error?: string }> {
+  unlikeSong(songId: number): Observable<{ success: boolean; message?: string; error?: string }> {
     return this.http.delete<{ success: boolean; message?: string; error?: string }>(
-      `${this.apiUrl}/${songId}/like`,
-      { params: new HttpParams().set('userId', userId.toString()) }
+      `${this.apiUrl}/${songId}/like`
     ).pipe(
       catchError(error => throwError(() => new Error(error.error?.error || 'Failed to unlike song')))
     );
@@ -284,9 +278,9 @@ export class SongService {
     );
   }
 
-  getSongById(id: number, viewerId?: number): Observable<{ success: boolean; song?: Song; error?: string }> {
+  getSongById(id: number): Observable<{ success: boolean; song?: Song; error?: string }> {
     return this.http
-      .get<{ success: boolean; song?: Song; error?: string }>(`${this.apiUrl}/${id}`, { params: this.buildViewerParams(viewerId) })
+      .get<{ success: boolean; song?: Song; error?: string }>(`${this.apiUrl}/${id}`)
       .pipe(
         catchError(error => {
           return throwError(
@@ -296,9 +290,9 @@ export class SongService {
       );
   }
 
-  deleteSong(id: number, viewerId?: number): Observable<{ success: boolean; message?: string; error?: string }> {
+  deleteSong(id: number): Observable<{ success: boolean; message?: string; error?: string }> {
     return this.http
-      .delete<{ success: boolean; message?: string; error?: string }>(`${this.apiUrl}/${id}`, { params: this.buildViewerParams(viewerId) })
+      .delete<{ success: boolean; message?: string; error?: string }>(`${this.apiUrl}/${id}`)
       .pipe(
         catchError(error => {
           return throwError(
@@ -318,9 +312,9 @@ export class SongService {
     );
   }
 
-  getUploadedSongCount(ownerId: number, viewerId?: number): Observable<UploadedSongCountResponse> {
+  getUploadedSongCount(ownerId: number): Observable<UploadedSongCountResponse> {
     return this.http
-      .get<UploadedSongCountResponse>(`${this.apiUrl}/count/${ownerId}`, { params: this.buildViewerParams(viewerId) })
+      .get<UploadedSongCountResponse>(`${this.apiUrl}/count/${ownerId}`)
       .pipe(
         catchError(error => {
           return throwError(
@@ -330,9 +324,9 @@ export class SongService {
       );
   }
 
-  getSongDifficulties(songId: number, viewerId?: number): Observable<GetDifficultiesResponse> {
+  getSongDifficulties(songId: number): Observable<GetDifficultiesResponse> {
     return this.http
-      .get<GetDifficultiesResponse>(`${this.apiUrl}/${songId}/difficulties`, { params: this.buildViewerParams(viewerId) })
+      .get<GetDifficultiesResponse>(`${this.apiUrl}/${songId}/difficulties`)
       .pipe(
         catchError(error => {
           return throwError(
@@ -354,11 +348,9 @@ export class SongService {
       );
   }
 
-  getDifficultyLeaderboard(songId: number, difficultyId: number, viewerId?: number): Observable<GetLeaderboardResponse> {
+  getDifficultyLeaderboard(songId: number, difficultyId: number): Observable<GetLeaderboardResponse> {
     return this.http
-      .get<GetLeaderboardResponse>(`${this.apiUrl}/${songId}/difficulties/${difficultyId}/leaderboard`, {
-        params: this.buildViewerParams(viewerId)
-      })
+      .get<GetLeaderboardResponse>(`${this.apiUrl}/${songId}/difficulties/${difficultyId}/leaderboard`)
       .pipe(
         catchError(error => {
           return throwError(
@@ -384,11 +376,9 @@ export class SongService {
       );
   }
 
-  getDifficultyChart(songId: number, difficultyId: number, viewerId?: number): Observable<GetDifficultyChartResponse> {
+  getDifficultyChart(songId: number, difficultyId: number): Observable<GetDifficultyChartResponse> {
     return this.http
-      .get<GetDifficultyChartResponse>(`${this.apiUrl}/${songId}/difficulties/${difficultyId}/chart`, {
-        params: this.buildViewerParams(viewerId)
-      })
+      .get<GetDifficultyChartResponse>(`${this.apiUrl}/${songId}/difficulties/${difficultyId}/chart`)
       .pipe(
         catchError(error => {
           return throwError(
@@ -398,9 +388,8 @@ export class SongService {
       );
   }
 
-  getComments(songId: number, viewerId?: number): Observable<GetCommentsResponse> {
-    const params = viewerId == null ? new HttpParams() : new HttpParams().set('viewerId', viewerId.toString());
-    return this.http.get<GetCommentsResponse>(`${this.apiUrl}/${songId}/comments`, { params }).pipe(
+  getComments(songId: number): Observable<GetCommentsResponse> {
+    return this.http.get<GetCommentsResponse>(`${this.apiUrl}/${songId}/comments`).pipe(
       catchError(error => {
         return throwError(() => new Error(error.error?.error || 'Failed to fetch comments'));
       })

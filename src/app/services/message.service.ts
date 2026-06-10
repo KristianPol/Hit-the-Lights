@@ -51,9 +51,8 @@ export class MessageService {
 
   constructor(private http: HttpClient) {}
 
-  sendMessage(senderId: number, receiverId: number, content: string): Observable<SendMessageResponse> {
+  sendMessage(receiverId: number, content: string): Observable<SendMessageResponse> {
     return this.http.post<SendMessageResponse>(`${this.apiUrl}/send`, {
-      senderId,
       receiverId,
       content
     }).pipe(
@@ -73,10 +72,9 @@ export class MessageService {
     );
   }
 
-  markAsRead(messageIds: number[], userId: number): Observable<{ success: boolean; error?: string }> {
+  markAsRead(messageIds: number[]): Observable<{ success: boolean; error?: string }> {
     return this.http.post<{ success: boolean; error?: string }>(`${this.apiUrl}/read`, {
-      messageIds,
-      userId
+      messageIds
     }).pipe(
       catchError(error => throwError(() => new Error(error.error?.error || 'Failed to mark messages as read')))
     );

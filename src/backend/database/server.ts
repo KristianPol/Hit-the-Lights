@@ -17,6 +17,7 @@ function findProjectRoot(): string {
 
 import express from "express";
 import cors from "cors";
+import rateLimit from 'express-rate-limit';
 import { authRouter, songRouter, friendshipRouter, messageRouter } from "../routers";
 import { Unit, sql } from './unit';
 
@@ -40,7 +41,33 @@ Unit.initTables().then(() => {
   console.error('❌ Failed to ensure database schema:', err);
 });
 
-app.use(cors());
+const ALLOWED_ORIGINS = [
+  'https://hit-the-lights-j6bl.onrender.com',
+  'http://localhost:4200'
+];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
+}));
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Too many attempts, please try again later.' }
+});
+
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
+
 app.use(express.json({ limit: '50mb' }));
 app.use('/uploads', express.static(path.resolve(process.cwd(), 'uploads')));
 app.use(express.static(FRONTEND_DIST));

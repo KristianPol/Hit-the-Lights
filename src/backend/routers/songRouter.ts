@@ -3,6 +3,8 @@ import fs from 'fs';
 import path from 'path';
 import { Unit } from '../database/unit';
 import { SongService, R2Service } from '../services';
+import { authMiddleware } from '../middleware/authMiddleware';
+import { Sanitizer } from '../utils/Sanitizer';
 
 export const songRouter = Router();
 
@@ -52,11 +54,11 @@ function parseVisibility(value: unknown, fallback: boolean = true): boolean {
   return fallback;
 }
 
-songRouter.post('/add', async (req: Request, res: Response) => {
+songRouter.post('/add', authMiddleware, async (req: Request, res: Response) => {
   const unit = new Unit(false);
-
   try {
-    const { name, author, bpm, length, audioBase64, audioMimeType, coverBase64, coverMimeType, ownerId, isPublic, genre } = req.body;
+    const { name, author, bpm, length, audioBase64, audioMimeType, coverBase64, coverMimeType, isPublic, genre } = req.body;
+    const ownerId = req.authenticatedUserId!;
 
     if (!name || !author || !bpm || !length || !audioBase64 || !coverBase64) {
       await unit.complete(false);
@@ -74,7 +76,7 @@ songRouter.post('/add', async (req: Request, res: Response) => {
     const coverUrl = await R2Service.uploadFile(coverBuffer, `images/covers/${coverFilename}`, coverMimeType || 'image/jpeg');
 
     const svc = new SongService(unit);
-    const result = await svc.addSong({ name, author, bpm: parseInt(bpm, 10), length, songUrl, coverUrl, ownerId: parseOptionalNumber(ownerId) ?? null, isPublic: parseVisibility(isPublic, true), genre });
+    const result = await svc.addSong({ name, author, bpm: parseInt(bpm, 10), length, songUrl, coverUrl, ownerId, isPublic: parseVisibility(isPublic, true), genre });
     if (result.success) {
       await unit.complete(true);
       res.status(201).json({ success: true, songId: result.songId, songUrl, coverUrl, ownerId: result.ownerId, isPublic: result.isPublic, message: 'Song added successfully' });
@@ -92,7 +94,7 @@ songRouter.get('/all', async (req: Request, res: Response) => {
   const unit = new Unit(true);
   try {
     console.log('📥 Backend: GET /api/songs/all - Fetching all songs');
-    const viewerId = parseOptionalNumber(req.query['viewerId']);
+    const viewerId = req.authenticatedUserId ?? parseOptionalNumber(req.query['viewerId']);
     const search = typeof req.query['search'] === 'string' ? req.query['search'] : undefined;
     const genre = typeof req.query['genre'] === 'string' ? req.query['genre'] : undefined;
     const sort = typeof req.query['sort'] === 'string' ? req.query['sort'] : undefined;
@@ -114,7 +116,7 @@ songRouter.get('/count/:ownerId', async (req: Request, res: Response) => {
   const unit = new Unit(true);
   try {
     const ownerId = parseInt(req.params['ownerId'] as string, 10);
-    const viewerId = parseOptionalNumber(req.query['viewerId']);
+    const viewerId = req.authenticatedUserId ?? parseOptionalNumber(req.query['viewerId']);
     if (isNaN(ownerId) || ownerId <= 0) { await unit.complete(); res.status(400).json({ success: false, error: 'Invalid owner ID' }); return; }
     const songService = new SongService(unit);
     const count = await songService.getUploadedSongCount(ownerId, viewerId);
@@ -130,7 +132,7 @@ songRouter.get('/:id', async (req: Request, res: Response) => {
   const unit = new Unit(true);
   try {
     const songId = parseInt(req.params['id'] as string, 10);
-    const viewerId = parseOptionalNumber(req.query['viewerId']);
+    const viewerId = req.authenticatedUserId ?? parseOptionalNumber(req.query['viewerId']);
     if (isNaN(songId)) { await unit.complete(); res.status(400).json({ success: false, error: 'Invalid song ID' }); return; }
 
     const songService = new SongService(unit);
@@ -143,17 +145,15 @@ songRouter.get('/:id', async (req: Request, res: Response) => {
   }
 });
 
-songRouter.post('/:id/like', async (req: Request, res: Response) => {
+songRouter.post('/:id/like', authMiddleware, async (req: Request, res: Response) => {
   const unit = new Unit(false);
   try {
     const songId = parseInt(req.params['id'] as string, 10);
-    const { userId } = req.body;
+    const userId = req.authenticatedUserId!;
     if (isNaN(songId)) { await unit.complete(false); res.status(400).json({ success: false, error: 'Invalid song ID' }); return; }
-    const parsedUserId = parseOptionalNumber(userId);
-    if (parsedUserId === undefined) { await unit.complete(false); res.status(400).json({ success: false, error: 'userId is required' }); return; }
 
     const svc = new SongService(unit);
-    const result = await svc.likeSong(songId, parsedUserId);
+    const result = await svc.likeSong(songId, userId);
     if (result.success) { await unit.complete(true); res.status(200).json({ success: true, message: 'Song liked' }); } else { await unit.complete(false); res.status(400).json({ success: false, error: result.error }); }
   } catch (error: any) {
     await unit.complete(false);
@@ -161,13 +161,12 @@ songRouter.post('/:id/like', async (req: Request, res: Response) => {
   }
 });
 
-songRouter.delete('/:id/like', async (req: Request, res: Response) => {
+songRouter.delete('/:id/like', authMiddleware, async (req: Request, res: Response) => {
   const unit = new Unit(false);
   try {
     const songId = parseInt(req.params['id'] as string, 10);
-    const userId = parseOptionalNumber(req.query['userId']);
+    const userId = req.authenticatedUserId!;
     if (isNaN(songId)) { await unit.complete(false); res.status(400).json({ success: false, error: 'Invalid song ID' }); return; }
-    if (userId === undefined) { await unit.complete(false); res.status(400).json({ success: false, error: 'userId is required' }); return; }
 
     const svc = new SongService(unit);
     const result = await svc.unlikeSong(songId, userId);
@@ -193,18 +192,17 @@ songRouter.post('/:id/play', async (req: Request, res: Response) => {
   }
 });
 
-songRouter.patch('/:id/visibility', async (req: Request, res: Response) => {
+songRouter.patch('/:id/visibility', authMiddleware, async (req: Request, res: Response) => {
   const unit = new Unit(false);
   try {
     const songId = parseInt(req.params['id'] as string, 10);
-    const { ownerId, isPublic } = req.body;
+    const ownerId = req.authenticatedUserId!;
+    const { isPublic } = req.body;
     if (isNaN(songId)) { await unit.complete(false); res.status(400).json({ success: false, error: 'Invalid song ID' }); return; }
-    const parsedOwnerId = parseOptionalNumber(ownerId);
-    if (parsedOwnerId === undefined) { await unit.complete(false); res.status(400).json({ success: false, error: 'ownerId is required' }); return; }
     const parsedVisibility = parseVisibility(isPublic, true);
 
     const svc = new SongService(unit);
-    const result = await svc.updateSongVisibility(songId, parsedOwnerId, parsedVisibility);
+    const result = await svc.updateSongVisibility(songId, ownerId, parsedVisibility);
     if (result.success) { await unit.complete(true); res.status(200).json({ success: true, song: result.song, message: 'Song visibility updated' }); } else { await unit.complete(false); res.status(result.error === 'Song not found' ? 404 : 403).json({ success: false, error: result.error }); }
   } catch (error: any) {
     await unit.complete(false);
@@ -212,11 +210,11 @@ songRouter.patch('/:id/visibility', async (req: Request, res: Response) => {
   }
 });
 
-songRouter.delete('/:id', async (req: Request, res: Response) => {
+songRouter.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
   const unit = new Unit(false);
   try {
     const songId = parseInt(req.params['id'] as string, 10);
-    const viewerId = parseOptionalNumber(req.query['viewerId']);
+    const viewerId = req.authenticatedUserId!;
     if (isNaN(songId)) { await unit.complete(false); res.status(400).json({ success: false, error: 'Invalid song ID' }); return; }
 
     const svc = new SongService(unit);
@@ -257,7 +255,7 @@ songRouter.get('/:songId/difficulties', async (req: Request, res: Response) => {
   const unit = new Unit(true);
   try {
     const songId = parseInt(req.params['songId'] as string, 10);
-    const viewerId = parseOptionalNumber(req.query['viewerId']);
+    const viewerId = req.authenticatedUserId ?? parseOptionalNumber(req.query['viewerId']);
     if (isNaN(songId)) { await unit.complete(); res.status(400).json({ success: false, error: 'Invalid song ID' }); return; }
     const songService = new SongService(unit);
     const difficulties = await songService.getSongDifficulties(songId, viewerId);
@@ -270,20 +268,19 @@ songRouter.get('/:songId/difficulties', async (req: Request, res: Response) => {
   }
 });
 
-songRouter.post('/:songId/difficulties', async (req: Request, res: Response) => {
+songRouter.post('/:songId/difficulties', authMiddleware, async (req: Request, res: Response) => {
   const unit = new Unit(false);
   try {
     const songId = parseInt(req.params['songId'] as string, 10);
-    const { ownerId, difficulty, notes } = req.body;
+    const ownerId = req.authenticatedUserId!;
+    const { difficulty, notes } = req.body;
     if (isNaN(songId)) { await unit.complete(false); res.status(400).json({ success: false, error: 'Invalid song ID' }); return; }
-    const parsedOwnerId = parseOptionalNumber(ownerId);
-    if (parsedOwnerId === undefined) { await unit.complete(false); res.status(400).json({ success: false, error: 'ownerId is required' }); return; }
     const parsedDifficulty = parseOptionalNumber(difficulty);
     if (parsedDifficulty === undefined) { await unit.complete(false); res.status(400).json({ success: false, error: 'difficulty is required' }); return; }
     if (!Array.isArray(notes)) { await unit.complete(false); res.status(400).json({ success: false, error: 'notes must be an array' }); return; }
 
     const svc = new SongService(unit);
-    const result = await svc.addSongDifficulty(songId, parsedOwnerId, parsedDifficulty, notes);
+    const result = await svc.addSongDifficulty(songId, ownerId, parsedDifficulty, notes);
     if (result.success) { await unit.complete(true); res.status(201).json({ success: true, difficulty: result.difficulty, message: 'Difficulty uploaded successfully' }); } else { await unit.complete(false); res.status(result.error === 'Song not found' ? 404 : 400).json({ success: false, error: result.error }); }
   } catch (error: any) {
     await unit.complete(false);
@@ -296,7 +293,7 @@ songRouter.get('/:songId/difficulties/:difficultyId/leaderboard', async (req: Re
   try {
     const songId = parseInt(req.params['songId'] as string, 10);
     const difficultyId = parseInt(req.params['difficultyId'] as string, 10);
-    const viewerId = parseOptionalNumber(req.query['viewerId']);
+    const viewerId = req.authenticatedUserId ?? parseOptionalNumber(req.query['viewerId']);
     if (isNaN(songId) || isNaN(difficultyId)) { await unit.complete(); res.status(400).json({ success: false, error: 'Invalid song or difficulty ID' }); return; }
     const svc = new SongService(unit);
     const result = await svc.getDifficultyLeaderboard(songId, difficultyId, viewerId);
@@ -309,22 +306,21 @@ songRouter.get('/:songId/difficulties/:difficultyId/leaderboard', async (req: Re
   }
 });
 
-songRouter.post('/:songId/difficulties/:difficultyId/leaderboard', async (req: Request, res: Response) => {
+songRouter.post('/:songId/difficulties/:difficultyId/leaderboard', authMiddleware, async (req: Request, res: Response) => {
   const unit = new Unit(false);
   try {
     const songId = parseInt(req.params['songId'] as string, 10);
     const difficultyId = parseInt(req.params['difficultyId'] as string, 10);
-    const { userId, score, maxCombo, accuracy, date } = req.body;
+    const userId = req.authenticatedUserId!;
+    const { score, maxCombo, accuracy, date } = req.body;
     if (isNaN(songId) || isNaN(difficultyId)) { await unit.complete(false); res.status(400).json({ success: false, error: 'Invalid song or difficulty ID' }); return; }
-    const parsedUserId = parseOptionalNumber(userId);
-    if (parsedUserId === undefined) { await unit.complete(false); res.status(400).json({ success: false, error: 'userId is required' }); return; }
     const parsedScore = parseOptionalNumber(score);
     const parsedMaxCombo = parseOptionalNumber(maxCombo);
     const parsedAccuracy = parseOptionalNumber(accuracy);
     if (parsedScore === undefined || parsedMaxCombo === undefined || parsedAccuracy === undefined) { await unit.complete(false); res.status(400).json({ success: false, improved: false, error: 'score, maxCombo, and accuracy are required' }); return; }
 
     const svc = new SongService(unit);
-    const result = await svc.submitDifficultyHighscore(songId, difficultyId, parsedUserId, { score: parsedScore, maxCombo: parsedMaxCombo, accuracy: parsedAccuracy, date: typeof date === 'string' && date.trim().length > 0 ? date : undefined });
+    const result = await svc.submitDifficultyHighscore(songId, difficultyId, userId, { score: parsedScore, maxCombo: parsedMaxCombo, accuracy: parsedAccuracy, date: typeof date === 'string' && date.trim().length > 0 ? date : undefined });
     if (result.success) { await unit.complete(true); res.status(200).json({ success: true, improved: result.improved, entry: result.entry, message: result.improved ? 'Highscore updated' : 'Score did not beat existing highscore' }); } else { await unit.complete(false); const status = result.error === 'Song not found or not accessible' ? 403 : result.error === 'Difficulty not found' ? 404 : 400; res.status(status).json({ success: false, improved: false, error: result.error }); }
   } catch (error: any) {
     await unit.complete(false);
@@ -337,7 +333,7 @@ songRouter.get('/:songId/difficulties/:difficultyId/chart', async (req: Request,
   try {
     const songId = parseInt(req.params['songId'] as string, 10);
     const difficultyId = parseInt(req.params['difficultyId'] as string, 10);
-    const viewerId = parseOptionalNumber(req.query['viewerId']);
+    const viewerId = req.authenticatedUserId ?? parseOptionalNumber(req.query['viewerId']);
     if (isNaN(songId) || isNaN(difficultyId)) { await unit.complete(); res.status(400).json({ success: false, error: 'Invalid song or difficulty ID' }); return; }
     const svc = new SongService(unit);
     const result = await svc.getDifficultyChart(songId, difficultyId, viewerId);
@@ -355,7 +351,7 @@ songRouter.get('/:songId/comments', async (req: Request, res: Response) => {
   const unit = new Unit(true);
   try {
     const songId = parseInt(req.params['songId'] as string, 10);
-    const viewerId = parseOptionalNumber(req.query['viewerId']);
+    const viewerId = req.authenticatedUserId ?? parseOptionalNumber(req.query['viewerId']);
     if (isNaN(songId)) { await unit.complete(); res.status(400).json({ success: false, error: 'Invalid song ID' }); return; }
 
     const svc = new SongService(unit);
@@ -372,16 +368,18 @@ songRouter.get('/:songId/comments', async (req: Request, res: Response) => {
   }
 });
 
-songRouter.post('/:songId/comments', async (req: Request, res: Response) => {
+songRouter.post('/:songId/comments', authMiddleware, async (req: Request, res: Response) => {
   const unit = new Unit(false);
   try {
     const songId = parseInt(req.params['songId'] as string, 10);
-    const { senderId, content, parentCommentId } = req.body;
+    const senderId = req.authenticatedUserId!;
+    const { content, parentCommentId } = req.body;
     if (isNaN(songId)) { await unit.complete(false); res.status(400).json({ success: false, error: 'Invalid song ID' }); return; }
-    if (!senderId || !content || typeof content !== 'string' || content.trim().length === 0) { await unit.complete(false); res.status(400).json({ success: false, error: 'senderId and content are required' }); return; }
+    if (!content || typeof content !== 'string' || content.trim().length === 0) { await unit.complete(false); res.status(400).json({ success: false, error: 'content is required' }); return; }
 
+    const sanitizedContent = Sanitizer.sanitizeText(content);
     const svc = new SongService(unit);
-    const result = await svc.addCommentToSong(songId, { senderId: Number(senderId), content: String(content), parentCommentId: parentCommentId === undefined ? undefined : Number(parentCommentId) });
+    const result = await svc.addCommentToSong(songId, { senderId, content: sanitizedContent, parentCommentId: parentCommentId === undefined ? undefined : Number(parentCommentId) });
     if (result.success) { await unit.complete(true); res.status(201).json({ success: true, comment: result.comment }); } else { await unit.complete(false); res.status(result.error === 'Song not found' ? 404 : 400).json({ success: false, error: result.error }); }
   } catch (error: any) {
     await unit.complete(false);

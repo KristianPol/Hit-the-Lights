@@ -3,6 +3,8 @@ import { HTLService } from '../services/HTLService';
 import { RegistrationService } from '../services/RegistrationService';
 import { AuthenticationService } from '../services/AuthenticationService';
 import { Unit } from '../database/unit';
+import { JWTService } from '../utils/JWTService';
+import { authMiddleware } from '../middleware/authMiddleware';
 
 export const authRouter = Router();
 
@@ -27,10 +29,12 @@ authRouter.post('/register', async (req: Request, res: Response) => {
     if (result.success) {
       const htlService = new HTLService(null as any);
       const userJson = result.user ? htlService.userToJSON(result.user) : undefined;
+      const token = userJson ? JWTService.sign(userJson.id, userJson.username) : undefined;
       res.status(201).json({
         success: true,
         userId: result.userId,
         user: userJson,
+        token,
         message: 'User registered successfully'
       });
     } else {
@@ -70,13 +74,14 @@ authRouter.post('/login', async (req: Request, res: Response) => {
     await unit.complete();
 
     if (result.success) {
-      // Return user without password
       const htlService = new HTLService(null as any);
       const userJson = htlService.userToJSON(result.user!);
+      const token = JWTService.sign(userJson.id, userJson.username);
 
       res.status(200).json({
         success: true,
         user: userJson,
+        token,
         message: 'Login successful'
       });
     } else {
@@ -103,17 +108,11 @@ authRouter.get('/health', (_req: Request, res: Response) => {
   });
 });
 
-// Profile picture upload: accepts { userId, profilePictureBase64 }
-authRouter.post('/profile-picture', async (req: Request, res: Response) => {
+authRouter.post('/profile-picture', authMiddleware, async (req: Request, res: Response) => {
   const unit = new Unit(false);
   try {
-    const userId = Number(req.body?.userId);
+    const userId = req.authenticatedUserId!;
     const base64 = req.body?.profilePictureBase64;
-    if (!Number.isFinite(userId) || userId <= 0) {
-      await unit.complete(false);
-      res.status(400).json({ success: false, error: 'Invalid userId' });
-      return;
-    }
 
     if (!base64 || typeof base64 !== 'string') {
       await unit.complete(false);
@@ -221,22 +220,22 @@ authRouter.get('/user/:userId', async (req: Request, res: Response) => {
   }
 });
 
-authRouter.get('/user/:userId/achievements', async (req: Request, res: Response) => {
+authRouter.get('/user/:userId/achievements', authMiddleware, async (req: Request, res: Response) => {
   const unit = new Unit(true);
   try {
-    const userId = Number(req.params['userId']);
-    if (!Number.isFinite(userId) || userId <= 0) {
+    const requestedUserId = Number(req.params['userId']);
+    const authUserId = req.authenticatedUserId!;
+    if (requestedUserId !== authUserId) {
       await unit.complete();
-      res.status(400).json({ success: false, error: 'Invalid userId' });
+      res.status(403).json({ success: false, error: 'Forbidden' });
       return;
     }
 
     const userService = new (require('../services/UserService').UserService)(unit);
-    const result = await userService.getUserAchievements(userId);
+    const result = await userService.getUserAchievements(authUserId);
     await unit.complete();
 
     if (!result.success) {
-      console.error('GET achievements error for user', userId, ':', result.error);
       res.status(400).json({ success: false, error: result.error });
       return;
     }
@@ -249,32 +248,29 @@ authRouter.get('/user/:userId/achievements', async (req: Request, res: Response)
   }
 });
 
-authRouter.post('/user/:userId/achievements', async (req: Request, res: Response) => {
+authRouter.post('/user/:userId/achievements', authMiddleware, async (req: Request, res: Response) => {
   const unit = new Unit(false);
   try {
-    const userId = Number(req.params['userId']);
-    if (!Number.isFinite(userId) || userId <= 0) {
+    const requestedUserId = Number(req.params['userId']);
+    const authUserId = req.authenticatedUserId!;
+    if (requestedUserId !== authUserId) {
       await unit.complete(false);
-      res.status(400).json({ success: false, error: 'Invalid userId' });
+      res.status(403).json({ success: false, error: 'Forbidden' });
       return;
     }
 
-    console.log('📥 POST achievements body:', JSON.stringify(req.body));
     const achievements = Array.isArray(req.body?.achievements) ? req.body.achievements : null;
     if (!achievements) {
-      console.log('📥 POST achievements invalid payload. body type:', typeof req.body, 'keys:', Object.keys(req.body || {}));
       await unit.complete(false);
-      // Return 200 so the frontend doesn't spam console errors — achievements are non-critical
       res.status(200).json({ success: true, warning: 'No achievements to save' });
       return;
     }
 
     const userService = new (require('../services/UserService').UserService)(unit);
-    const result = await userService.saveUserAchievements(userId, achievements);
+    const result = await userService.saveUserAchievements(authUserId, achievements);
 
     if (!result.success) {
       await unit.complete(false);
-      console.error('POST achievements error for user', userId, ':', result.error);
       res.status(400).json({ success: false, error: result.error });
       return;
     }
@@ -288,17 +284,11 @@ authRouter.post('/user/:userId/achievements', async (req: Request, res: Response
   }
 });
 
-// Add playtime seconds to user's total and return new total
-authRouter.post('/playtime', async (req: Request, res: Response) => {
+authRouter.post('/playtime', authMiddleware, async (req: Request, res: Response) => {
   const unit = new Unit(false);
   try {
-    const userId = Number(req.body?.userId);
+    const userId = req.authenticatedUserId!;
     const seconds = Number(req.body?.seconds);
-    if (!Number.isFinite(userId) || userId <= 0) {
-      await unit.complete(false);
-      res.status(400).json({ success: false, error: 'Invalid userId' });
-      return;
-    }
 
     if (!Number.isFinite(seconds) || seconds <= 0) {
       await unit.complete(false);
@@ -323,19 +313,19 @@ authRouter.post('/playtime', async (req: Request, res: Response) => {
   }
 });
 
-// Per-user settings endpoints
-authRouter.get('/user/:userId/settings', async (req: Request, res: Response) => {
+authRouter.get('/user/:userId/settings', authMiddleware, async (req: Request, res: Response) => {
   const unit = new Unit(true);
   try {
-    const userId = Number(req.params['userId']);
-    if (!Number.isFinite(userId) || userId <= 0) {
+    const requestedUserId = Number(req.params['userId']);
+    const authUserId = req.authenticatedUserId!;
+    if (requestedUserId !== authUserId) {
       await unit.complete();
-      res.status(400).json({ success: false, error: 'Invalid userId' });
+      res.status(403).json({ success: false, error: 'Forbidden: Cannot access another user\'s settings' });
       return;
     }
 
     const userService = new (require('../services/UserService').UserService)(unit);
-    const settingsJson = await userService.getUserSettings(userId);
+    const settingsJson = await userService.getUserSettings(authUserId);
     await unit.complete();
 
     if (settingsJson === undefined) {
@@ -358,13 +348,14 @@ authRouter.get('/user/:userId/settings', async (req: Request, res: Response) => 
   }
 });
 
-authRouter.post('/user/:userId/settings', async (req: Request, res: Response) => {
+authRouter.post('/user/:userId/settings', authMiddleware, async (req: Request, res: Response) => {
   const unit = new Unit(false);
   try {
-    const userId = Number(req.params['userId']);
-    if (!Number.isFinite(userId) || userId <= 0) {
+    const requestedUserId = Number(req.params['userId']);
+    const authUserId = req.authenticatedUserId!;
+    if (requestedUserId !== authUserId) {
       await unit.complete(false);
-      res.status(400).json({ success: false, error: 'Invalid userId' });
+      res.status(403).json({ success: false, error: 'Forbidden: Cannot modify another user\'s settings' });
       return;
     }
 
@@ -372,7 +363,7 @@ authRouter.post('/user/:userId/settings', async (req: Request, res: Response) =>
     const settingsJson = settings ? JSON.stringify(settings) : null;
 
     const userService = new (require('../services/UserService').UserService)(unit);
-    const result = await userService.updateUserSettings(userId, settingsJson ?? '');
+    const result = await userService.updateUserSettings(authUserId, settingsJson ?? '');
     await unit.complete(true);
 
     if (!result.success) {
@@ -388,14 +379,14 @@ authRouter.post('/user/:userId/settings', async (req: Request, res: Response) =>
   }
 });
 
-// Submit per-run gameplay stats to be accumulated on the user's record
-authRouter.post('/user/:userId/run', async (req: Request, res: Response) => {
+authRouter.post('/user/:userId/run', authMiddleware, async (req: Request, res: Response) => {
   const unit = new Unit(false);
   try {
-    const userId = Number(req.params['userId']);
-    if (!Number.isFinite(userId) || userId <= 0) {
+    const requestedUserId = Number(req.params['userId']);
+    const authUserId = req.authenticatedUserId!;
+    if (requestedUserId !== authUserId) {
       await unit.complete(false);
-      res.status(400).json({ success: false, error: 'Invalid userId' });
+      res.status(403).json({ success: false, error: 'Forbidden' });
       return;
     }
 
@@ -407,10 +398,7 @@ authRouter.post('/user/:userId/run', async (req: Request, res: Response) => {
     const score = Number(payload.score) || 0;
     const accuracy = Number(payload.accuracy) || 0;
 
-    const userService = new (require('../services/UserService').UserService)(unit);
-
-    // Verify user exists
-    const check = await unit.prepare<{ id: number }, { userId: number }>('SELECT id FROM User WHERE id = $userId', { userId }).get();
+    const check = await unit.prepare<{ id: number }, { userId: number }>('SELECT id FROM "User" WHERE id = $userId', { userId: authUserId }).get();
     if (!check) {
       await unit.complete();
       res.status(404).json({ success: false, error: 'User not found' });
@@ -418,7 +406,7 @@ authRouter.post('/user/:userId/run', async (req: Request, res: Response) => {
     }
 
     await unit.prepare(
-      `UPDATE User SET
+      `UPDATE "User" SET
          perfect_total = COALESCE(perfect_total, 0) + $perfect,
          good_total = COALESCE(good_total, 0) + $good,
          glimmer_total = COALESCE(glimmer_total, 0) + $glimmer,
@@ -427,7 +415,7 @@ authRouter.post('/user/:userId/run', async (req: Request, res: Response) => {
          total_accuracy = COALESCE(total_accuracy, 0) + $accuracy,
          runs_count = COALESCE(runs_count, 0) + 1
        WHERE id = $userId`,
-      { perfect, good, glimmer, miss, score, accuracy, userId }
+      { perfect, good, glimmer, miss, score, accuracy, userId: authUserId }
     ).run();
 
     await unit.complete(true);
@@ -439,24 +427,25 @@ authRouter.post('/user/:userId/run', async (req: Request, res: Response) => {
   }
 });
 
-// Retrieve aggregated analytics for a user
-authRouter.get('/user/:userId/analytics', async (req: Request, res: Response) => {
+authRouter.get('/user/:userId/analytics', authMiddleware, async (req: Request, res: Response) => {
   const unit = new Unit(true);
   try {
-    const userId = Number(req.params['userId']);
-    if (!Number.isFinite(userId) || userId <= 0) {
+    const requestedUserId = Number(req.params['userId']);
+    const authUserId = req.authenticatedUserId!;
+    if (requestedUserId !== authUserId) {
       await unit.complete();
-      res.status(400).json({ success: false, error: 'Invalid userId' });
+      res.status(403).json({ success: false, error: 'Forbidden' });
       return;
     }
 
-    const stmt = unit.prepare<{
-      perfect_total: number; good_total: number; glimmer_total: number; miss_total: number;
-      total_score: number; total_accuracy: number; runs_count: number; playtime_seconds?: number
-    }, { userId: number }>(
+    const stmt = unit.prepare<
+      { perfect_total: number; good_total: number; glimmer_total: number; miss_total: number;
+        total_score: number; total_accuracy: number; runs_count: number; playtime_seconds?: number },
+      { userId: number }
+    >(
       `SELECT perfect_total, good_total, glimmer_total, miss_total, total_score, total_accuracy, runs_count, playtime_seconds
-       FROM User WHERE id = $userId`,
-      { userId }
+       FROM "User" WHERE id = $userId`,
+      { userId: authUserId }
     );
 
     const row = await stmt.get();

@@ -33,6 +33,7 @@ export interface AuthResponse {
   success: boolean;
   user?: User;
   userId?: number;
+  token?: string;
   error?: string;
   message?: string;
 }
@@ -80,6 +81,9 @@ export class AuthService {
           // Store user in localStorage and update subject
           const normalized = this.normalizeUser(response.user);
           localStorage.setItem('currentUser', JSON.stringify(normalized));
+          if (response.token) {
+            localStorage.setItem('authToken', response.token);
+          }
           this.currentUserSignal.set(normalized);
         }
         return response;
@@ -106,6 +110,9 @@ export class AuthService {
           // Store user in localStorage and update subject
           const normalized = this.normalizeUser(user);
           localStorage.setItem('currentUser', JSON.stringify(normalized));
+          if (response.token) {
+            localStorage.setItem('authToken', response.token);
+          }
           this.currentUserSignal.set(normalized);
         }
         return response;
@@ -122,6 +129,7 @@ export class AuthService {
   logout(): void {
     // Remove user from localStorage and update subject
     localStorage.removeItem('currentUser');
+    localStorage.removeItem('authToken');
     this.currentUserSignal.set(null);
   }
 
@@ -131,7 +139,7 @@ export class AuthService {
   updateProfilePicture(userId: number, base64Image: string): Observable<UpdateProfilePictureResponse> {
     return this.http.post<UpdateProfilePictureResponse>(
       `${this.apiUrl}/profile-picture`,
-      { userId, profilePictureBase64: base64Image }
+      { profilePictureBase64: base64Image }
     ).pipe(
       map(response => {
         console.log('updateProfilePicture response:', response);
@@ -192,7 +200,7 @@ export class AuthService {
   addPlaytime(userId: number, seconds: number) {
     return this.http.post<{ success: boolean; playtimeSeconds?: number; error?: string }>(
       `${this.apiUrl}/playtime`,
-      { userId, seconds }
+      { seconds }
     ).pipe(
       map(response => {
         if (response.success && typeof response.playtimeSeconds === 'number') {

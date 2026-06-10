@@ -227,7 +227,7 @@ export class AchievementService {
     const userId = this.authService.currentUser?.id;
     if (!userId) return;
 
-    this.songService.getDifficultyLeaderboard(songId, difficultyId, userId).subscribe({
+    this.songService.getDifficultyLeaderboard(songId, difficultyId).subscribe({
       next: response => {
         if (!response.success || !Array.isArray(response.entries)) return;
         const entry = response.entries.find(e => e.isCurrentUser);

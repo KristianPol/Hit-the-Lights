@@ -362,7 +362,7 @@ export class Gameplay implements AfterViewInit, OnDestroy {
       const songId = Number(songIdParam);
       if (!Number.isNaN(songId)) {
         try {
-          const response = await firstValueFrom(this.songService.getSongById(songId, viewerId));
+          const response = await firstValueFrom(this.songService.getSongById(songId));
           if (response.success && response.song) {
             return response.song;
           }
@@ -387,8 +387,7 @@ export class Gameplay implements AfterViewInit, OnDestroy {
         return;
       }
 
-      const viewerId = this.authService.currentUser?.id ?? undefined;
-      const response = await firstValueFrom(this.songService.getDifficultyChart(song.id, difficultyId, viewerId));
+      const response = await firstValueFrom(this.songService.getDifficultyChart(song.id, difficultyId));
 
       if (!response.success || !response.chart?.notes?.length) {
         console.warn('Difficulty chart is invalid or empty; using fallback chart.');
@@ -1029,7 +1028,6 @@ export class Gameplay implements AfterViewInit, OnDestroy {
     const currentStats = this.stats();
     // Submit leaderboard highscore (may update user's best per difficulty)
     this.songService.submitDifficultyHighscore(songId, difficultyId, {
-      userId,
       score: currentStats.score,
       maxCombo: currentStats.maxCombo,
       accuracy: currentStats.accuracy,
@@ -1149,7 +1147,7 @@ export class Gameplay implements AfterViewInit, OnDestroy {
     let completed = 0;
     let failed = 0;
     for (const friendId of selectedIds) {
-      this.messageService.sendMessage(userId, friendId, message).subscribe({
+      this.messageService.sendMessage(friendId, message).subscribe({
         next: response => {
           completed++;
           if (response.success && completed === selectedIds.length && failed === 0) {

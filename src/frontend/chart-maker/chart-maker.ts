@@ -115,7 +115,7 @@ export class ChartMaker implements AfterViewInit, OnDestroy {
   private loadOwnedSongs(): void {
     const userId = this.authService.currentUser?.id;
     if (!userId) return;
-    this.songService.getAllSongs(userId).subscribe({
+    this.songService.getAllSongs().subscribe({
       next: res => {
         if (res.success) {
           this.ownedSongs.set(res.songs.filter(s => s.ownerId === userId));
@@ -681,7 +681,6 @@ export class ChartMaker implements AfterViewInit, OnDestroy {
     this.assignError.set(null);
 
     const request = {
-      ownerId: userId,
       difficulty,
       notes: this.notes().map(n => ({ time: n.time, lane: n.lane }))
     };

@@ -416,8 +416,7 @@ export class ProfileComponent implements OnInit {
 
   private loadUploadedSongCount(userId: number): void {
 
-    const viewerId = this.authService.currentUser?.id ?? undefined;
-    this.songService.getUploadedSongCount(userId, viewerId).subscribe({
+    this.songService.getUploadedSongCount(userId).subscribe({
       next: response => {
         this.ngZone.run(() => {
           this.uploadedSongCount = response.success ? response.count : 0;
@@ -451,8 +450,7 @@ export class ProfileComponent implements OnInit {
   private loadCreations(userId: number): void {
     this.creationsLoading = true;
     this.creationsError = null;
-    const viewerId = this.authService.currentUser?.id ?? undefined;
-    this.songService.getAllSongs(viewerId, { ownerId: userId }).subscribe({
+    this.songService.getAllSongs({ ownerId: userId }).subscribe({
       next: response => {
         this.ngZone.run(() => {
           this.creationsLoading = false;

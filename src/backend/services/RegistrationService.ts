@@ -45,7 +45,7 @@ export class RegistrationService {
       }
 
       // Hash password before storing
-      const hashedPassword = PasswordHasher.hash(user.password);
+      const hashedPassword = PasswordHasher.hash(user.password!);
 
       // Insert new user
       const insertStmt = this.unit.prepare<unknown, { username: string; password: string }>(

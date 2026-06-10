@@ -59,9 +59,8 @@ export class FriendshipService {
     );
   }
 
-  sendFriendRequest(requesterId: number, addresseeId: number, initialMessage?: string): Observable<FriendActionResult & { friendshipId?: number }> {
+  sendFriendRequest(addresseeId: number, initialMessage?: string): Observable<FriendActionResult & { friendshipId?: number }> {
     return this.http.post<FriendActionResult & { friendshipId?: number }>(`${this.apiUrl}/request`, {
-      requesterId,
       addresseeId,
       initialMessage
     }).pipe(
@@ -69,14 +68,14 @@ export class FriendshipService {
     );
   }
 
-  acceptFriendRequest(friendshipId: number, userId: number): Observable<FriendActionResult> {
-    return this.http.post<FriendActionResult>(`${this.apiUrl}/accept`, { friendshipId, userId }).pipe(
+  acceptFriendRequest(friendshipId: number): Observable<FriendActionResult> {
+    return this.http.post<FriendActionResult>(`${this.apiUrl}/accept`, { friendshipId }).pipe(
       catchError(error => throwError(() => new Error(error.error?.error || 'Failed to accept friend request')))
     );
   }
 
-  declineFriendRequest(friendshipId: number, userId: number): Observable<FriendActionResult> {
-    return this.http.post<FriendActionResult>(`${this.apiUrl}/decline`, { friendshipId, userId }).pipe(
+  declineFriendRequest(friendshipId: number): Observable<FriendActionResult> {
+    return this.http.post<FriendActionResult>(`${this.apiUrl}/decline`, { friendshipId }).pipe(
       catchError(error => throwError(() => new Error(error.error?.error || 'Failed to decline friend request')))
     );
   }

@@ -1,7 +1,7 @@
 export type User = {
   id : number,
   username: string,
-  password: string,
+  password?: string,
   profilePicture?: Buffer | null,
   profilePictureUrl?: string | null,
   joinDate: string,

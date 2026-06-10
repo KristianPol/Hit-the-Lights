@@ -271,7 +271,7 @@ export class MenuComponent implements OnInit, OnDestroy {
       sort: this.sortOption || undefined
     };
 
-    this.songService.getAllSongs(viewerId ?? undefined, options).subscribe({
+    this.songService.getAllSongs(options).subscribe({
       next: response => {
         console.log('✅ MenuComponent: Received response from getAllSongs()', response);
         if (response.success) {
@@ -340,7 +340,7 @@ export class MenuComponent implements OnInit, OnDestroy {
     }
 
     if (song.isLikedByUser) {
-      this.songService.unlikeSong(song.id, userId).subscribe({
+      this.songService.unlikeSong(song.id).subscribe({
         next: () => {
           this.allSongsSignal.update(songs =>
             songs.map(s =>
@@ -358,7 +358,7 @@ export class MenuComponent implements OnInit, OnDestroy {
         error: err => console.error('Failed to unlike song', err)
       });
     } else {
-      this.songService.likeSong(song.id, userId).subscribe({
+      this.songService.likeSong(song.id).subscribe({
         next: () => {
           this.allSongsSignal.update(songs =>
             songs.map(s =>
@@ -403,7 +403,7 @@ export class MenuComponent implements OnInit, OnDestroy {
   openDifficultyPicker() {
     if (!this.selectedSong) return;
 
-    this.songService.getSongDifficulties(this.selectedSong.id, this.currentUser?.id ?? undefined).subscribe({
+    this.songService.getSongDifficulties(this.selectedSong.id).subscribe({
       next: response => {
         if (response.success && response.difficulties) {
           this.difficultyPickerState.set({
@@ -508,7 +508,6 @@ export class MenuComponent implements OnInit, OnDestroy {
         }
 
         this.songService.addSongDifficulty(this.selectedSong!.id, {
-          ownerId: this.currentUser!.id,
           difficulty: difficultyNameToNumber(this.uploadDifficultyChoice!),
           notes: chartData.notes
         }).subscribe({
@@ -584,9 +583,7 @@ export class MenuComponent implements OnInit, OnDestroy {
         this.stopAudio();
       }
 
-      const viewerId = this.currentUser?.id;
-
-      this.songService.deleteSong(songId, viewerId ?? undefined).subscribe({
+      this.songService.deleteSong(songId).subscribe({
         next: response => {
           if (!response.success) {
             console.error('Delete failed, restoring:', response.error);
@@ -706,7 +703,6 @@ export class MenuComponent implements OnInit, OnDestroy {
           audioMimeType: audioFile.type,
           coverBase64,
           coverMimeType: coverFile.type,
-          ownerId,
           isPublic,
           genre: genre || null
         }).subscribe({
@@ -749,7 +745,6 @@ export class MenuComponent implements OnInit, OnDestroy {
     const nextVisibility = !this.isSongPublic(this.selectedSong);
 
     this.songService.updateSongVisibility(this.selectedSong.id, {
-      ownerId: this.currentUser.id,
       isPublic: nextVisibility
     }).subscribe({
       next: response => {
@@ -779,8 +774,7 @@ export class MenuComponent implements OnInit, OnDestroy {
     }
 
     this.loadingComments = true;
-    const viewerId = this.currentUser?.id;
-    this.songService.getComments(this.selectedSong.id, viewerId ?? undefined).subscribe({
+    this.songService.getComments(this.selectedSong.id).subscribe({
       next: response => {
         if (response.success && response.comments) {
           this.comments = response.comments;
@@ -810,7 +804,6 @@ export class MenuComponent implements OnInit, OnDestroy {
     }
 
     const payload: any = {
-      senderId: this.currentUser.id,
       content
     };
 
@@ -999,7 +992,7 @@ export class MenuComponent implements OnInit, OnDestroy {
       difficultyLabel
     });
 
-    this.songService.getDifficultyLeaderboard(this.selectedSong.id, this.selectedDifficultyId, this.currentUser?.id ?? undefined).subscribe({
+    this.songService.getDifficultyLeaderboard(this.selectedSong.id, this.selectedDifficultyId).subscribe({
       next: response => {
         if (response.success) {
           this.leaderboardState.set({

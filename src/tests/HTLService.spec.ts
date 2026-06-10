@@ -11,8 +11,14 @@ describe('HTLService', () => {
     unit = new Unit(false);
     service = new HTLService(unit);
     // Clear all tables to prevent UNIQUE constraint violations between tests
+    // Delete child tables first to avoid FK violations
     await unit.prepare("DELETE FROM Highscore").run();
     await unit.prepare("DELETE FROM Note").run();
+    await unit.prepare("DELETE FROM Comment").run();
+    await unit.prepare("DELETE FROM SongLike").run();
+    await unit.prepare("DELETE FROM UserAchievement").run();
+    await unit.prepare("DELETE FROM Message").run();
+    await unit.prepare("DELETE FROM Friendship").run();
     await unit.prepare("DELETE FROM Difficulty").run();
     await unit.prepare("DELETE FROM Song").run();
     await unit.prepare("DELETE FROM User").run();

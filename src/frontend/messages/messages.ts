@@ -274,7 +274,7 @@ export class Messages implements OnInit, OnDestroy {
 
   sendFriendRequest(addresseeId: number): void {
     if (!this.currentUser) return;
-    this.friendshipService.sendFriendRequest(this.currentUser.id, addresseeId).subscribe({
+    this.friendshipService.sendFriendRequest(addresseeId).subscribe({
       next: response => {
         if (response.success) {
           this.loadSentRequests();
@@ -307,7 +307,7 @@ export class Messages implements OnInit, OnDestroy {
     const content = this.requestMessageContent().trim();
     if (!this.currentUser || !target || !content) return;
 
-    this.friendshipService.sendFriendRequest(this.currentUser.id, target.id, content).subscribe({
+    this.friendshipService.sendFriendRequest(target.id, content).subscribe({
       next: response => {
         if (response.success) {
           this.closeRequestForm();
@@ -326,7 +326,7 @@ export class Messages implements OnInit, OnDestroy {
 
   acceptRequest(friendshipId: number): void {
     if (!this.currentUser) return;
-    this.friendshipService.acceptFriendRequest(friendshipId, this.currentUser.id).subscribe({
+    this.friendshipService.acceptFriendRequest(friendshipId).subscribe({
       next: response => {
         if (response.success) {
           this.loadAllData();
@@ -337,7 +337,7 @@ export class Messages implements OnInit, OnDestroy {
 
   declineRequest(friendshipId: number): void {
     if (!this.currentUser) return;
-    this.friendshipService.declineFriendRequest(friendshipId, this.currentUser.id).subscribe({
+    this.friendshipService.declineFriendRequest(friendshipId).subscribe({
       next: response => {
         if (response.success) {
           this.loadPendingRequests();
@@ -393,7 +393,7 @@ export class Messages implements OnInit, OnDestroy {
             .filter(m => m.receiverId === this.currentUser!.id && !m.isRead)
             .map(m => m.id);
           if (unreadIds.length > 0) {
-            this.messageService.markAsRead(unreadIds, this.currentUser!.id).subscribe();
+            this.messageService.markAsRead(unreadIds).subscribe();
           }
           this.messageService.markConversationAsRead(otherUserId, this.currentUser!.id).subscribe();
         }
@@ -414,7 +414,7 @@ export class Messages implements OnInit, OnDestroy {
     this.sendingMessage.set(true);
     this.chatError.set('');
 
-    this.messageService.sendMessage(this.currentUser.id, receiverId, content).subscribe({
+    this.messageService.sendMessage(receiverId, content).subscribe({
       next: response => {
         if (response.success) {
           this.newMessageContent.set('');

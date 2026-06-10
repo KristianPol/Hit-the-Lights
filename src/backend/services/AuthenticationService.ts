@@ -48,12 +48,12 @@ export class AuthenticationService {
       }
 
       // Check password against hash
-      let passwordValid = PasswordHasher.compare(request.password, user.password);
+      let passwordValid = PasswordHasher.compare(request.password, user.password!);
 
       // Migration fallback: if password is not a hash and matches plain text, re-hash it
-      if (!passwordValid && !PasswordHasher.isHashed(user.password) && user.password === request.password) {
+      if (!passwordValid && !PasswordHasher.isHashed(user.password!) && user.password === request.password) {
         passwordValid = true;
-        const hashedPassword = PasswordHasher.hash(user.password);
+        const hashedPassword = PasswordHasher.hash(user.password!);
         const updateStmt = this.unit.prepare<
           unknown,
           { userId: number; password: string }
@@ -76,7 +76,6 @@ export class AuthenticationService {
         user: {
           id: user.id,
           username: user.username,
-          password: user.password,
           profilePicture: user.profilePicture,
           joinDate: user.joinDate,
           // Map DB column playtime_seconds to model property playtimeSeconds
