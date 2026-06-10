@@ -55,7 +55,7 @@ export class FriendshipService {
       >(
         `SELECT id, username, profilePicture, profilePictureUrl FROM User
          WHERE (id = $idQuery OR username LIKE '%' || $query || '%')
-         AND ($excludeId IS NULL OR id != $excludeId)
+         AND ($excludeId::integer IS NULL OR id != $excludeId::integer)
          LIMIT 20`,
         { query: trimmed, idQuery: parseInt(trimmed, 10), excludeId: excludeUserId ?? null }
       );
@@ -77,7 +77,7 @@ export class FriendshipService {
       >(
         `SELECT id, username, profilePicture, profilePictureUrl FROM User
          WHERE username LIKE '%' || $query || '%'
-         AND ($excludeId IS NULL OR id != $excludeId)
+         AND ($excludeId::integer IS NULL OR id != $excludeId::integer)
          LIMIT 20`,
         { query: trimmed, excludeId: excludeUserId ?? null }
       );
