@@ -3,7 +3,7 @@
 // ─── Layout ───────────────────────────────────────────────
 .starter-layout {
   min-height: 100vh;
-  padding: 40px 24px 60px;
+  padding: 24px 16px 32px;
   max-width: 1100px;
   margin: 0 auto;
   color: #f2f2f2;
@@ -19,7 +19,7 @@
   text-align: center;
   display: flex;
   flex-direction: column;
-  gap: 3rem;
+  gap: 2rem;
   position: relative;
   z-index: 1;
 }
@@ -28,7 +28,7 @@
 .hero-section {
   position: relative;
   text-align: center;
-  padding: 60px 20px 40px;
+  padding: 32px 16px 24px;
   overflow: hidden;
   border-radius: 16px;
 }
@@ -82,7 +82,7 @@
 }
 
 .hero-title {
-  font-size: 42px;
+  font-size: 28px;
   font-weight: 800;
   margin: 0 0 12px;
   letter-spacing: -0.5px;
@@ -106,7 +106,7 @@
 }
 
 .hero-subtitle {
-  font-size: 16px;
+  font-size: 14px;
   color: #a0a0a0;
   margin: 0 0 20px;
   position: relative;
@@ -135,7 +135,7 @@
 }
 
 .game-description {
-  font-size: 1.1rem;
+  font-size: 0.95rem;
   color: #b0b0b0;
   line-height: 1.6;
   max-width: 500px;
@@ -161,7 +161,7 @@
 
 .btn-primary,
 .btn-secondary {
-  padding: 1rem 2.5rem;
+  padding: 0.75rem 1.75rem;
   font-size: 0.95rem;
   font-weight: 700;
   border-radius: 12px;
@@ -227,11 +227,11 @@
 // ─── Section Header ───────────────────────────────────────
 .section-header {
   text-align: center;
-  margin-bottom: 28px;
+  margin-bottom: 18px;
 
   .section-icon {
-    width: 48px;
-    height: 48px;
+    width: 40px;
+    height: 40px;
     border-radius: 14px;
     background: rgba(255, 200, 50, 0.08);
     border: 1px solid rgba(255, 200, 50, 0.12);
@@ -239,12 +239,12 @@
     align-items: center;
     justify-content: center;
     margin-bottom: 14px;
-    font-size: 20px;
+    font-size: 16px;
     color: $yellow-primary;
   }
 
   h2 {
-    font-size: 24px;
+    font-size: 20px;
     font-weight: 700;
     margin: 0 0 8px;
   }
@@ -260,14 +260,14 @@
 .features-section {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 1.5rem;
+  gap: 1rem;
 }
 
 .feature-card {
   position: relative;
   background: rgba(var(--color-text-primary-rgb), 0.02);
   border: 1px solid rgba(var(--color-text-primary-rgb), 0.04);
-  padding: 28px 22px;
+  padding: 18px 14px;
   border-radius: 16px;
   display: flex;
   flex-direction: column;
@@ -283,8 +283,8 @@
 }
 
 .feature-icon-wrap {
-  width: 48px;
-  height: 48px;
+  width: 40px;
+  height: 40px;
   border-radius: 14px;
   background: rgba(255, 200, 50, 0.08);
   border: 1px solid rgba(255, 200, 50, 0.12);
@@ -292,18 +292,18 @@
   align-items: center;
   justify-content: center;
   margin-bottom: 14px;
-  font-size: 20px;
+  font-size: 16px;
   color: $yellow-primary;
 }
 
 .feature-title {
   font-weight: 700;
-  font-size: 19px;
+  font-size: 16px;
   margin-bottom: 10px;
 }
 
 .feature-description {
-  font-size: 13.5px;
+  font-size: 12.5px;
   color: #b0b0b0;
   line-height: 1.65;
   margin: 0;
@@ -331,7 +331,7 @@
 // ─── Responsive ───────────────────────────────────────────
 @media (max-width: 768px) {
   .starter-layout {
-    padding: 40px 16px 32px;
+    padding: 20px 12px 24px;
   }
 
   .starter-container {
@@ -339,7 +339,7 @@
   }
 
   .hero-title {
-    font-size: 32px;
+    font-size: 24px;
   }
 
   .hero-section {

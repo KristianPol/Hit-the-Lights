@@ -180,11 +180,12 @@
 
 .visibility-select {
   width: 100%;
-  padding: 0.85rem 1rem;
-  border-radius: 14px;
+  padding: 0.55rem 0.75rem;
+  border-radius: 10px;
   border: 1px solid rgba(var(--color-accent-rgb), 0.25);
   background: rgba(var(--color-main-rgb), 0.45);
   color: $text-primary;
+  font-size: 0.85rem;
   outline: none;
 
   &:focus {
@@ -465,11 +466,12 @@
   z-index: 1000;
   @include flex-center;
   animation: fadeIn 0.2s ease;
+  padding: 1rem;
 }
 
 // Modal Box
 .modal.delete-modal {
-  max-width: 420px;
+  max-width: 360px;
 
   .modal-header {
     background: linear-gradient(135deg, $black-tertiary, $black-secondary);
@@ -483,39 +485,39 @@
   .modal-body {
     background: rgba(26, 26, 26, 0.95);
     text-align: center;
-    padding: 2rem;
+    padding: 1.25rem;
 
     .delete-song-preview {
-      margin-bottom: 1rem;
+      margin-bottom: 0.5rem;
 
       .delete-cover-preview {
-        width: 100px;
-        height: 100px;
-        border-radius: 12px;
+        width: 64px;
+        height: 64px;
+        border-radius: 10px;
         object-fit: cover;
-        border: 3px solid rgba(255, 71, 87, 0.5);
-        box-shadow: 0 0 20px rgba(255, 71, 87, 0.3);
+        border: 2px solid rgba(255, 71, 87, 0.5);
+        box-shadow: 0 0 12px rgba(255, 71, 87, 0.3);
       }
     }
 
     h3 {
       color: $text-primary;
-      margin: 0.5rem 0 0.25rem;
-      font-size: 1.3rem;
+      margin: 0.35rem 0 0.2rem;
+      font-size: 1rem;
       font-weight: 700;
     }
 
     .delete-author {
       color: $text-secondary;
-      font-size: 0.9rem;
-      margin-bottom: 1rem;
+      font-size: 0.8rem;
+      margin-bottom: 0.75rem;
       opacity: 0.9;
     }
 
     p {
       color: $text-primary !important;
-      margin: 0.5rem 0;
-      font-size: 1rem;
+      margin: 0.35rem 0;
+      font-size: 0.85rem;
     }
 
     .warning-text {
@@ -523,7 +525,7 @@
       font-weight: 600;
       text-shadow: none;
       background: rgba(255, 71, 87, 0.1);
-      padding: 0.75rem;
+      padding: 0.5rem;
       border-radius: 8px;
       border-left: 4px solid #ff4757;
     }
@@ -534,12 +536,20 @@
     border-top: 1px solid rgba(255, 71, 87, 0.2);
 
     .btn-danger {
-      background: linear-gradient(135deg, #ff4757, #ff3742) !important;
-      border: 1px solid rgba(255, 71, 87, 0.5) !important;
+      padding: 0.5rem 1.1rem;
+      background: linear-gradient(135deg, #ff4757, #ff3742);
+      border: 1px solid rgba(255, 71, 87, 0.5);
+      border-radius: 10px;
+      color: #ffffff;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
 
       &:hover {
-        background: linear-gradient(135deg, #ff3742, #ff2d36) !important;
-        box-shadow: 0 0 20px rgba(255, 71, 87, 0.6) !important;
+        background: linear-gradient(135deg, #ff3742, #ff2d36);
+        box-shadow: 0 0 16px rgba(255, 71, 87, 0.5);
+        transform: translateY(-1px);
       }
     }
   }
@@ -547,26 +557,30 @@
 
 .modal {
   width: 100%;
-  max-width: 460px;
+  max-width: 400px;
+  max-height: 85vh;
   background: linear-gradient(160deg, $black-secondary 0%, $black-tertiary 100%);
   border: 1px solid rgba(var(--color-accent-rgb), 0.25);
-  border-radius: 24px;
+  border-radius: 20px;
   box-shadow: 0 0 60px rgba(var(--color-main-rgb), 0.6), 0 0 40px rgba(var(--color-accent-rgb), 0.08);
   overflow: hidden;
   animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
 
   .modal-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 1.5rem 2rem;
+    padding: 1rem 1.25rem;
     border-bottom: 1px solid rgba(var(--color-accent-rgb), 0.15);
     background: rgba(var(--color-accent-rgb), 0.03);
+    flex-shrink: 0;
 
     h2 {
       margin: 0;
       color: $text-primary;
-      font-size: 1.25rem;
+      font-size: 1.05rem;
       font-weight: 700;
       letter-spacing: 0.05em;
     }
@@ -575,12 +589,12 @@
       background: transparent;
       border: 1px solid rgba(var(--color-text-primary-rgb), 0.1);
       color: $text-secondary;
-      width: 32px;
-      height: 32px;
+      width: 28px;
+      height: 28px;
       border-radius: 50%;
       cursor: pointer;
       @include flex-center;
-      font-size: 0.85rem;
+      font-size: 0.8rem;
       transition: all 0.2s ease;
 
       i {
@@ -596,19 +610,21 @@
   }
 
   .modal-body {
-    padding: 2rem;
+    padding: 1.25rem;
     display: flex;
     flex-direction: column;
-    gap: 1.25rem;
+    gap: 0.75rem;
+    overflow-y: auto;
   }
 
   .modal-footer {
     display: flex;
     justify-content: flex-end;
     gap: 0.75rem;
-    padding: 1.25rem 2rem;
+    padding: 0.875rem 1.25rem;
     border-top: 1px solid rgba(var(--color-accent-rgb), 0.1);
     background: rgba(var(--color-main-rgb), 0.2);
+    flex-shrink: 0;
   }
 }
 
@@ -616,11 +632,11 @@
 .form-group {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.35rem;
 
   label {
     color: $text-secondary;
-    font-size: 0.8rem;
+    font-size: 0.7rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.1em;
@@ -631,9 +647,9 @@
     background: rgba(var(--color-text-primary-rgb), 0.04);
     border: 1px solid rgba(var(--color-text-primary-rgb), 0.1);
     border-radius: 10px;
-    padding: 0.75rem 1rem;
+    padding: 0.55rem 0.75rem;
     color: $text-primary;
-    font-size: 0.95rem;
+    font-size: 0.85rem;
     outline: none;
     transition: all 0.25s ease;
     width: 100%;
@@ -655,13 +671,13 @@
 .file-btn {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
-  padding: 0.75rem 1rem;
+  gap: 0.5rem;
+  padding: 0.55rem 0.75rem;
   background: rgba(var(--color-text-primary-rgb), 0.04);
   border: 1px dashed rgba(var(--color-accent-rgb), 0.3);
   border-radius: 10px;
   color: $text-secondary;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   cursor: pointer;
   transition: all 0.25s ease;
   width: 100%;
@@ -685,12 +701,12 @@
 
 // Modal action buttons
 .btn-cancel {
-  padding: 0.6rem 1.4rem;
+  padding: 0.5rem 1.1rem;
   background: transparent;
   border: 1px solid rgba(var(--color-text-primary-rgb), 0.1);
   border-radius: 10px;
   color: $text-secondary;
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -702,12 +718,12 @@
 }
 
 .btn-submit {
-  padding: 0.6rem 1.4rem;
+  padding: 0.5rem 1.1rem;
   background: $yellow-primary;
   border: none;
   border-radius: 10px;
   color: $black-primary;
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   font-weight: 700;
   letter-spacing: 0.05em;
   cursor: pointer;

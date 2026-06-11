@@ -20,7 +20,7 @@
 .profile-container {
   min-height: 100vh;
   background: transparent;
-  padding: 3rem;
+  padding: 1.5rem;
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -47,7 +47,7 @@
   max-width: 1200px;
   margin: 0 auto;
   text-align: center;
-  margin-bottom: 3rem;
+  margin-bottom: 1.5rem;
   padding-top: 0.25rem;
   position: relative;
   z-index: 1;
@@ -103,7 +103,7 @@
   }
 
   h1 {
-    font-size: clamp(2.1rem, 3vw, 2.8rem);
+    font-size: clamp(1.6rem, 2.5vw, 2rem);
     font-weight: 800;
     letter-spacing: 0.08em;
     line-height: 1.1;
@@ -151,14 +151,14 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-bottom: 2.5rem;
+  margin-bottom: 1.5rem;
   position: relative;
 
   .avatar-wrapper {
     position: relative;
-    width: 120px;
-    height: 120px;
-    margin-bottom: 1.5rem;
+    width: 80px;
+    height: 80px;
+    margin-bottom: 1rem;
 
     .avatar-glow {
       position: absolute;
@@ -176,7 +176,7 @@
       border-radius: 50%;
       background: linear-gradient(135deg, $yellow-primary, $yellow-bright);
       color: $black-primary;
-      font-size: 3rem;
+      font-size: 2rem;
       font-weight: 800;
       @include flex-center;
       position: relative;
@@ -212,7 +212,7 @@
   }
 
   .username {
-    font-size: clamp(1.75rem, 2.2vw, 2.2rem);
+    font-size: clamp(1.4rem, 1.8vw, 1.7rem);
     font-weight: 700;
     color: $text-primary;
     margin: 0 0 0.5rem;
@@ -239,14 +239,14 @@
 .info-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 1.5rem;
-  margin-bottom: 2.5rem;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
 
   .info-item {
     background: rgba(var(--color-text-primary-rgb), 0.03);
     border: 1px solid rgba(var(--color-text-primary-rgb), 0.1);
     border-radius: 16px;
-    padding: 1.5rem;
+    padding: 1rem;
     transition: all 0.3s ease;
     position: relative;
     overflow: hidden;
@@ -318,7 +318,7 @@
 // Stats section
 .stats-section {
   border-top: 1px solid rgba(var(--color-accent-rgb), 0.1);
-  padding-top: 2rem;
+  padding-top: 1.25rem;
 
   .stats-header {
     color: $text-secondary;
@@ -332,13 +332,13 @@
   .stats-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 1rem;
+    gap: 0.75rem;
 
     .stat-box {
       background: rgba(var(--color-text-primary-rgb), 0.03);
       border: 1px solid rgba(var(--color-text-primary-rgb), 0.1);
       border-radius: 16px;
-      padding: 1.5rem 1rem;
+      padding: 1rem 0.75rem;
       text-align: center;
       transition: all 0.3s ease;
       position: relative;
@@ -361,7 +361,7 @@
       }
 
       .stat-value {
-        font-size: 1.75rem;
+        font-size: 1.35rem;
         font-weight: 800;
         color: $text-primary;
         display: block;
@@ -394,8 +394,8 @@
 // Pinned achievements section
 .pinned-achievements-section {
   border-top: 1px solid rgba(var(--color-accent-rgb), 0.1);
-  padding-top: 2rem;
-  margin-top: 2rem;
+  padding-top: 1.25rem;
+  margin-top: 1.25rem;
 
   .pinned-header {
     color: $text-secondary;
@@ -425,7 +425,7 @@
     display: flex;
     align-items: center;
     gap: 1rem;
-    padding: 1.15rem;
+    padding: 0.85rem;
     background: rgba(var(--color-text-primary-rgb), 0.03);
     border: 1px solid rgba(var(--color-text-primary-rgb), 0.05);
     border-radius: 16px;
@@ -441,8 +441,8 @@
   }
 
   .pinned-cover {
-    width: 56px;
-    height: 56px;
+    width: 44px;
+    height: 44px;
     border-radius: 12px;
     border: 2px solid rgba(var(--color-accent-rgb), 0.2);
     display: flex;
@@ -496,19 +496,19 @@
   display: flex;
   justify-content: center;
   gap: 0.5rem;
-  margin-bottom: 2.5rem;
+  margin-bottom: 1.5rem;
   border-bottom: 1px solid rgba(var(--color-accent-rgb), 0.1);
-  padding-bottom: 0.5rem;
+  padding-bottom: 0.35rem;
 
   .tab-btn {
     background: transparent;
     border: none;
     color: $text-secondary;
-    font-size: 0.95rem;
+    font-size: 0.85rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    padding: 0.75rem 1.5rem;
+    padding: 0.5rem 1rem;
     cursor: pointer;
     position: relative;
     transition: all 0.3s ease;
@@ -545,8 +545,8 @@
 .creations-tab {
   .creations-section {
     border-top: 1px solid rgba(var(--color-accent-rgb), 0.1);
-    padding-top: 2rem;
-    margin-top: 2rem;
+    padding-top: 1.25rem;
+    margin-top: 1.25rem;
 
     &:first-child {
       border-top: none;
@@ -592,7 +592,7 @@
     display: flex;
     align-items: center;
     gap: 1rem;
-    padding: 1rem;
+    padding: 0.75rem;
     background: rgba(var(--color-text-primary-rgb), 0.03);
     border: 1px solid rgba(var(--color-text-primary-rgb), 0.05);
     border-radius: 16px;
@@ -609,8 +609,8 @@
     }
 
     .song-cover {
-      width: 64px;
-      height: 64px;
+      width: 48px;
+      height: 48px;
       border-radius: 12px;
       object-fit: cover;
       border: 2px solid rgba(var(--color-accent-rgb), 0.15);
@@ -669,7 +669,7 @@
     display: flex;
     align-items: center;
     gap: 1rem;
-    padding: 1rem 1.15rem;
+    padding: 0.75rem 0.9rem;
     background: rgba(var(--color-text-primary-rgb), 0.03);
     border: 1px solid rgba(var(--color-text-primary-rgb), 0.05);
     border-radius: 14px;
@@ -682,8 +682,8 @@
     }
 
     .chart-cover {
-      width: 44px;
-      height: 44px;
+      width: 36px;
+      height: 36px;
       border-radius: 10px;
       background: linear-gradient(135deg, $yellow-primary, $yellow-bright);
       color: $black-primary;
@@ -735,11 +735,11 @@
 .action-buttons {
   display: flex;
   gap: 1rem;
-  margin-top: 2.5rem;
+  margin-top: 1.5rem;
 
   .btn {
     flex: 1;
-    padding: 1rem 1.5rem;
+    padding: 0.75rem 1.25rem;
     border-radius: 12px;
     font-size: 0.95rem;
     font-weight: 600;
@@ -927,7 +927,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.5rem 2rem;
+  padding: 1rem 1.5rem;
   border-bottom: 1px solid rgba(var(--color-accent-rgb), 0.1);
   background: rgba(var(--color-accent-rgb), 0.05);
 
@@ -960,7 +960,7 @@
 }
 
 .modal-body {
-  padding: 2rem;
+  padding: 1.25rem;
 
   .current-picture-section {
     text-align: center;
@@ -980,12 +980,12 @@
       justify-content: center;
 
       .current-avatar {
-        width: 100px;
-        height: 100px;
+        width: 72px;
+        height: 72px;
         border-radius: 50%;
         background: linear-gradient(135deg, $yellow-primary, $yellow-bright);
         color: $black-primary;
-        font-size: 2.5rem;
+        font-size: 1.75rem;
         font-weight: 800;
         @include flex-center;
         border: 3px solid rgba(var(--color-accent-rgb), 0.5);
