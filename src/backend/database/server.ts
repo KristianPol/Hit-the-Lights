@@ -90,12 +90,20 @@ const globalLimiter = rateLimit({
   message: { success: false, error: 'Too many requests, please try again later.' }
 });
 
-const authLimiter = rateLimit({
+const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 50,
+  max: 100,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { success: false, error: 'Too many attempts, please try again later.' }
+  message: { success: false, error: 'Too many login attempts, please try again later.' }
+});
+
+const registerLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Too many registration attempts, please try again later.' }
 });
 
 const songUploadLimiter = rateLimit({
@@ -107,8 +115,8 @@ const songUploadLimiter = rateLimit({
 });
 
 app.use(globalLimiter);
-app.use('/api/auth/login', authLimiter);
-app.use('/api/auth/register', authLimiter);
+app.use('/api/auth/login', loginLimiter);
+app.use('/api/auth/register', registerLimiter);
 app.use('/api/songs/add', songUploadLimiter);
 
 app.use(express.json({ limit: '25mb' }));
