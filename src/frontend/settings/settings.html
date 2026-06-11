@@ -1,43 +1,53 @@
-<div class="settings-page">
-  <div class="settings-card">
-    <div class="settings-header">
-      <button type="button" class="back-button" (click)="goBack()">← Back to Menu</button>
-      <h1>Settings</h1>
-      <p>Basic gameplay controls and note speed.</p>
+<div class="settings-container">
+  <div class="settings-header">
+    <button type="button" class="btn btn-secondary back-to-menu" (click)="goBack()">
+      <i class="fas fa-arrow-left"></i> Back
+    </button>
+    <h1>Settings</h1>
+    <div class="header-spacer"></div>
+  </div>
+
+  @if (errorMessage()) {
+    <div class="message message-error">
+      <i class="fas fa-exclamation-circle"></i> {{ errorMessage() }}
     </div>
+  }
 
-    @if (errorMessage()) {
-      <div class="message message-error">{{ errorMessage() }}</div>
-    }
-
-    <div class="section">
-      <h2>Gameplay Buttons</h2>
+  <div class="settings-content">
+    <div class="section-card">
+      <div class="section-header">
+        <i class="fas fa-keyboard"></i>
+        <span>Gameplay Buttons</span>
+      </div>
       <p class="section-hint">Pick a lane, then press a new key.</p>
 
       <div class="binding-list">
         @for (label of laneLabels(); track $index) {
-          <div class="binding-row">
-            <div>
+          <div class="binding-row" [class.active]="capturingLane === $index">
+            <div class="binding-info">
               <span class="binding-name">Lane {{ $index + 1 }}</span>
-              <span class="binding-current">Current: {{ label }}</span>
+              <span class="binding-current">{{ label }}</span>
             </div>
             <button
               type="button"
               class="binding-button"
               [class.active]="capturingLane === $index"
               (click)="startCapture($index)">
-              {{ capturingLane === $index ? 'Press a key...' : 'Change key' }}
+              {{ capturingLane === $index ? 'Press a key...' : 'Change' }}
             </button>
           </div>
         }
       </div>
     </div>
 
-    <div class="section">
-      <h2>Note Falling Speed</h2>
+    <div class="section-card">
+      <div class="section-header">
+        <i class="fas fa-gauge-high"></i>
+        <span>Note Falling Speed</span>
+      </div>
       <p class="section-hint">Current speed: {{ noteSpeedDraft.toFixed(2) }}x</p>
 
-      <label class="speed-control">
+      <div class="speed-control">
         <input
           type="range"
           min="0.5"
@@ -47,11 +57,14 @@
           (ngModelChange)="onSpeedChange($event)"
         />
         <span class="speed-value">{{ noteSpeedDraft.toFixed(2) }}x</span>
-      </label>
+      </div>
     </div>
 
-    <div class="section">
-      <h2>Theme</h2>
+    <div class="section-card">
+      <div class="section-header">
+        <i class="fas fa-palette"></i>
+        <span>Theme</span>
+      </div>
       <p class="section-hint">Choose a preset color theme for the whole app.</p>
 
       <div class="theme-grid">
@@ -67,7 +80,7 @@
             </div>
             <span class="theme-label">{{ theme.label }}</span>
             @if (selectedThemeId() === theme.id) {
-              <span class="theme-check">✓</span>
+              <span class="theme-check"><i class="fas fa-check"></i></span>
             }
           </button>
         }
@@ -85,17 +98,16 @@
       </div>
     </div>
 
-    <div class="section actions">
-      <button type="button" class="secondary-button" (click)="resetDefaults()">Reset to Default</button>
-      <button type="button" class="primary-button" (click)="goBack()">Save and Return</button>
+    <div class="actions">
+      <button type="button" class="btn btn-secondary" (click)="resetDefaults()">Reset to Default</button>
+      <button type="button" class="btn btn-primary" (click)="goBack()">Save and Return</button>
     </div>
 
     <div class="footer-note">
-      {{ statusMessage() }}
+      <span>{{ statusMessage() }}</span>
       @if (bindingSummary()) {
-        <span class="binding-summary">Default-style layout: {{ bindingSummary() }}</span>
+        <span class="binding-summary">Layout: {{ bindingSummary() }}</span>
       }
     </div>
   </div>
-
 </div>

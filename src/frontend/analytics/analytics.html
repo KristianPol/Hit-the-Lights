@@ -1,32 +1,126 @@
-﻿<div class="analytics-page">
-  <div class="analytics-card">
-    <div class="analytics-header">
-      <h2>Analytics</h2>
-      <button (click)="goBack()">Back</button>
-    </div>
-
-    @if(loading()){
-      <div class="analytics-loading">Loading...</div>
-    }
-    @if(error()){
-      <div class="analytics-error">{{ error() }}</div>
-    }
-
-    @if(!loading()
-      && !error()
-      && analytics()){
-      <div  class="analytics-body">
-        <div class="analytics-row"><strong>Runs:</strong> {{ analytics().runs }}</div>
-        <div class="analytics-row"><strong>Average final score:</strong> {{ analytics().averageScore }}</div>
-        <div class="analytics-row"><strong>Average accuracy:</strong> {{ analytics().averageAccuracy }}%</div>
-        <div class="analytics-row"><strong>Perfect notes (total):</strong> {{ analytics().perfectTotal }}</div>
-        <div class="analytics-row"><strong>Good notes (total):</strong> {{ analytics().goodTotal }}</div>
-        <div class="analytics-row"><strong>Okay notes (total):</strong> {{ analytics().okayTotal }}</div>
-        <div class="analytics-row"><strong>Miss notes (total):</strong> {{ analytics().missTotal }}</div>
-        <div class="analytics-row"><strong>Playtime (s):</strong> {{ analytics().playtimeSeconds }}</div>
-      </div>
-    }
-
+<div class="analytics-container">
+  <div class="analytics-header">
+    <button class="btn btn-secondary back-to-menu" (click)="goBack()">
+      <i class="fas fa-arrow-left"></i> Back
+    </button>
+    <h1>Analytics</h1>
+    <div class="header-spacer"></div>
   </div>
-</div>
 
+  @if (loading()) {
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <p>Loading analytics...</p>
+    </div>
+  }
+
+  @if (error() && !loading()) {
+    <div class="error-state">
+      <div class="error-icon"><i class="fas fa-exclamation-circle"></i></div>
+      <p>{{ error() }}</p>
+      <button class="btn btn-primary" (click)="retry()">Retry</button>
+    </div>
+  }
+
+  @if (!loading() && !error() && analytics(); as a) {
+    <div class="analytics-content">
+      <div class="stats-section">
+        <div class="stats-grid">
+          <div class="stat-box">
+            <div class="stat-icon"><i class="fas fa-play"></i></div>
+            <span class="stat-value">{{ a.runs }}</span>
+            <span class="stat-label">Runs</span>
+          </div>
+          <div class="stat-box">
+            <div class="stat-icon"><i class="fas fa-clock"></i></div>
+            <span class="stat-value">{{ formattedPlaytime() }}</span>
+            <span class="stat-label">Playtime</span>
+          </div>
+          <div class="stat-box">
+            <div class="stat-icon"><i class="fas fa-trophy"></i></div>
+            <span class="stat-value">{{ formattedAverageScore() }}</span>
+            <span class="stat-label">Avg Score</span>
+          </div>
+          <div class="stat-box">
+            <div class="stat-icon"><i class="fas fa-crosshairs"></i></div>
+            <span class="stat-value">{{ formattedAccuracy() }}%</span>
+            <span class="stat-label">Accuracy</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="accuracy-card">
+        <div class="card-header"><i class="fas fa-bullseye"></i> Average Accuracy</div>
+        <div class="progress-bar">
+          <div class="progress-fill" [style.width.%]="a.averageAccuracy"></div>
+        </div>
+        <div class="progress-label">{{ formattedAccuracy() }}% accuracy across {{ a.runs }} runs</div>
+      </div>
+
+      <div class="hits-section">
+        <div class="section-header"><i class="fas fa-chart-bar"></i> Hit Distribution</div>
+        <div class="hits-grid">
+          <div class="hit-box perfect">
+            <div class="hit-icon"><i class="fas fa-star"></i></div>
+            <div class="hit-info">
+              <span class="hit-value">{{ a.perfectTotal }}</span>
+              <span class="hit-label">Radiant</span>
+            </div>
+            <span class="hit-pct">{{ perfectPct() }}%</span>
+          </div>
+          <div class="hit-box good">
+            <div class="hit-icon"><i class="fas fa-check"></i></div>
+            <div class="hit-info">
+              <span class="hit-value">{{ a.goodTotal }}</span>
+              <span class="hit-label">Shining</span>
+            </div>
+            <span class="hit-pct">{{ goodPct() }}%</span>
+          </div>
+          <div class="hit-box okay">
+            <div class="hit-icon"><i class="fas fa-minus"></i></div>
+            <div class="hit-info">
+              <span class="hit-value">{{ a.okayTotal }}</span>
+              <span class="hit-label">Glimmer</span>
+            </div>
+            <span class="hit-pct">{{ okayPct() }}%</span>
+          </div>
+          <div class="hit-box miss">
+            <div class="hit-icon"><i class="fas fa-times"></i></div>
+            <div class="hit-info">
+              <span class="hit-value">{{ a.missTotal }}</span>
+              <span class="hit-label">Shatter</span>
+            </div>
+            <span class="hit-pct">{{ missPct() }}%</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="distribution-bars">
+        <div class="dist-row perfect">
+          <span class="dist-label">Radiant</span>
+          <div class="dist-bar"><div class="dist-fill" [style.width.%]="perfectPct()"></div></div>
+          <span class="dist-pct">{{ perfectPct() }}%</span>
+        </div>
+        <div class="dist-row good">
+          <span class="dist-label">Shining</span>
+          <div class="dist-bar"><div class="dist-fill" [style.width.%]="goodPct()"></div></div>
+          <span class="dist-pct">{{ goodPct() }}%</span>
+        </div>
+        <div class="dist-row okay">
+          <span class="dist-label">Glimmer</span>
+          <div class="dist-bar"><div class="dist-fill" [style.width.%]="okayPct()"></div></div>
+          <span class="dist-pct">{{ okayPct() }}%</span>
+        </div>
+        <div class="dist-row miss">
+          <span class="dist-label">Shatter</span>
+          <div class="dist-bar"><div class="dist-fill" [style.width.%]="missPct()"></div></div>
+          <span class="dist-pct">{{ missPct() }}%</span>
+        </div>
+      </div>
+
+      <div class="total-notes">
+        <i class="fas fa-music"></i> Total notes hit: <strong>{{ totalHits() }}</strong>
+      </div>
+    </div>
+  }
+</div>
