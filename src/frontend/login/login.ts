@@ -18,6 +18,7 @@ export class Login {
   submitted = signal(false);
   protected errorMessage = signal('');
   protected loading = signal(false);
+  showPassword = signal(false);
 
   constructor(
     protected formBuilder: FormBuilder,
@@ -32,6 +33,10 @@ export class Login {
 
   get f() {
     return this.loginForm.controls;
+  }
+
+  togglePasswordVisibility(): void {
+    this.showPassword.update(v => !v);
   }
 
   onSubmit() {

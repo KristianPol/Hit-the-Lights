@@ -1,14 +1,17 @@
-<div class="register-container">
-  <div class="register-box">
-    <div class="form-header">
-      <i class="fas fa-user-plus form-header-icon"></i>
-      <h2>Register</h2>
+<div class="auth-container">
+  <div class="auth-card">
+    <div class="auth-header">
+      <div class="auth-icon">
+        <i class="fas fa-user-plus"></i>
+      </div>
+      <h1>Register</h1>
+      <p>Create your rhythm account</p>
     </div>
 
     <form [formGroup]="loginForm" (ngSubmit)="onRegister()">
       <div class="form-group">
         <label for="username" class="form-label">
-          <i class="fas fa-user form-label-icon"></i>Username
+          <i class="fas fa-user"></i> Username
         </label>
         <div class="input-wrapper">
           <i class="fas fa-user input-icon"></i>
@@ -20,11 +23,11 @@
             placeholder="Enter your username"
             maxlength="20"
             [class.is-invalid]="submitted() && f['username'].errors"
-          >
+          />
         </div>
         @if (submitted() && f['username'].errors) {
           <div class="error-message">
-            <i class="fas fa-circle-exclamation error-icon"></i>
+            <i class="fas fa-circle-exclamation"></i>
             @if (f['username'].hasError('required')) {
               <span>Username is required</span>
             }
@@ -40,22 +43,30 @@
 
       <div class="form-group">
         <label for="password" class="form-label">
-          <i class="fas fa-lock form-label-icon"></i>Password
+          <i class="fas fa-lock"></i> Password
         </label>
         <div class="input-wrapper">
           <i class="fas fa-lock input-icon"></i>
           <input
-            type="password"
+            [type]="showPassword() ? 'text' : 'password'"
             id="password"
             class="form-input"
             formControlName="password"
             placeholder="Enter your password"
             [class.is-invalid]="submitted() && f['password'].errors"
+          />
+          <button
+            type="button"
+            class="password-toggle"
+            (click)="togglePasswordVisibility()"
+            title="Toggle password visibility"
           >
+            <i class="fas" [class.fa-eye]="!showPassword()" [class.fa-eye-slash]="showPassword()"></i>
+          </button>
         </div>
         @if (submitted() && f['password'].errors) {
           <div class="error-message">
-            <i class="fas fa-circle-exclamation error-icon"></i>
+            <i class="fas fa-circle-exclamation"></i>
             @if (f['password'].hasError('required')) {
               <span>Password is required</span>
             }
@@ -70,29 +81,32 @@
       </div>
 
       @if (errorMessage()) {
-        <div class="error-message" style="margin-bottom: 15px; color: #ff4444; text-align: center; justify-content: center;">
-          <i class="fas fa-circle-xmark error-icon"></i>
+        <div class="error-banner">
+          <i class="fas fa-circle-xmark"></i>
           {{ errorMessage() }}
         </div>
       }
 
-      <button type="submit" class="submit-btn" [disabled]="loading()">
-        @if (loading()) {
-          <i class="fas fa-spinner fa-spin"></i>
-          <span>Loading...</span>
-        } @else {
-          <i class="fas fa-user-plus"></i>
-          <span>Register</span>
-        }
-      </button>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary" [disabled]="loading()">
+          @if (loading()) {
+            <i class="fas fa-spinner fa-spin"></i>
+            <span>Loading...</span>
+          } @else {
+            <i class="fas fa-user-plus"></i>
+            <span>Register</span>
+          }
+        </button>
 
-      <button type="button" class="reset-btn" (click)="resetForm()" [disabled]="loading()">
-        <i class="fas fa-eraser"></i>
-        <span>Clear</span>
-      </button>
+        <button type="button" class="btn btn-secondary" (click)="resetForm()" [disabled]="loading()">
+          <i class="fas fa-eraser"></i>
+          <span>Clear</span>
+        </button>
+      </div>
     </form>
-    <p class="login-link">
-      <span>Already have an account? </span>
+
+    <p class="auth-link">
+      <span>Already have an account?</span>
       <a routerLink="/login"><i class="fas fa-right-to-bracket"></i> Login here</a>
     </p>
   </div>
