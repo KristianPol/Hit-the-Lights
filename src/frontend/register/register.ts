@@ -22,6 +22,14 @@ export class Register extends Login {
   ) {
     super(formBuilder, authService, router);
 
+    // Override username validators to add max length for registration
+    this.loginForm.get('username')?.setValidators([
+      Validators.required,
+      Validators.minLength(3),
+      Validators.maxLength(20)
+    ]);
+    this.loginForm.get('username')?.updateValueAndValidity();
+
     // Override password validators with stronger requirements for registration
     this.loginForm.get('password')?.setValidators([
       Validators.required,

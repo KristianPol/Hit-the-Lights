@@ -31,6 +31,9 @@
             @if (f['username'].hasError('minlength')) {
               <span>Username must be at least 3 characters</span>
             }
+            @if (f['username'].hasError('maxlength')) {
+              <span>Username must be at most 20 characters</span>
+            }
           </div>
         }
       </div>

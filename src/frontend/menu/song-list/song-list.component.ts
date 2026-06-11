@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { ScrollingModule } from '@angular/cdk/scrolling';
 import { Subject, Subscription } from 'rxjs';
 import { debounceTime } from 'rxjs/operators';
 import { AuthService, User } from '../../../app/services/auth.service';
@@ -31,7 +32,7 @@ interface AddSongFormData {
 @Component({
   selector: 'app-song-list',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule],
+  imports: [CommonModule, RouterModule, FormsModule, ScrollingModule],
   templateUrl: './song-list.component.html',
   styleUrls: ['./song-list.component.scss']
 })
@@ -387,5 +388,9 @@ export class SongListComponent implements OnInit, OnDestroy {
     const minutes = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${minutes}:${secs.toString().padStart(2, '0')}`;
+  }
+
+  trackBySongId(_index: number, song: Song): number {
+    return song.id;
   }
 }

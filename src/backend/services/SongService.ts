@@ -240,6 +240,9 @@ export class SongService {
       if (!request.name || request.name.trim().length === 0) {
         return { success: false, error: 'Song name is required' };
       }
+      if (request.name.trim().length > 100) {
+        return { success: false, error: 'Song name must be at most 100 characters' };
+      }
 
       if (!request.author || request.author.trim().length === 0) {
         return { success: false, error: 'Song author is required' };
@@ -645,6 +648,9 @@ export class SongService {
         const trimmed = request.name.trim();
         if (trimmed.length === 0) {
           return { success: false, error: 'Song name is required' };
+        }
+        if (trimmed.length > 100) {
+          return { success: false, error: 'Song name must be at most 100 characters' };
         }
         updates.push('name = $name');
         params.name = trimmed;

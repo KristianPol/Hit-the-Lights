@@ -63,60 +63,67 @@
         <i class="empty-icon fas fa-music"></i>
         <p>No tracks available. Add one to get started!</p>
       </div>
-    }
-
-    @for (song of songs(); track song.id) {
-      <div class="song-card" (click)="selectSong(song)">
-        <div class="song-cover">
-          <img [src]="song.coverUrl" [alt]="song.name + ' cover'">
-        </div>
-
-        <div class="song-info">
-          <div class="song-primary">
-            <span class="song-name">{{ song.name }}</span>
-            <span class="song-author">{{ song.author }}</span>
+    } @else {
+      <cdk-virtual-scroll-viewport
+        [itemSize]="80"
+        minBufferPx="200"
+        maxBufferPx="400"
+        class="song-viewport">
+        <div
+          *cdkVirtualFor="let song of songs(); trackBy: trackBySongId"
+          class="song-card"
+          (click)="selectSong(song)">
+          <div class="song-cover">
+            <img [src]="song.coverUrl" [alt]="song.name + ' cover'">
           </div>
 
-          <div class="song-details-right">
-            <div class="song-meta">
-              <div class="meta-item">
-                <i class="meta-icon fas fa-hourglass-end"></i>
-                <span class="meta-value">{{ song.length }}</span>
-              </div>
-              <div class="meta-item">
-                <i class="meta-icon fas fa-drum"></i>
-                <span class="meta-value">{{ song.bpm }} BPM</span>
-              </div>
-              @if (song.genre) {
-                <div class="meta-item genre-pill">
-                  <span class="meta-value">{{ song.genre }}</span>
+          <div class="song-info">
+            <div class="song-primary">
+              <span class="song-name">{{ song.name }}</span>
+              <span class="song-author">{{ song.author }}</span>
+            </div>
+
+            <div class="song-details-right">
+              <div class="song-meta">
+                <div class="meta-item">
+                  <i class="meta-icon fas fa-hourglass-end"></i>
+                  <span class="meta-value">{{ song.length }}</span>
                 </div>
-              }
-              <div class="meta-item visibility-pill" [class.private-track]="!song.isPublic">
-                <i class="meta-icon" [ngClass]="song.isPublic ? 'fas fa-globe' : 'fas fa-lock'"></i>
-                <span class="meta-value">{{ song.isPublic ? 'Public' : 'Private' }}</span>
+                <div class="meta-item">
+                  <i class="meta-icon fas fa-drum"></i>
+                  <span class="meta-value">{{ song.bpm }} BPM</span>
+                </div>
+                @if (song.genre) {
+                  <div class="meta-item genre-pill">
+                    <span class="meta-value">{{ song.genre }}</span>
+                  </div>
+                }
+                <div class="meta-item visibility-pill" [class.private-track]="!song.isPublic">
+                  <i class="meta-icon" [ngClass]="song.isPublic ? 'fas fa-globe' : 'fas fa-lock'"></i>
+                  <span class="meta-value">{{ song.isPublic ? 'Public' : 'Private' }}</span>
+                </div>
               </div>
-            </div>
 
-            <div class="song-stats-row">
-              <button class="like-btn" [class.liked]="song.isLikedByUser" (click)="toggleLike(song, $event)" title="Like">
-                <i [ngClass]="song.isLikedByUser ? 'fas fa-heart' : 'far fa-heart'"></i>
-                <span class="like-count">{{ song.likeCount ?? 0 }}</span>
-              </button>
-              <div class="play-stat" title="Plays">
-                <i class="fas fa-play"></i>
-                <span>{{ song.playCount ?? 0 }}</span>
+              <div class="song-stats-row">
+                <button class="like-btn" [class.liked]="song.isLikedByUser" (click)="toggleLike(song, $event)" title="Like">
+                  <i [ngClass]="song.isLikedByUser ? 'fas fa-heart' : 'far fa-heart'"></i>
+                  <span class="like-count">{{ song.likeCount ?? 0 }}</span>
+                </button>
+                <div class="play-stat" title="Plays">
+                  <i class="fas fa-play"></i>
+                  <span>{{ song.playCount ?? 0 }}</span>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <div class="selection-indicator">
-          <div class="indicator-bar"></div>
-        </div>
+          <div class="selection-indicator">
+            <div class="indicator-bar"></div>
+          </div>
 
-        <div class="card-glow"></div>
-      </div>
+          <div class="card-glow"></div>
+        </div>
+      </cdk-virtual-scroll-viewport>
     }
   </div>
 </div>
@@ -133,7 +140,7 @@
       <div class="modal-body">
         <div class="form-group">
           <label for="trackName">Track Name</label>
-          <input id="trackName" type="text" [ngModel]="pendingSong().name" (ngModelChange)="updatePendingName($event)" placeholder="Enter track name" maxlength="40" />
+          <input id="trackName" type="text" [ngModel]="pendingSong().name" (ngModelChange)="updatePendingName($event)" placeholder="Enter track name" maxlength="100" />
         </div>
 
         <div class="form-group">
