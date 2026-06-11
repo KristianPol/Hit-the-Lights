@@ -271,7 +271,10 @@ export class UserService {
         ? (parsedControls as { laneBindings?: unknown; lane_bindings?: unknown }).laneBindings
           ?? (parsedControls as { laneBindings?: unknown; lane_bindings?: unknown }).lane_bindings
         : null),
-      noteSpeed: result.note_speed
+      noteSpeed: result.note_speed,
+      theme: parsedControls && typeof parsedControls === 'object'
+        ? (parsedControls as { theme?: unknown }).theme
+        : undefined
     });
 
     return JSON.stringify(normalized);

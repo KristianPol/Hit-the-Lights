@@ -42,6 +42,7 @@ Unit.initTables().then(() => {
 });
 
 const ALLOWED_ORIGINS = [
+  'https://hitthelights.xyz',
   'https://hit-the-lights-j6bl.onrender.com',
   'http://localhost:4200'
 ];
