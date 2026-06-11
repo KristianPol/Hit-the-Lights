@@ -1,0 +1,8 @@
+<div class="dashboard-layout" [class.no-sidebar]="!showSidebar()">
+  @if (showSidebar()) {
+    <app-menu-sidebar></app-menu-sidebar>
+  }
+  <div class="main-content">
+    <router-outlet></router-outlet>
+  </div>
+</div>

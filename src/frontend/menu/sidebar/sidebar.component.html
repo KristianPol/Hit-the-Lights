@@ -1,0 +1,71 @@
+<div class="menu-container">
+  <div class="menu-header">
+    <div class="logo">
+      <i class="logo-icon fas fa-bolt"></i>
+      <span class="logo-text">Hit The Lights</span>
+    </div>
+    <div class="glow-line"></div>
+  </div>
+
+  <nav class="menu-nav">
+    <ul class="menu-list">
+      @for (item of menuItems; track item.label) {
+        @if (item.isSecluded !== true) {
+          <li class="menu-item"
+              [class.active]="activeItem() === item.label"
+              [class.action-item]="item.isAction"
+              (click)="setActive(item.label)">
+            <a [routerLink]="item.route" class="menu-link">
+              <i class="item-icon" [ngClass]="item.icon" [class.has-notification]="item.label === 'Messages' && unreadMessageCount() > 0"></i>
+              <span class="item-label">{{ item.label }}</span>
+              @if (item.label === 'Messages' && unreadMessageCount() > 0) {
+                <span class="badge">{{ unreadMessageCount() }}</span>
+              }
+              <span class="hover-glow"></span>
+              <span class="active-indicator"></span>
+            </a>
+          </li>
+        }
+      }
+    </ul>
+
+    <div class="menu-secluded">
+      <ul class="secluded-list">
+        @for (item of menuItems; track item.label) {
+          @if (item.isSecluded === true) {
+            <li class="menu-item secluded-item"
+                [class.active]="activeItem() === item.label"
+                (click)="setActive(item.label)">
+              <a [routerLink]="item.route" class="menu-link">
+                <i class="item-icon" [ngClass]="item.icon"></i>
+                <span class="item-label">{{ item.label }}</span>
+              </a>
+            </li>
+          }
+        }
+      </ul>
+    </div>
+  </nav>
+
+  <div class="menu-footer" (click)="navigateToProfile()" style="cursor: pointer;">
+    <div class="user-mini">
+      @if (!currentUser()?.profilePictureUrl || menuImageError()) {
+        <div class="user-avatar">
+          {{ currentUser()?.username?.charAt(0)?.toUpperCase() || '?' }}
+        </div>
+      }
+      @if (currentUser()?.profilePictureUrl && !menuImageError()) {
+        <img
+          [src]="currentUser()?.profilePictureUrl"
+          [alt]="'Profile picture'"
+          class="user-avatar user-avatar-image"
+          (error)="onMenuImageError()"
+        >
+      }
+      <div class="user-info">
+        <span class="user-name">{{ currentUser()?.username || 'Guest' }}</span>
+        <span class="user-status">Online</span>
+      </div>
+    </div>
+  </div>
+</div>

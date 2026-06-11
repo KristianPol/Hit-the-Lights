@@ -1,0 +1,354 @@
+@if (loading()) {
+  <div class="detail-panel loading-state">
+    <div class="empty-state">
+      <i class="empty-icon fas fa-spinner fa-spin"></i>
+      <p>Loading track details...</p>
+    </div>
+  </div>
+} @else if (error()) {
+  <div class="detail-panel error-state">
+    <div class="empty-state">
+      <i class="empty-icon fas fa-exclamation-circle"></i>
+      <p>{{ error() }}</p>
+      <button class="btn-submit" (click)="backToList()">
+        <i class="fas fa-arrow-left"></i> Back to Library
+      </button>
+    </div>
+  </div>
+} @else if (song()) {
+  <div class="detail-panel">
+    <div class="detail-content">
+      <button class="back-btn" type="button" (click)="backToList()">
+        <i class="fas fa-arrow-left"></i> Back to Library
+      </button>
+
+      <div class="detail-header">
+        <div class="detail-header-left">
+          <div class="detail-cover">
+            <img [src]="song()!.coverUrl" [alt]="song()!.name + ' cover'">
+          </div>
+        </div>
+
+        <div class="detail-header-center">
+          <h1 class="detail-title">{{ song()!.name }}</h1>
+          <p class="detail-artist">{{ song()!.author }}</p>
+        </div>
+
+        <div class="detail-header-right">
+          <div class="detail-actions">
+            <button class="play-track-btn" type="button" (click)="launchGameplay()">
+              <i class="fas fa-play"></i>
+              Play Track
+            </button>
+            @if (currentUser()) {
+              <button
+                class="like-detail-btn"
+                [class.liked]="song()!.isLikedByUser"
+                type="button"
+                (click)="toggleLike($event)">
+                <i [ngClass]="song()!.isLikedByUser ? 'fas fa-heart' : 'far fa-heart'"></i>
+                {{ song()!.isLikedByUser ? 'Liked' : 'Like' }} ({{ song()!.likeCount ?? 0 }})
+              </button>
+            }
+            @if (isSongOwnedByViewer(song()!, currentUser()?.id)) {
+              <button class="visibility-toggle-btn" type="button" (click)="toggleVisibility()">
+                {{ song()!.isPublic ? 'Make Private' : 'Make Public' }}
+              </button>
+            }
+            @if (isSongOwnedByViewer(song()!, currentUser()?.id)) {
+              <button class="delete-track-btn" type="button" (click)="requestDeleteSong()">
+                <i class="fas fa-trash"></i> Delete
+              </button>
+            }
+          </div>
+        </div>
+      </div>
+
+      <div class="detail-stats-bar">
+        <div class="stat-pill">
+          <i class="fas fa-clock stat-icon"></i>
+          <span class="stat-label">Duration</span>
+          <span class="stat-value">{{ song()!.length }}</span>
+        </div>
+        <div class="stat-pill">
+          <i class="fas fa-heartbeat stat-icon"></i>
+          <span class="stat-label">Tempo</span>
+          <span class="stat-value">{{ song()!.bpm }} <small>BPM</small></span>
+        </div>
+        @if (song()!.genre) {
+          <div class="stat-pill">
+            <i class="fas fa-music stat-icon"></i>
+            <span class="stat-label">Genre</span>
+            <span class="stat-value">{{ song()!.genre }}</span>
+          </div>
+        }
+        <div class="stat-pill difficulty-stat-box" (click)="openDifficultyPicker()">
+          <i class="fas fa-star stat-icon"></i>
+          <span class="stat-label">Difficulty</span>
+          <span class="stat-value clickable">
+            {{ getSelectedDifficultyLevel() }}
+            <i class="dropdown-indicator fas fa-chevron-down"></i>
+          </span>
+        </div>
+        <div class="stat-pill">
+          <i class="fas fa-eye stat-icon"></i>
+          <span class="stat-label">Visibility</span>
+          <span class="stat-value">{{ song()!.isPublic ? 'Public' : 'Private' }}</span>
+        </div>
+        <div class="stat-pill">
+          <i class="fas fa-heart stat-icon"></i>
+          <span class="stat-label">Likes</span>
+          <span class="stat-value">{{ song()!.likeCount ?? 0 }}</span>
+        </div>
+        <div class="stat-pill">
+          <i class="fas fa-play stat-icon"></i>
+          <span class="stat-label">Plays</span>
+          <span class="stat-value">{{ song()!.playCount ?? 0 }}</span>
+        </div>
+      </div>
+
+      @if (song()!.isPublic) {
+        <div class="detail-columns">
+          <div class="detail-col-left">
+            <div class="leaderboard-panel">
+              <div class="leaderboard-header">
+                <div>
+                  <h3>Leaderboard</h3>
+                  <p>{{ leaderboardState().difficultyLabel || getSelectedDifficultyLevel() }}</p>
+                </div>
+                @if (selectedDifficultyId()) {
+                  <span class="leaderboard-hint">Top 10 + your rank</span>
+                }
+              </div>
+
+              @if (!selectedDifficultyId()) {
+                <p class="leaderboard-empty">Choose a difficulty to see the leaderboard.</p>
+              } @else if (leaderboardState().loading) {
+                <p class="leaderboard-loading">Loading leaderboard...</p>
+              } @else if (leaderboardState().error) {
+                <p class="leaderboard-error">{{ leaderboardState().error }}</p>
+              } @else if (leaderboardState().entries.length === 0) {
+                <p class="leaderboard-empty">No scores yet. Be the first to post one!</p>
+              } @else {
+                <div class="leaderboard-list">
+                  @for (entry of leaderboardState().entries; track entry.position + '-' + entry.userId) {
+                    <div class="leaderboard-row" [class.current-user]="entry.isCurrentUser">
+                      <div class="leaderboard-rank">#{{ entry.position }}</div>
+                      <a class="leaderboard-user-block user-link"
+                         [routerLink]="entry.isCurrentUser ? '/profile' : ['/profile', entry.userId]"
+                         (click)="$event.stopPropagation()">
+                        <div class="leaderboard-user-name">{{ entry.username }}</div>
+                        @if (entry.isCurrentUser) {
+                          <span class="leaderboard-you">You</span>
+                        }
+                      </a>
+                      <div class="leaderboard-score-block">
+                        <div class="leaderboard-score">{{ entry.score }}</div>
+                        <div class="leaderboard-stats">
+                          <span>{{ entry.maxCombo }} combo</span>
+                          <span>{{ entry.accuracy.toFixed(1) }}%</span>
+                        </div>
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+
+          <div class="detail-col-right">
+            <div class="comments-panel">
+              <div class="comments-header">
+                <h3>Comments</h3>
+              </div>
+
+              @if (loadingComments()) {
+                <p class="comments-loading">Loading comments...</p>
+              } @else {
+                @if (!currentUser()) {
+                  <p class="comments-login-hint">Please log in to post comments.</p>
+                } @else {
+                  <div class="comment-form">
+                    <textarea
+                      [ngModel]="commentDraft()"
+                      (ngModelChange)="commentDraft.set($event)"
+                      placeholder="Add a public comment..."
+                      rows="3"></textarea>
+                    <div class="comment-form-actions">
+                      @if (replyingTo()) {
+                        <button class="btn-cancel" type="button" (click)="cancelReply()">Cancel Reply</button>
+                        <button class="btn-submit" type="button" (click)="postComment(replyingTo()!)">Reply</button>
+                      } @else {
+                        <button class="btn-submit" type="button" (click)="postComment()">Post</button>
+                      }
+                    </div>
+                  </div>
+                }
+
+                <div class="comments-list">
+                  @if (comments().length === 0) {
+                    <p class="comments-empty">No comments yet. Be the first to comment!</p>
+                  } @else {
+                    @for (c of comments(); track c.id) {
+                      @if (!c.parentCommentId) {
+                        <div class="comment-item">
+                          <div class="comment-row">
+                            <div class="comment-avatar-wrap">
+                              <div class="avatar-initial" #init>{{ c.senderUsername?.charAt(0)?.toUpperCase() || '?' }}</div>
+                              <img class="comment-avatar" #img [src]="'/api/auth/profile-picture/' + c.senderId" alt="avatar"
+                                   (load)="init.style.display='none'"
+                                   (error)="img.style.display='none'" />
+                            </div>
+
+                            <div class="comment-body">
+                              <div class="comment-meta"><strong>{{ c.senderUsername || 'User' }}</strong> · <span class="comment-time">{{ c.createdAt }}</span></div>
+                              <div class="comment-content">{{ c.content }}</div>
+                              <div class="comment-actions">
+                                @if (currentUser()) {
+                                  <button class="reply-btn" (click)="openReply(c.id)">Reply</button>
+                                }
+                              </div>
+                            </div>
+                          </div>
+
+                          @for (r of comments(); track r.id) {
+                            @if (r.parentCommentId === c.id) {
+                              <div class="comment-reply">
+                                <div class="comment-row">
+                                  <div class="comment-avatar-wrap small">
+                                    <div class="avatar-initial" #rinit>{{ r.senderUsername?.charAt(0)?.toUpperCase() || '?' }}</div>
+                                    <img class="comment-avatar" #rimg [src]="'/api/auth/profile-picture/' + r.senderId" alt="avatar"
+                                         (load)="rinit.style.display='none'"
+                                         (error)="rimg.style.display='none'" />
+                                  </div>
+
+                                  <div class="comment-body">
+                                    <div class="comment-meta"><strong>{{ r.senderUsername || 'User' }}</strong> · <span class="comment-time">{{ r.createdAt }}</span></div>
+                                    <div class="comment-content">{{ r.content }}</div>
+                                    <div class="comment-actions">
+                                      @if (currentUser()) {
+                                        <button class="reply-btn" (click)="openReply(c.id)">Reply</button>
+                                      }
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            }
+                          }
+                        </div>
+                      }
+                    }
+                  }
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      }
+
+      <div class="detail-glow"></div>
+    </div>
+  </div>
+}
+
+<!-- Difficulty Picker Modal -->
+@if (difficultyPickerState().showPicker) {
+  <div class="modal-overlay" (click)="closeDifficultyPicker()">
+    <div class="modal difficulty-modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Select Difficulty</h2>
+        <button class="modal-close" (click)="closeDifficultyPicker()"><i class="fas fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        @if (!difficultyPickerState().showUploadForm) {
+          <div class="difficulties-list">
+            @if (difficultyPickerState().difficulties.length === 0) {
+              <p class="no-difficulties">No difficulties uploaded for this song yet.</p>
+            } @else {
+              @for (diff of difficultyPickerState().difficulties; track diff.id) {
+                <button
+                  class="difficulty-btn"
+                  [class.selected]="difficultyPickerState().selectedDifficultyId === diff.id"
+                  (click)="selectDifficulty(diff.id)">
+                  <span class="diff-label">{{ difficultyNumberToName(diff.difficulty) }}</span>
+                  <span class="diff-notes">{{ diff.noteCount }} notes</span>
+                  @if (difficultyPickerState().selectedDifficultyId === diff.id) {
+                    <span class="checkmark"><i class="fas fa-check"></i></span>
+                  }
+                </button>
+              }
+            }
+          </div>
+          @if (isSongOwnedByViewer(song()!, currentUser()?.id)) {
+            <button class="btn-upload-chart" (click)="openUploadDifficultyForm()">
+              <i class="fas fa-upload"></i> Upload New Difficulty
+            </button>
+          }
+        } @else {
+          <div class="upload-chart-form">
+            <div class="form-group">
+              <label for="difficultySelect">Difficulty Level</label>
+              <select
+                id="difficultySelect"
+                [ngModel]="uploadDifficultyChoice()"
+                (ngModelChange)="uploadDifficultyChoice.set($event)"
+                class="difficulty-select">
+                <option [ngValue]="null" disabled>Select difficulty...</option>
+                @if (isDifficultyAvailable('Easy')) { <option value="Easy">Easy</option> }
+                @if (isDifficultyAvailable('Normal')) { <option value="Normal">Normal</option> }
+                @if (isDifficultyAvailable('Hard')) { <option value="Hard">Hard</option> }
+                @if (isDifficultyAvailable('Expert')) { <option value="Expert">Expert</option> }
+                @if (isDifficultyAvailable('Master')) { <option value="Master">Master</option> }
+                @if (isDifficultyAvailable('Lunatic')) { <option value="Lunatic">Lunatic</option> }
+                @if (isDifficultyAvailable('Insane')) { <option value="Insane">Insane</option> }
+                @if (isDifficultyAvailable('Extreme')) { <option value="Extreme">Extreme</option> }
+                @if (isDifficultyAvailable('Nightmare')) { <option value="Nightmare">Nightmare</option> }
+                @if (isDifficultyAvailable('Impossible')) { <option value="Impossible">Impossible</option> }
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Chart File (JSON)</label>
+              <button class="file-btn" (click)="chartFileInput.click()">
+                <i class="fas fa-file-code"></i> {{ difficultyPickerState().uploadChartFile ? 'Chart Selected' : 'Choose JSON File' }}
+              </button>
+              <input #chartFileInput type="file" accept=".json,application/json" style="display: none" (change)="onChartFileSelected($event)" />
+            </div>
+          </div>
+        }
+      </div>
+      <div class="modal-footer">
+        @if (difficultyPickerState().showUploadForm) {
+          <button class="btn-cancel" (click)="closeUploadDifficultyForm()">Back</button>
+          <button class="btn-submit" (click)="uploadChartDifficulty()">Upload Chart</button>
+        } @else {
+          <button class="btn-cancel" (click)="closeDifficultyPicker()">Close</button>
+        }
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Delete Confirmation Modal -->
+@if (showDeleteConfirm()) {
+  <div class="modal-overlay" (click)="cancelDelete()">
+    <div class="modal delete-modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Delete Track</h2>
+        <button class="modal-close" (click)="cancelDelete()"><i class="fas fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="delete-song-preview">
+          <img [src]="song()?.coverUrl" [alt]="song()?.name + ' cover'" class="delete-cover-preview">
+        </div>
+        <h3>{{ song()?.name }}</h3>
+        <p class="delete-author">{{ song()?.author }}</p>
+        <p>Are you sure you want to delete this song?</p>
+        <p class="warning-text">This will permanently delete the song files from the server. This action cannot be undone.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-cancel" (click)="cancelDelete()">Cancel</button>
+        <button class="btn-danger" (click)="confirmDelete()">Delete Song</button>
+      </div>
+    </div>
+  </div>
+}

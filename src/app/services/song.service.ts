@@ -26,24 +26,38 @@ export interface SongDifficulty {
   noteCount: number;
 }
 
-export type DifficultyLevel = 'Easy' | 'Medium' | 'Hard' | 'Expert';
+export type DifficultyLevel =
+  | 'Easy' | 'Normal' | 'Hard' | 'Expert' | 'Master'
+  | 'Lunatic' | 'Insane' | 'Extreme' | 'Nightmare' | 'Impossible';
 
 const DIFFICULTY_MAP: Record<DifficultyLevel, number> = {
   'Easy': 1,
-  'Medium': 2,
+  'Normal': 2,
   'Hard': 3,
-  'Expert': 4
+  'Expert': 4,
+  'Master': 5,
+  'Lunatic': 6,
+  'Insane': 7,
+  'Extreme': 8,
+  'Nightmare': 9,
+  'Impossible': 10
 };
 
 const REVERSE_DIFFICULTY_MAP: Record<number, DifficultyLevel> = {
   1: 'Easy',
-  2: 'Medium',
+  2: 'Normal',
   3: 'Hard',
-  4: 'Expert'
+  4: 'Expert',
+  5: 'Master',
+  6: 'Lunatic',
+  7: 'Insane',
+  8: 'Extreme',
+  9: 'Nightmare',
+  10: 'Impossible'
 };
 
 export function difficultyNumberToName(num: number): DifficultyLevel {
-  return REVERSE_DIFFICULTY_MAP[num] || 'Medium';
+  return REVERSE_DIFFICULTY_MAP[num] || 'Normal';
 }
 
 export function difficultyNameToNumber(name: DifficultyLevel): number {
