@@ -8,6 +8,7 @@ import { GameSettingsService, formatBindingLabel, formatBindingList, normalizeBi
 import { FriendshipService, FriendshipResult } from '../../app/services/friendship.service';
 import { MessageService } from '../../app/services/message.service';
 import { AchievementService } from '../../app/services/achievement.service';
+import {MatProgressBar} from '@angular/material/progress-bar';
 
 
 interface HitFeedback {
@@ -63,7 +64,7 @@ interface ShatterShard {
 @Component({
   selector: 'app-gameplay',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, MatProgressBar],
   templateUrl: './gameplay.html',
   styleUrls: ['./gameplay.scss']
 })
@@ -521,6 +522,8 @@ export class Gameplay implements AfterViewInit, OnDestroy {
       this.gameLoop();
     });
 
+    this.totalSongDurationMs.set(this.audio.duration ? this.audio.duration * 1000 : 0);
+
     this.gameLoop();
     this.startPlaytimeTracking();
   }
@@ -973,6 +976,8 @@ export class Gameplay implements AfterViewInit, OnDestroy {
     if (this.gameFinished()) {
       return;
     }
+
+    this.currentSongTimeMs.set(this.totalSongDurationMs());
 
     // Count any remaining unjudged notes as misses
     let remainingMisses = 0;
