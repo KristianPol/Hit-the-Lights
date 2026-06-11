@@ -61,7 +61,7 @@ app.use(helmet({
       scriptSrc: ["'self'", "'unsafe-inline'"],
       scriptSrcAttr: ["'unsafe-inline'"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com", "https://fonts.googleapis.com"],
-      imgSrc: ["'self'", "data:", "blob:", ...(r2CspOrigin ? [r2CspOrigin] : [])],
+      imgSrc: ["'self'", "data:", "blob:", "https://github.com", "https://avatars.githubusercontent.com", ...(r2CspOrigin ? [r2CspOrigin] : [])],
       mediaSrc: ["'self'", "blob:", ...(r2CspOrigin ? [r2CspOrigin] : [])],
       fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com"],
       connectSrc: ["'self'", ...(r2CspOrigin ? [r2CspOrigin] : [])],
