@@ -84,7 +84,7 @@ app.use(globalLimiter);
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
 
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '25mb' }));
 app.use('/uploads', authMiddleware, express.static(path.resolve(process.cwd(), 'uploads')));
 app.use(express.static(FRONTEND_DIST));
 
