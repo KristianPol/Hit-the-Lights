@@ -51,7 +51,25 @@ const ALLOWED_ORIGINS = isDev
       'https://hit-the-lights-j6bl.onrender.com'
     ];
 
-app.use(helmet());
+const R2_PUBLIC_URL = process.env['R2_PUBLIC_URL'];
+const r2CspOrigin = R2_PUBLIC_URL ? R2_PUBLIC_URL.replace(/\/$/, '') : null;
+
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrcAttr: ["'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com", "https://fonts.googleapis.com"],
+      imgSrc: ["'self'", "data:", "blob:", ...(r2CspOrigin ? [r2CspOrigin] : [])],
+      mediaSrc: ["'self'", "blob:", ...(r2CspOrigin ? [r2CspOrigin] : [])],
+      fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com"],
+      connectSrc: ["'self'", ...(r2CspOrigin ? [r2CspOrigin] : [])],
+      frameAncestors: ["'self'"],
+      objectSrc: ["'none'"]
+    }
+  }
+}));
 
 app.use(cors({
   origin: (origin, callback) => {
