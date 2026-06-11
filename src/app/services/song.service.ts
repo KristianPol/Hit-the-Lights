@@ -112,6 +112,39 @@ export interface UpdateSongVisibilityResponse {
   message?: string;
 }
 
+export interface UpdateSongRequest {
+  name?: string;
+  author?: string;
+  bpm?: number;
+  length?: string;
+  genre?: string | null;
+  isPublic?: boolean;
+  audioBase64?: string;
+  audioMimeType?: string;
+  coverBase64?: string;
+  coverMimeType?: string;
+}
+
+export interface UpdateSongResponse {
+  success: boolean;
+  song?: Song;
+  error?: string;
+  message?: string;
+}
+
+export interface DeleteDifficultyResponse {
+  success: boolean;
+  message?: string;
+  error?: string;
+}
+
+export interface UpdateDifficultyResponse {
+  success: boolean;
+  difficulty?: SongDifficulty;
+  error?: string;
+  message?: string;
+}
+
 export interface UploadedSongCountResponse {
   success: boolean;
   count: number;
@@ -330,6 +363,44 @@ export class SongService {
         );
       })
     );
+  }
+
+  updateSong(songId: number, request: UpdateSongRequest): Observable<UpdateSongResponse> {
+    return this.http.patch<UpdateSongResponse>(`${this.apiUrl}/${songId}`, request).pipe(
+      catchError(error => {
+        return throwError(
+          () => new Error(error.error?.error || 'Failed to update song')
+        );
+      })
+    );
+  }
+
+  deleteDifficulty(songId: number, difficultyId: number): Observable<DeleteDifficultyResponse> {
+    return this.http
+      .delete<DeleteDifficultyResponse>(`${this.apiUrl}/${songId}/difficulties/${difficultyId}`)
+      .pipe(
+        catchError(error => {
+          return throwError(
+            () => new Error(error.error?.error || 'Failed to delete difficulty')
+          );
+        })
+      );
+  }
+
+  updateDifficulty(
+    songId: number,
+    difficultyId: number,
+    request: AddDifficultyRequest
+  ): Observable<UpdateDifficultyResponse> {
+    return this.http
+      .put<UpdateDifficultyResponse>(`${this.apiUrl}/${songId}/difficulties/${difficultyId}`, request)
+      .pipe(
+        catchError(error => {
+          return throwError(
+            () => new Error(error.error?.error || 'Failed to update difficulty')
+          );
+        })
+      );
   }
 
   getUploadedSongCount(ownerId: number): Observable<UploadedSongCountResponse> {

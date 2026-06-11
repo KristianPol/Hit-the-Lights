@@ -56,6 +56,32 @@ function parseVisibility(value: unknown, fallback: boolean = true): boolean {
 
 const UPLOAD_COOLDOWN_MS = 20 * 60 * 1000; // 20 minutes
 
+async function deleteAudioFile(url: string): Promise<void> {
+  const key = R2Service.extractKey(url);
+  if (key) {
+    try { await R2Service.deleteFile(key); } catch { /* ignore cleanup errors */ }
+  } else {
+    const filename = url.split('/').pop();
+    if (filename) {
+      const filePath = path.join(AUDIO_DIR, filename);
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    }
+  }
+}
+
+async function deleteCoverFile(url: string): Promise<void> {
+  const key = R2Service.extractKey(url);
+  if (key) {
+    try { await R2Service.deleteFile(key); } catch { /* ignore cleanup errors */ }
+  } else {
+    const filename = url.split('/').pop();
+    if (filename) {
+      const filePath = path.join(COVER_DIR, filename);
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    }
+  }
+}
+
 songRouter.post('/add', authMiddleware, async (req: Request, res: Response) => {
   const unit = new Unit(false);
   try {
@@ -285,6 +311,64 @@ songRouter.patch('/:id/visibility', authMiddleware, async (req: Request, res: Re
   }
 });
 
+songRouter.patch('/:id', authMiddleware, async (req: Request, res: Response) => {
+  const unit = new Unit(false);
+  try {
+    const songId = parseInt(req.params['id'] as string, 10);
+    const requesterId = req.authenticatedUserId!;
+    const { name, author, bpm, length, genre, isPublic, audioBase64, audioMimeType, coverBase64, coverMimeType } = req.body;
+    if (isNaN(songId)) { await unit.complete(false); res.status(400).json({ success: false, error: 'Invalid song ID' }); return; }
+
+    const svc = new SongService(unit);
+    const existingSong = await svc.getSongById(songId, requesterId);
+    if (!existingSong) { await unit.complete(false); res.status(404).json({ success: false, error: 'Song not found' }); return; }
+
+    let songUrl = existingSong.songUrl;
+    let coverUrl = existingSong.coverUrl;
+    let oldAudioUrl: string | undefined;
+    let oldCoverUrl: string | undefined;
+
+    if (audioBase64 && typeof audioBase64 === 'string') {
+      const audioFilename = generateFilename(audioMimeType || 'audio/mpeg');
+      const audioBuffer = Buffer.from(audioBase64, 'base64');
+      songUrl = await R2Service.uploadFile(audioBuffer, `songs/${audioFilename}`, audioMimeType || 'audio/mpeg');
+      oldAudioUrl = existingSong.songUrl;
+    }
+
+    if (coverBase64 && typeof coverBase64 === 'string') {
+      const coverFilename = generateFilename(coverMimeType || 'image/jpeg');
+      const coverBuffer = Buffer.from(coverBase64, 'base64');
+      coverUrl = await R2Service.uploadFile(coverBuffer, `images/covers/${coverFilename}`, coverMimeType || 'image/jpeg');
+      oldCoverUrl = existingSong.coverUrl;
+    }
+
+    const result = await svc.updateSong(songId, requesterId, {
+      name: typeof name === 'string' ? name : undefined,
+      author: typeof author === 'string' ? author : undefined,
+      bpm: parseOptionalNumber(bpm),
+      length: typeof length === 'string' ? length : undefined,
+      genre: typeof genre === 'string' ? genre : (genre === null ? null : undefined),
+      isPublic: isPublic !== undefined ? parseVisibility(isPublic, existingSong.isPublic) : undefined,
+      songUrl,
+      coverUrl
+    });
+
+    if (result.success) {
+      await unit.complete(true);
+      if (oldAudioUrl) await deleteAudioFile(oldAudioUrl);
+      if (oldCoverUrl) await deleteCoverFile(oldCoverUrl);
+      res.status(200).json({ success: true, song: result.song, message: 'Song updated successfully' });
+    } else {
+      await unit.complete(false);
+      const status = result.error === 'Song not found' ? 404 : result.error === 'Only the uploader can edit this song' ? 403 : 400;
+      res.status(status).json({ success: false, error: result.error });
+    }
+  } catch (error: any) {
+    await unit.complete(false);
+    res.status(500).json({ success: false, error: error.message || 'Internal server error' });
+  }
+});
+
 songRouter.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
   const unit = new Unit(false);
   try {
@@ -296,23 +380,11 @@ songRouter.delete('/:id', authMiddleware, async (req: Request, res: Response) =>
     const svc = new SongService(unit);
     const result = await svc.deleteSong(songId, viewerId, isAdmin);
     if (result.success) {
-      const audioKey = R2Service.extractKey(result.song?.songUrl ?? '');
-      const coverKey = R2Service.extractKey(result.song?.coverUrl ?? '');
-
-      if (audioKey) {
-        try { await R2Service.deleteFile(audioKey); } catch (e) { /* ignore cleanup errors */ }
-      } else {
-        const audioFilename = result.song?.songUrl.split('/').pop();
-        const audioPath = path.join(AUDIO_DIR, audioFilename!);
-        if (fs.existsSync(audioPath)) fs.unlinkSync(audioPath);
+      if (result.song?.songUrl) {
+        await deleteAudioFile(result.song.songUrl);
       }
-
-      if (coverKey) {
-        try { await R2Service.deleteFile(coverKey); } catch (e) { /* ignore cleanup errors */ }
-      } else {
-        const coverFilename = result.song?.coverUrl.split('/').pop();
-        const coverPath = path.join(COVER_DIR, coverFilename!);
-        if (fs.existsSync(coverPath)) fs.unlinkSync(coverPath);
+      if (result.song?.coverUrl) {
+        await deleteCoverFile(result.song.coverUrl);
       }
 
       await unit.complete(true);
@@ -358,6 +430,42 @@ songRouter.post('/:songId/difficulties', authMiddleware, async (req: Request, re
     const svc = new SongService(unit);
     const result = await svc.addSongDifficulty(songId, ownerId, parsedDifficulty, notes);
     if (result.success) { await unit.complete(true); res.status(201).json({ success: true, difficulty: result.difficulty, message: 'Difficulty uploaded successfully' }); } else { await unit.complete(false); res.status(result.error === 'Song not found' ? 404 : 400).json({ success: false, error: result.error }); }
+  } catch (error: any) {
+    await unit.complete(false);
+    res.status(500).json({ success: false, error: error.message || 'Internal server error' });
+  }
+});
+
+songRouter.delete('/:songId/difficulties/:difficultyId', authMiddleware, async (req: Request, res: Response) => {
+  const unit = new Unit(false);
+  try {
+    const songId = parseInt(req.params['songId'] as string, 10);
+    const difficultyId = parseInt(req.params['difficultyId'] as string, 10);
+    const requesterId = req.authenticatedUserId!;
+    if (isNaN(songId) || isNaN(difficultyId)) { await unit.complete(false); res.status(400).json({ success: false, error: 'Invalid song or difficulty ID' }); return; }
+
+    const svc = new SongService(unit);
+    const result = await svc.deleteDifficulty(songId, difficultyId, requesterId);
+    if (result.success) { await unit.complete(true); res.status(200).json({ success: true, message: 'Chart deleted successfully' }); } else { await unit.complete(false); const status = result.error === 'Song not found' || result.error === 'Difficulty not found' ? 404 : result.error === 'Only the uploader can delete difficulties' ? 403 : 400; res.status(status).json({ success: false, error: result.error }); }
+  } catch (error: any) {
+    await unit.complete(false);
+    res.status(500).json({ success: false, error: error.message || 'Internal server error' });
+  }
+});
+
+songRouter.put('/:songId/difficulties/:difficultyId', authMiddleware, async (req: Request, res: Response) => {
+  const unit = new Unit(false);
+  try {
+    const songId = parseInt(req.params['songId'] as string, 10);
+    const difficultyId = parseInt(req.params['difficultyId'] as string, 10);
+    const requesterId = req.authenticatedUserId!;
+    const { notes } = req.body;
+    if (isNaN(songId) || isNaN(difficultyId)) { await unit.complete(false); res.status(400).json({ success: false, error: 'Invalid song or difficulty ID' }); return; }
+    if (!Array.isArray(notes)) { await unit.complete(false); res.status(400).json({ success: false, error: 'notes must be an array' }); return; }
+
+    const svc = new SongService(unit);
+    const result = await svc.updateDifficultyChart(songId, difficultyId, requesterId, notes);
+    if (result.success) { await unit.complete(true); res.status(200).json({ success: true, difficulty: result.difficulty, message: 'Chart updated successfully' }); } else { await unit.complete(false); const status = result.error === 'Song not found' || result.error === 'Difficulty not found' ? 404 : result.error === 'Only the uploader can edit charts' ? 403 : 400; res.status(status).json({ success: false, error: result.error }); }
   } catch (error: any) {
     await unit.complete(false);
     res.status(500).json({ success: false, error: error.message || 'Internal server error' });

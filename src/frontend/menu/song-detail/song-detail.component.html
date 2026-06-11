@@ -50,6 +50,11 @@
                 {{ song()!.isLikedByUser ? 'Liked' : 'Like' }} ({{ song()!.likeCount ?? 0 }})
               </button>
             }
+            @if (canEditSong(song()!, currentUser()?.id)) {
+              <button class="edit-track-btn" type="button" (click)="openEditModal()">
+                <i class="fas fa-pen"></i> Edit
+              </button>
+            }
             @if (isSongOwnedByViewer(song()!, currentUser()?.id)) {
               <button class="visibility-toggle-btn" type="button" (click)="toggleVisibility()">
                 {{ song()!.isPublic ? 'Make Private' : 'Make Public' }}
@@ -266,16 +271,28 @@
               <p class="no-difficulties">No difficulties uploaded for this song yet.</p>
             } @else {
               @for (diff of difficultyPickerState().difficulties; track diff.id) {
-                <button
-                  class="difficulty-btn"
-                  [class.selected]="difficultyPickerState().selectedDifficultyId === diff.id"
-                  (click)="selectDifficulty(diff.id)">
-                  <span class="diff-label">{{ difficultyNumberToName(diff.difficulty) }}</span>
-                  <span class="diff-notes">{{ diff.noteCount }} notes</span>
-                  @if (difficultyPickerState().selectedDifficultyId === diff.id) {
-                    <span class="checkmark"><i class="fas fa-check"></i></span>
+                <div class="difficulty-row">
+                  <button
+                    class="difficulty-btn"
+                    [class.selected]="difficultyPickerState().selectedDifficultyId === diff.id"
+                    (click)="selectDifficulty(diff.id)">
+                    <span class="diff-label">{{ difficultyNumberToName(diff.difficulty) }}</span>
+                    <span class="diff-notes">{{ diff.noteCount }} notes</span>
+                    @if (difficultyPickerState().selectedDifficultyId === diff.id) {
+                      <span class="checkmark"><i class="fas fa-check"></i></span>
+                    }
+                  </button>
+                  @if (isSongOwnedByViewer(song()!, currentUser()?.id)) {
+                    <div class="difficulty-actions">
+                      <button class="difficulty-action-btn edit" (click)="editChartInMaker(diff, $event)" title="Edit in Chart Maker">
+                        <i class="fas fa-pen"></i>
+                      </button>
+                      <button class="difficulty-action-btn delete" (click)="requestDeleteDifficulty(diff, $event)" title="Delete Chart">
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    </div>
                   }
-                </button>
+                </div>
               }
             }
           </div>
@@ -348,6 +365,91 @@
       <div class="modal-footer">
         <button class="btn-cancel" (click)="cancelDelete()">Cancel</button>
         <button class="btn-danger" (click)="confirmDelete()">Delete Song</button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Edit Song Modal -->
+@if (showEditModal()) {
+  <div class="modal-overlay" (click)="closeEditModal()">
+    <div class="modal edit-modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Edit Track</h2>
+        <button class="modal-close" (click)="closeEditModal()"><i class="fas fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="editTrackName">Track Name</label>
+          <input id="editTrackName" type="text" [ngModel]="editForm().name" (ngModelChange)="updateEditName($event)" placeholder="Enter track name" maxlength="40" />
+        </div>
+        <div class="form-group">
+          <label for="editTrackArtist">Artist</label>
+          <input id="editTrackArtist" type="text" [ngModel]="editForm().author" (ngModelChange)="updateEditAuthor($event)" placeholder="Enter artist name" maxlength="40" />
+        </div>
+        <div class="form-group">
+          <label for="editTrackBpm">BPM</label>
+          <input id="editTrackBpm" type="number" [ngModel]="editForm().bpm" (ngModelChange)="updateEditBpm($event)" placeholder="e.g. 128" min="1" max="999" />
+        </div>
+        <div class="form-group">
+          <label for="editTrackVisibility">Visibility</label>
+          <select id="editTrackVisibility" [ngModel]="editForm().isPublic ? 'public' : 'private'" (ngModelChange)="updateEditVisibility($event)" class="visibility-select">
+            <option value="public">Public - visible to everyone</option>
+            <option value="private">Private - only visible to you</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="editTrackGenre">Genre</label>
+          <select id="editTrackGenre" [ngModel]="editForm().genre" (ngModelChange)="updateEditGenre($event)" class="visibility-select">
+            <option [ngValue]="null">Select a genre...</option>
+            @for (g of genres; track g) {
+              <option [ngValue]="g">{{ g }}</option>
+            }
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Song File</label>
+          <button class="file-btn" (click)="editAudioInput.click()">
+            <i class="fas fa-music"></i> {{ editForm().audioFile ? 'Audio Selected' : 'Keep Current Audio' }}
+          </button>
+          <input #editAudioInput type="file" accept=".mp3,audio/mpeg" style="display: none" (change)="onEditAudioSelected($event)" />
+        </div>
+        <div class="form-group">
+          <label>Cover Image</label>
+          <button class="file-btn" (click)="editCoverInput.click()">
+            <i class="fas fa-image"></i> {{ editForm().coverFile ? 'Cover Selected' : 'Keep Current Cover' }}
+          </button>
+          <input #editCoverInput type="file" accept=".png,.jpg,.jpeg,image/png,image/jpeg" style="display: none" (change)="onEditCoverSelected($event)" />
+        </div>
+        @if (editError()) {
+          <p class="error-text">{{ editError() }}</p>
+        }
+      </div>
+      <div class="modal-footer">
+        <button class="btn-cancel" (click)="closeEditModal()">Cancel</button>
+        <button class="btn-submit" (click)="submitEdit()" [disabled]="isSavingEdit()">
+          {{ isSavingEdit() ? 'Saving...' : 'Save Changes' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Delete Difficulty Confirmation Modal -->
+@if (showDeleteDifficultyConfirm()) {
+  <div class="modal-overlay" (click)="closeDeleteDifficultyConfirm()">
+    <div class="modal delete-modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Delete Chart</h2>
+        <button class="modal-close" (click)="closeDeleteDifficultyConfirm()"><i class="fas fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to delete the <strong>{{ difficultyToDelete() ? difficultyNumberToName(difficultyToDelete()!.difficulty) : '' }}</strong> chart?</p>
+        <p class="warning-text">This will permanently delete the chart and its leaderboard. This action cannot be undone.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-cancel" (click)="closeDeleteDifficultyConfirm()">Cancel</button>
+        <button class="btn-danger" (click)="confirmDeleteDifficulty()">Delete Chart</button>
       </div>
     </div>
   </div>

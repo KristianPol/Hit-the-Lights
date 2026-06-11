@@ -347,6 +347,18 @@
     }
   }
 
+  .edit-track-btn {
+    @extend .play-track-btn;
+    color: $text-primary;
+    border-color: rgba(var(--color-accent-rgb), 0.45);
+    background: linear-gradient(135deg, rgba(var(--color-accent-rgb), 0.18), rgba(var(--color-accent-rgb), 0.08));
+
+    &:hover {
+      background: linear-gradient(135deg, rgba(var(--color-accent-rgb), 0.3), rgba(var(--color-accent-rgb), 0.12));
+      box-shadow: 0 0 28px rgba(var(--color-accent-rgb), 0.18);
+    }
+  }
+
   .detail-glow {
     position: absolute;
     inset: -2px;
@@ -555,6 +567,46 @@
     color: #00ff88;
     font-size: 1rem;
     filter: drop-shadow(0 0 6px #00ff88);
+  }
+}
+
+.difficulty-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  .difficulty-btn {
+    flex: 1;
+  }
+
+  .difficulty-actions {
+    display: flex;
+    gap: 0.35rem;
+    flex-shrink: 0;
+  }
+
+  .difficulty-action-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    border: 1px solid rgba(var(--color-text-primary-rgb), 0.12);
+    background: rgba(var(--color-text-primary-rgb), 0.04);
+    color: $text-secondary;
+    cursor: pointer;
+    @include flex-center;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: rgba(var(--color-accent-rgb), 0.12);
+      color: $yellow-primary;
+      border-color: rgba(var(--color-accent-rgb), 0.4);
+    }
+
+    &.delete:hover {
+      color: #ff4757;
+      background: rgba(255, 71, 87, 0.12);
+      border-color: rgba(255, 71, 87, 0.4);
+    }
   }
 }
 
@@ -1198,4 +1250,45 @@
       background: rgba(var(--color-text-primary-rgb), 0.02);
     }
   }
+}
+
+
+// Edit modal
+.edit-modal {
+  max-width: 480px;
+
+  .visibility-select {
+    width: 100%;
+    padding: 0.55rem 0.75rem;
+    background: rgba(var(--color-text-primary-rgb), 0.04);
+    border: 1px solid rgba(var(--color-accent-rgb), 0.25);
+    border-radius: 10px;
+    color: $text-primary;
+    font-size: 0.85rem;
+    outline: none;
+    cursor: pointer;
+    transition: all 0.25s ease;
+
+    &:focus {
+      border-color: $yellow-primary;
+      background: rgba(var(--color-accent-rgb), 0.04);
+      box-shadow: 0 0 0 3px rgba(var(--color-accent-rgb), 0.08);
+    }
+
+    option {
+      background: $black-secondary;
+      color: $text-primary;
+    }
+  }
+}
+
+.error-text {
+  color: #ff6b6b;
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin: 0;
+  padding: 0.5rem;
+  background: rgba(255, 71, 87, 0.1);
+  border-radius: 8px;
+  border-left: 4px solid #ff4757;
 }

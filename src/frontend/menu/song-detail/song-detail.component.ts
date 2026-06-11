@@ -9,11 +9,13 @@ import {
   SongDifficulty,
   DifficultyLevel,
   LeaderboardEntry,
+  UpdateSongRequest,
   difficultyNumberToName,
   difficultyNameToNumber
 } from '../../../app/services/song.service';
 import { AchievementService } from '../../../app/services/achievement.service';
 import { Song, Comment, normalizeSong, isSongPublic, isSongOwnedByViewer } from '../menu-helpers';
+import { GENRES } from '../genres';
 
 const songOwnedByViewer = isSongOwnedByViewer;
 
@@ -34,6 +36,16 @@ interface LeaderboardState {
   difficultyLabel: string;
 }
 
+interface EditSongForm {
+  name: string;
+  author: string;
+  bpm: number | undefined;
+  genre: string | null;
+  isPublic: boolean;
+  audioFile?: File;
+  coverFile?: File;
+}
+
 @Component({
   selector: 'app-song-detail',
   standalone: true,
@@ -48,6 +60,10 @@ export class SongDetailComponent implements OnInit, OnDestroy {
   canDeleteSong(song: Song, viewerId?: number | null): boolean {
     if (isSongOwnedByViewer(song, viewerId)) return true;
     return this.authService.isAdmin;
+  }
+
+  canEditSong(song: Song, viewerId?: number | null): boolean {
+    return isSongOwnedByViewer(song, viewerId);
   }
 
   song = signal<Song | null>(null);
@@ -78,6 +94,21 @@ export class SongDetailComponent implements OnInit, OnDestroy {
   uploadDifficultyChoice = signal<DifficultyLevel | null>(null);
 
   showDeleteConfirm = signal<boolean>(false);
+
+  showEditModal = signal<boolean>(false);
+  editForm = signal<EditSongForm>({
+    name: '',
+    author: '',
+    bpm: undefined,
+    genre: null,
+    isPublic: true
+  });
+  isSavingEdit = signal<boolean>(false);
+  editError = signal<string | null>(null);
+  readonly genres = GENRES;
+
+  showDeleteDifficultyConfirm = signal<boolean>(false);
+  difficultyToDelete = signal<SongDifficulty | null>(null);
 
   private audio = new Audio();
 
@@ -504,5 +535,248 @@ export class SongDetailComponent implements OnInit, OnDestroy {
 
   cancelDelete(): void {
     this.showDeleteConfirm.set(false);
+  }
+
+  // ─── Song Editing ─────────────────────────────────────────
+
+  openEditModal(): void {
+    const song = this.song();
+    if (!song || !this.canEditSong(song, this.currentUser()?.id)) {
+      alert('Only the uploader can edit this song.');
+      return;
+    }
+    this.editForm.set({
+      name: song.name,
+      author: song.author,
+      bpm: song.bpm,
+      genre: song.genre ?? null,
+      isPublic: song.isPublic ?? true,
+      audioFile: undefined,
+      coverFile: undefined
+    });
+    this.editError.set(null);
+    this.showEditModal.set(true);
+  }
+
+  closeEditModal(): void {
+    this.showEditModal.set(false);
+    this.editError.set(null);
+  }
+
+  updateEditName(value: string): void {
+    this.editForm.update(form => ({ ...form, name: value }));
+  }
+
+  updateEditAuthor(value: string): void {
+    this.editForm.update(form => ({ ...form, author: value }));
+  }
+
+  updateEditBpm(value: string): void {
+    const parsed = value ? Number(value) : undefined;
+    this.editForm.update(form => ({ ...form, bpm: parsed }));
+  }
+
+  updateEditGenre(value: string): void {
+    this.editForm.update(form => ({ ...form, genre: value || null }));
+  }
+
+  updateEditVisibility(value: string): void {
+    this.editForm.update(form => ({ ...form, isPublic: value === 'public' }));
+  }
+
+  onEditAudioSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files?.length) {
+      this.editForm.update(form => ({ ...form, audioFile: input.files![0] }));
+    }
+  }
+
+  onEditCoverSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files?.length) {
+      this.editForm.update(form => ({ ...form, coverFile: input.files![0] }));
+    }
+  }
+
+  private fileToBase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        resolve(result.split(',')[1]);
+      };
+      reader.onerror = () => reject('Failed to read file');
+      reader.readAsDataURL(file);
+    });
+  }
+
+  private getAudioDuration(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const audio = new Audio(url);
+      let durationSet = false;
+
+      const timeout = setTimeout(() => {
+        if (!durationSet) {
+          audio.pause();
+          URL.revokeObjectURL(url);
+          reject('Timeout: Could not load audio duration');
+        }
+      }, 5000);
+
+      audio.onloadedmetadata = () => {
+        if (audio.duration && audio.duration !== Infinity) {
+          durationSet = true;
+          clearTimeout(timeout);
+          URL.revokeObjectURL(url);
+          resolve(this.formatDuration(audio.duration));
+        }
+      };
+
+      audio.oncanplay = () => {
+        if (!durationSet && audio.duration && audio.duration !== Infinity) {
+          durationSet = true;
+          clearTimeout(timeout);
+          URL.revokeObjectURL(url);
+          resolve(this.formatDuration(audio.duration));
+        }
+      };
+
+      audio.onerror = () => {
+        clearTimeout(timeout);
+        URL.revokeObjectURL(url);
+        reject('Failed to load audio file');
+      };
+
+      audio.src = url;
+      audio.load();
+    });
+  }
+
+  private formatDuration(seconds: number): string {
+    const minutes = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${minutes}:${secs.toString().padStart(2, '0')}`;
+  }
+
+  submitEdit(): void {
+    const song = this.song();
+    if (!song) return;
+
+    const form = this.editForm();
+    if (!form.name.trim() || !form.author.trim() || !form.bpm) {
+      this.editError.set('Name, artist, and BPM are required.');
+      return;
+    }
+
+    this.isSavingEdit.set(true);
+    this.editError.set(null);
+
+    const buildPayload = async (): Promise<UpdateSongRequest> => {
+      const payload: UpdateSongRequest = {
+        name: form.name.trim(),
+        author: form.author.trim(),
+        bpm: form.bpm,
+        genre: form.genre,
+        isPublic: form.isPublic
+      };
+
+      if (form.audioFile) {
+        const [length, base64] = await Promise.all([
+          this.getAudioDuration(form.audioFile),
+          this.fileToBase64(form.audioFile)
+        ]);
+        payload.length = length;
+        payload.audioBase64 = base64;
+        payload.audioMimeType = form.audioFile.type;
+      }
+
+      if (form.coverFile) {
+        payload.coverBase64 = await this.fileToBase64(form.coverFile);
+        payload.coverMimeType = form.coverFile.type;
+      }
+
+      return payload;
+    };
+
+    buildPayload()
+      .then(payload => {
+        this.songService.updateSong(song.id, payload).subscribe({
+          next: response => {
+            this.isSavingEdit.set(false);
+            if (response.success && response.song) {
+              this.song.set(normalizeSong(response.song));
+              this.closeEditModal();
+            } else {
+              this.editError.set(response.error || 'Failed to update song.');
+            }
+          },
+          error: err => {
+            this.isSavingEdit.set(false);
+            this.editError.set(err.message || 'Failed to update song.');
+          }
+        });
+      })
+      .catch(err => {
+        this.isSavingEdit.set(false);
+        this.editError.set(typeof err === 'string' ? err : 'Failed to process files.');
+      });
+  }
+
+  // ─── Chart Management ─────────────────────────────────────
+
+  requestDeleteDifficulty(difficulty: SongDifficulty, event: MouseEvent): void {
+    event.stopPropagation();
+    const song = this.song();
+    if (!song || !this.canEditSong(song, this.currentUser()?.id)) {
+      alert('Only the uploader can delete charts.');
+      return;
+    }
+    this.difficultyToDelete.set(difficulty);
+    this.showDeleteDifficultyConfirm.set(true);
+  }
+
+  confirmDeleteDifficulty(): void {
+    const song = this.song();
+    const difficulty = this.difficultyToDelete();
+    if (!song || !difficulty) return;
+
+    this.songService.deleteDifficulty(song.id, difficulty.id).subscribe({
+      next: response => {
+        if (response.success) {
+          this.difficultyPickerState.update(state => ({
+            ...state,
+            difficulties: state.difficulties.filter(d => d.id !== difficulty.id)
+          }));
+          if (this.selectedDifficultyId() === difficulty.id) {
+            const first = this.difficultyPickerState().difficulties[0] ?? null;
+            this.selectedDifficultyId.set(first?.id ?? null);
+            this.loadLeaderboard();
+          }
+          this.closeDeleteDifficultyConfirm();
+        } else {
+          alert(`Failed to delete chart: ${response.error}`);
+        }
+      },
+      error: err => alert(`Error deleting chart: ${err.message}`)
+    });
+  }
+
+  closeDeleteDifficultyConfirm(): void {
+    this.showDeleteDifficultyConfirm.set(false);
+    this.difficultyToDelete.set(null);
+  }
+
+  editChartInMaker(difficulty: SongDifficulty, event: MouseEvent): void {
+    event.stopPropagation();
+    const song = this.song();
+    if (!song || !this.canEditSong(song, this.currentUser()?.id)) {
+      alert('Only the uploader can edit charts.');
+      return;
+    }
+    this.stopAudio();
+    void this.router.navigate(['/chart-maker'], {
+      queryParams: { songId: song.id, difficultyId: difficulty.id }
+    });
   }
 }

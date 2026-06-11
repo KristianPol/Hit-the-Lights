@@ -1,8 +1,8 @@
 import { AfterViewInit, Component, ElementRef, HostListener, OnDestroy, ViewChild, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router, RouterModule } from '@angular/router';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { SongService, Song } from '../../app/services/song.service';
+import { SongService, Song, SongDifficulty } from '../../app/services/song.service';
 import { AuthService } from '../../app/services/auth.service';
 
 interface EditorNote {
@@ -33,8 +33,15 @@ export class ChartMaker implements AfterViewInit, OnDestroy {
   @ViewChild('editorCanvas') canvasRef!: ElementRef<HTMLCanvasElement>;
 
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
   private songService = inject(SongService);
   private authService = inject(AuthService);
+
+  readonly editingDifficultyId = signal<number | null>(null);
+  readonly editingDifficulty = signal<SongDifficulty | null>(null);
+  readonly isEditingChart = computed(() => this.editingDifficultyId() !== null);
+  readonly chartSaveError = signal<string | null>(null);
+  readonly chartSaveSuccess = signal<boolean>(false);
 
   // Canvas
   private canvas!: HTMLCanvasElement;
@@ -92,6 +99,34 @@ export class ChartMaker implements AfterViewInit, OnDestroy {
 
   constructor() {
     this.loadOwnedSongs();
+    this.route.queryParams.subscribe(params => {
+      const difficultyId = Number(params['difficultyId']);
+      const songId = Number(params['songId']);
+      if (!isNaN(difficultyId) && difficultyId > 0 && !isNaN(songId) && songId > 0) {
+        this.editingDifficultyId.set(difficultyId);
+        this.tryLoadChartForEditing(songId, difficultyId);
+      }
+    });
+  }
+
+  private tryLoadChartForEditing(songId: number, difficultyId: number): void {
+    const userId = this.authService.currentUser?.id;
+    if (!userId) return;
+
+    const songs = this.ownedSongs();
+    if (songs.length === 0) {
+      // Songs not loaded yet; retry after a short delay
+      setTimeout(() => this.tryLoadChartForEditing(songId, difficultyId), 100);
+      return;
+    }
+
+    const song = songs.find(s => s.id === songId && s.ownerId === userId);
+    if (!song) {
+      this.chartSaveError.set('You can only edit charts for songs you own.');
+      return;
+    }
+
+    this.loadChartForEditing(song, difficultyId);
   }
 
   ngAfterViewInit(): void {
@@ -123,6 +158,43 @@ export class ChartMaker implements AfterViewInit, OnDestroy {
       },
       error: err => console.error('Failed to load owned songs', err)
     });
+  }
+
+  private loadChartForEditing(song: Song, difficultyId: number): void {
+    this.selectedSongId.set(song.id);
+    this.title.set(song.name);
+    this.artist.set(song.author);
+    this.bpm.set(song.bpm);
+    this.durationMs.set(this.parseDuration(song.length));
+    this.audio.src = song.songUrl;
+    this.audio.load();
+    this.isAudioLoaded.set(true);
+    this.audioFileName.set(`${song.name} - ${song.author}`);
+
+    this.songService.getDifficultyChart(song.id, difficultyId).subscribe({
+      next: res => {
+        if (res.success && res.chart) {
+          this.notes.set(res.chart.notes.map(n => ({ time: n.time, lane: n.lane })));
+          this.editingDifficulty.set({
+            id: difficultyId,
+            difficulty: this.findDifficultyNumber(song.difficulties, difficultyId),
+            noteCount: res.chart.notes.length
+          });
+          this.assignDifficulty.set(this.editingDifficulty()?.difficulty ?? 1);
+        } else {
+          this.chartSaveError.set(res.error || 'Failed to load chart for editing.');
+        }
+      },
+      error: err => this.chartSaveError.set(err.message || 'Failed to load chart for editing.')
+    });
+  }
+
+  private findDifficultyNumber(
+    difficulties: SongDifficulty[] | undefined,
+    difficultyId: number
+  ): number {
+    const match = difficulties?.find(d => d.id === difficultyId);
+    return match?.difficulty ?? 1;
   }
 
   onSelectExistingSong(songIdStr: string): void {
@@ -671,7 +743,7 @@ export class ChartMaker implements AfterViewInit, OnDestroy {
   submitAssign(): void {
     const songId = this.selectedSongId();
     const userId = this.authService.currentUser?.id;
-    const difficulty = this.assignDifficulty();
+    const difficultyId = this.editingDifficultyId();
 
     if (!songId || !userId) {
       this.assignError.set('Please select a song.');
@@ -687,25 +759,44 @@ export class ChartMaker implements AfterViewInit, OnDestroy {
     this.assignError.set(null);
 
     const request = {
-      difficulty,
+      difficulty: this.assignDifficulty(),
       notes: this.notes().map(n => ({ time: n.time, lane: n.lane }))
     };
 
-    this.songService.addSongDifficulty(songId, request).subscribe({
-      next: res => {
-        this.isAssigning.set(false);
-        if (res.success) {
-          this.assignSuccess.set(true);
-          setTimeout(() => this.closeAssignModal(), 1500);
-        } else {
-          this.assignError.set(res.error || 'Failed to assign chart.');
+    if (difficultyId) {
+      this.songService.updateDifficulty(songId, difficultyId, request).subscribe({
+        next: res => {
+          this.isAssigning.set(false);
+          if (res.success) {
+            this.assignSuccess.set(true);
+            this.editingDifficulty.set(res.difficulty ?? this.editingDifficulty());
+            setTimeout(() => this.closeAssignModal(), 1500);
+          } else {
+            this.assignError.set(res.error || 'Failed to update chart.');
+          }
+        },
+        error: err => {
+          this.isAssigning.set(false);
+          this.assignError.set(err.message || 'Failed to update chart.');
         }
-      },
-      error: err => {
-        this.isAssigning.set(false);
-        this.assignError.set(err.message || 'Failed to assign chart.');
-      }
-    });
+      });
+    } else {
+      this.songService.addSongDifficulty(songId, request).subscribe({
+        next: res => {
+          this.isAssigning.set(false);
+          if (res.success) {
+            this.assignSuccess.set(true);
+            setTimeout(() => this.closeAssignModal(), 1500);
+          } else {
+            this.assignError.set(res.error || 'Failed to assign chart.');
+          }
+        },
+        error: err => {
+          this.isAssigning.set(false);
+          this.assignError.set(err.message || 'Failed to assign chart.');
+        }
+      });
+    }
   }
 
   // ─── Helpers ──────────────────────────────────────────────

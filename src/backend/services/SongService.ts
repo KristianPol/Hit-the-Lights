@@ -196,6 +196,34 @@ export interface UpdateSongVisibilityResponse {
   error?: string;
 }
 
+export interface UpdateSongRequest {
+  name?: string;
+  author?: string;
+  bpm?: number;
+  length?: string;
+  genre?: string | null;
+  isPublic?: boolean;
+  songUrl?: string;
+  coverUrl?: string;
+}
+
+export interface UpdateSongResponse {
+  success: boolean;
+  song?: SongResponse;
+  error?: string;
+}
+
+export interface DeleteDifficultyResponse {
+  success: boolean;
+  error?: string;
+}
+
+export interface UpdateDifficultyChartResponse {
+  success: boolean;
+  difficulty?: SongDifficultyResponse;
+  error?: string;
+}
+
 export interface UploadedSongCountResult {
   count: number;
 }
@@ -584,6 +612,262 @@ export class SongService {
       return { success: true, song };
     } catch (error: any) {
       return { success: false, error: error.message || 'Failed to delete song' };
+    }
+  }
+
+  public async updateSong(
+    songId: number,
+    requesterId: number,
+    request: UpdateSongRequest
+  ): Promise<UpdateSongResponse> {
+    try {
+      if (!Number.isInteger(songId) || songId <= 0) {
+        return { success: false, error: 'Invalid song ID' };
+      }
+
+      if (!Number.isInteger(requesterId) || requesterId <= 0) {
+        return { success: false, error: 'Authentication required to update song' };
+      }
+
+      const song = await this.getRawSongById(songId);
+      if (!song) {
+        return { success: false, error: 'Song not found' };
+      }
+
+      if (song.ownerId !== requesterId) {
+        return { success: false, error: 'Only the uploader can edit this song' };
+      }
+
+      const updates: string[] = [];
+      const params: Record<string, unknown> = { id: songId };
+
+      if (request.name !== undefined) {
+        const trimmed = request.name.trim();
+        if (trimmed.length === 0) {
+          return { success: false, error: 'Song name is required' };
+        }
+        updates.push('name = $name');
+        params.name = trimmed;
+      }
+
+      if (request.author !== undefined) {
+        const trimmed = request.author.trim();
+        if (trimmed.length === 0) {
+          return { success: false, error: 'Song author is required' };
+        }
+        updates.push('author = $author');
+        params.author = trimmed;
+      }
+
+      if (request.bpm !== undefined) {
+        if (!Number.isFinite(request.bpm) || request.bpm <= 0) {
+          return { success: false, error: 'BPM must be a positive number' };
+        }
+        updates.push('bpm = $bpm');
+        params.bpm = Math.round(request.bpm);
+      }
+
+      if (request.length !== undefined) {
+        if (!request.length || request.length.trim().length === 0) {
+          return { success: false, error: 'Song length is required' };
+        }
+        updates.push('length = $length');
+        params.length = request.length.trim();
+      }
+
+      if (request.genre !== undefined) {
+        params.genre = request.genre?.trim() || null;
+        updates.push('genre = $genre');
+      }
+
+      if (request.isPublic !== undefined) {
+        updates.push('isPublic = $isPublic');
+        params.isPublic = request.isPublic ? 1 : 0;
+      }
+
+      if (request.songUrl !== undefined) {
+        if (!request.songUrl) {
+          return { success: false, error: 'Song URL is required' };
+        }
+        updates.push('songUrl = $songUrl');
+        params.songUrl = request.songUrl;
+      }
+
+      if (request.coverUrl !== undefined) {
+        if (!request.coverUrl) {
+          return { success: false, error: 'Cover URL is required' };
+        }
+        updates.push('coverUrl = $coverUrl');
+        params.coverUrl = request.coverUrl;
+      }
+
+      if (updates.length === 0) {
+        return { success: false, error: 'No fields provided to update' };
+      }
+
+      const stmt = this.unit.prepare<{ changes: number }, Record<string, unknown>>(
+        `UPDATE Song SET ${updates.join(', ')} WHERE id = $id`,
+        params
+      );
+      const result = await stmt.run();
+
+      if (result.changes === 0) {
+        return { success: false, error: 'Failed to update song' };
+      }
+
+      const updatedSong = await this.getRawSongById(songId);
+      return {
+        success: true,
+        song: updatedSong ? await this.toResponse(updatedSong) : undefined
+      };
+    } catch (error: any) {
+      return { success: false, error: error.message || 'Failed to update song' };
+    }
+  }
+
+  public async deleteDifficulty(
+    songId: number,
+    difficultyId: number,
+    requesterId: number
+  ): Promise<DeleteDifficultyResponse> {
+    try {
+      if (!Number.isInteger(songId) || songId <= 0) {
+        return { success: false, error: 'Invalid song ID' };
+      }
+
+      if (!Number.isInteger(difficultyId) || difficultyId <= 0) {
+        return { success: false, error: 'Invalid difficulty ID' };
+      }
+
+      if (!Number.isInteger(requesterId) || requesterId <= 0) {
+        return { success: false, error: 'Authentication required to delete difficulty' };
+      }
+
+      const song = await this.getRawSongById(songId);
+      if (!song) {
+        return { success: false, error: 'Song not found' };
+      }
+
+      if (song.ownerId !== requesterId) {
+        return { success: false, error: 'Only the uploader can delete difficulties' };
+      }
+
+      const difficulty = await this.getRawDifficultyById(difficultyId);
+      if (!difficulty || difficulty.song_id !== songId) {
+        return { success: false, error: 'Difficulty not found' };
+      }
+
+      await this.unit.prepare<unknown, { difficultyId: number }>(
+        'DELETE FROM Note WHERE difficulty_id = $difficultyId',
+        { difficultyId }
+      ).run();
+
+      await this.unit.prepare<unknown, { difficultyId: number }>(
+        'DELETE FROM Highscore WHERE difficulty_id = $difficultyId',
+        { difficultyId }
+      ).run();
+
+      const stmt = this.unit.prepare<{ changes: number }, { difficultyId: number }>(
+        'DELETE FROM Difficulty WHERE id = $difficultyId',
+        { difficultyId }
+      );
+      const result = await stmt.run();
+
+      if (result.changes === 0) {
+        return { success: false, error: 'Failed to delete difficulty' };
+      }
+
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error.message || 'Failed to delete difficulty' };
+    }
+  }
+
+  public async updateDifficultyChart(
+    songId: number,
+    difficultyId: number,
+    requesterId: number,
+    notes: ChartNoteInput[]
+  ): Promise<UpdateDifficultyChartResponse> {
+    try {
+      if (!Number.isInteger(songId) || songId <= 0) {
+        return { success: false, error: 'Invalid song ID' };
+      }
+
+      if (!Number.isInteger(difficultyId) || difficultyId <= 0) {
+        return { success: false, error: 'Invalid difficulty ID' };
+      }
+
+      if (!Number.isInteger(requesterId) || requesterId <= 0) {
+        return { success: false, error: 'Authentication required to update chart' };
+      }
+
+      if (!Array.isArray(notes) || notes.length === 0) {
+        return { success: false, error: 'A chart must include at least one note' };
+      }
+
+      for (const note of notes) {
+        if (!Number.isFinite(note.time) || note.time < 0) {
+          return { success: false, error: 'Each note must have a non-negative time' };
+        }
+        if (!Number.isInteger(note.lane) || note.lane < 0 || note.lane > 3) {
+          return { success: false, error: 'Each note lane must be between 0 and 3' };
+        }
+      }
+
+      const song = await this.getRawSongById(songId);
+      if (!song) {
+        return { success: false, error: 'Song not found' };
+      }
+
+      if (song.ownerId !== requesterId) {
+        return { success: false, error: 'Only the uploader can edit charts' };
+      }
+
+      const difficulty = await this.getRawDifficultyById(difficultyId);
+      if (!difficulty || difficulty.song_id !== songId) {
+        return { success: false, error: 'Difficulty not found' };
+      }
+
+      await this.unit.prepare<unknown, { difficultyId: number }>(
+        'DELETE FROM Highscore WHERE difficulty_id = $difficultyId',
+        { difficultyId }
+      ).run();
+
+      await this.unit.prepare<unknown, { difficultyId: number }>(
+        'DELETE FROM Note WHERE difficulty_id = $difficultyId',
+        { difficultyId }
+      ).run();
+
+      for (const note of notes) {
+        await this.unit.prepare(
+          `INSERT INTO Note (difficulty_id, time_ms, lane, type, duration_ms)
+           VALUES ($difficultyId, $timeMs, $lane, $type, $durationMs)`,
+          {
+            difficultyId,
+            timeMs: Math.round(note.time),
+            lane: note.lane,
+            type: Number.isInteger(note.type) ? note.type : 1,
+            durationMs: note.durationMs ?? null
+          }
+        ).run();
+      }
+
+      await this.unit.prepare<unknown, { difficultyId: number; noteCount: number }>(
+        'UPDATE Difficulty SET note_count = $noteCount WHERE id = $difficultyId',
+        { difficultyId, noteCount: notes.length }
+      ).run();
+
+      return {
+        success: true,
+        difficulty: {
+          id: difficultyId,
+          difficulty: difficulty.difficulty,
+          noteCount: notes.length
+        }
+      };
+    } catch (error: any) {
+      return { success: false, error: error.message || 'Failed to update chart' };
     }
   }
 
