@@ -145,30 +145,45 @@ describe('HTLService', () => {
 
   describe('userFromJSON', () => {
     it('should convert JSON to user entity', () => {
-      const json = { username: 'newuser', password: 'password123' };
+      const json = { username: 'newuser', password: 'Password123' };
       const result = service.userFromJSON(json);
       expect(result).toMatchObject({
         id: 0,
         username: 'newuser',
-        password: 'password123'
+        password: 'Password123'
       });
       expect(result.joinDate).toBeDefined();
     });
 
     it('should trim username whitespace', () => {
-      const json = { username: '  user  ', password: 'password123' };
+      const json = { username: '  user  ', password: 'Password123' };
       const result = service.userFromJSON(json);
       expect(result.username).toBe('user');
     });
 
     it('should reject short username', () => {
-      expect(() => service.userFromJSON({ username: 'ab', password: 'password123' }))
+      expect(() => service.userFromJSON({ username: 'ab', password: 'Password123' }))
         .toThrow('Username must be at least 3 characters');
     });
 
     it('should reject short password', () => {
       expect(() => service.userFromJSON({ username: 'validuser', password: 'short' }))
-        .toThrow('Password must be at least 6 characters');
+        .toThrow('Password must be at least 8 characters long');
+    });
+
+    it('should reject password without uppercase', () => {
+      expect(() => service.userFromJSON({ username: 'validuser', password: 'password123' }))
+        .toThrow('Password must contain at least one uppercase letter');
+    });
+
+    it('should reject password without lowercase', () => {
+      expect(() => service.userFromJSON({ username: 'validuser', password: 'PASSWORD123' }))
+        .toThrow('Password must contain at least one lowercase letter');
+    });
+
+    it('should reject password without a number', () => {
+      expect(() => service.userFromJSON({ username: 'validuser', password: 'PasswordOnly' }))
+        .toThrow('Password must contain at least one number');
     });
   });
 
@@ -279,7 +294,7 @@ describe('HTLService', () => {
 
   describe('fromJSON', () => {
     it('should route to correct method', () => {
-      const json = { username: 'test', password: 'password123' };
+      const json = { username: 'test', password: 'Password123' };
       const result = service.fromJSON(json, 'user');
       expect((result as User).username).toBe('test');
     });

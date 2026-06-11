@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink, Router } from '@angular/router';
 import { Login } from '../login/login';
 import { AuthService } from '../../app/services/auth.service';
@@ -21,6 +21,14 @@ export class Register extends Login {
     router: Router
   ) {
     super(formBuilder, authService, router);
+
+    // Override password validators with stronger requirements for registration
+    this.loginForm.get('password')?.setValidators([
+      Validators.required,
+      Validators.minLength(8),
+      Validators.pattern('^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).+$')
+    ]);
+    this.loginForm.get('password')?.updateValueAndValidity();
   }
 
   onRegister() {

@@ -1,5 +1,6 @@
 import {Unit} from '../database/unit';
 import {User} from '../model';
+import { PasswordValidator } from '../utils/PasswordValidator';
 
 export interface SongJSON {
   id: number;
@@ -209,8 +210,10 @@ export class HTLService {
     if (!json.username || json.username.length < 3) {
       throw new Error('Username must be at least 3 characters');
     }
-    if (!json.password || json.password.length < 6) {
-      throw new Error('Password must be at least 6 characters');
+
+    const passwordCheck = PasswordValidator.validate(json.password);
+    if (!passwordCheck.valid) {
+      throw new Error(passwordCheck.error);
     }
 
     return {

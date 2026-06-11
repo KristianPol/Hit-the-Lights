@@ -57,7 +57,10 @@
               <span>Password is required</span>
             }
             @if (f['password'].hasError('minlength')) {
-              <span>Password must be at least 6 characters</span>
+              <span>Password must be at least 8 characters</span>
+            }
+            @if (f['password'].hasError('pattern')) {
+              <span>Password must contain uppercase, lowercase, and a number</span>
             }
           </div>
         }

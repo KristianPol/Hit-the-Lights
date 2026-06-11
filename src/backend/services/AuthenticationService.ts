@@ -1,6 +1,7 @@
 import { Unit } from '../database/unit';
 import { User } from '../model';
 import { PasswordHasher } from '../utils/PasswordHasher';
+import { PasswordValidator } from '../utils/PasswordValidator';
 
 export interface LoginRequest {
   username: string;
@@ -31,10 +32,10 @@ export class AuthenticationService {
         };
       }
 
-      if (!request.password || request.password.length < 6) {
+      if (!request.password || request.password.length === 0) {
         return {
           success: false,
-          error: 'Password must be at least 6 characters'
+          error: 'Password is required'
         };
       }
 

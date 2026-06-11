@@ -17,8 +17,10 @@ function findProjectRoot(): string {
 
 import express from "express";
 import cors from "cors";
+import helmet from "helmet";
 import rateLimit from 'express-rate-limit';
 import { authRouter, songRouter, friendshipRouter, messageRouter } from "../routers";
+import { authMiddleware } from "../middleware/authMiddleware";
 import { Unit, sql } from './unit';
 
 const DATABASE_URL = process.env['DATABASE_URL'];
@@ -29,6 +31,7 @@ const app = express();
 const PORT = Number(process.env['PORT']) || 3000;
 const PROJECT_ROOT = findProjectRoot();
 const FRONTEND_DIST = path.resolve(PROJECT_ROOT, 'dist', 'Hit-The-Lights', 'browser');
+const isDev = process.env['NODE_ENV'] !== 'production';
 
 console.log('🗄️  Database Mode: PostgreSQL');
 console.log('📁 PROJECT_ROOT:', PROJECT_ROOT);
@@ -41,11 +44,14 @@ Unit.initTables().then(() => {
   console.error('❌ Failed to ensure database schema:', err);
 });
 
-const ALLOWED_ORIGINS = [
-  'https://hitthelights.xyz',
-  'https://hit-the-lights-j6bl.onrender.com',
-  'http://localhost:4200'
-];
+const ALLOWED_ORIGINS = isDev
+  ? ['http://localhost:4200']
+  : [
+      'https://hitthelights.xyz',
+      'https://hit-the-lights-j6bl.onrender.com'
+    ];
+
+app.use(helmet());
 
 app.use(cors({
   origin: (origin, callback) => {
@@ -58,6 +64,14 @@ app.use(cors({
   credentials: true
 }));
 
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 200,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Too many requests, please try again later.' }
+});
+
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 10,
@@ -66,11 +80,12 @@ const authLimiter = rateLimit({
   message: { success: false, error: 'Too many attempts, please try again later.' }
 });
 
+app.use(globalLimiter);
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
 
-app.use(express.json({ limit: '50mb' }));
-app.use('/uploads', express.static(path.resolve(process.cwd(), 'uploads')));
+app.use(express.json({ limit: '10mb' }));
+app.use('/uploads', authMiddleware, express.static(path.resolve(process.cwd(), 'uploads')));
 app.use(express.static(FRONTEND_DIST));
 
 app.use('/api/auth', authRouter);
@@ -100,9 +115,11 @@ app.use((req: any, res: any) => {
 
 app.use((err: any, _req: any, res: any, _next: any) => {
   console.error('Server error:', err);
-  res.status(500).json({
+  // Do not leak internal error messages to the client
+  const statusCode = typeof err?.status === 'number' ? err.status : 500;
+  res.status(statusCode).json({
     error: 'Internal Server Error',
-    message: err?.message || 'Something went wrong'
+    message: 'Something went wrong. Please try again later.'
   });
 });
 
@@ -126,16 +143,14 @@ const server = app.listen(PORT, () => {
   console.log(`  GET  http://localhost:${PORT}/api/health`);
 });
 
-// Handle uncaught exceptions
+// Handle uncaught exceptions — log but do not crash the server
 process.on('uncaughtException', (err: Error) => {
   console.error('❌ Uncaught Exception:', err);
-  process.exit(1);
 });
 
-// Handle unhandled promise rejections
+// Handle unhandled promise rejections — log but do not crash the server
 process.on('unhandledRejection', (reason: any, promise: Promise<any>) => {
   console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
-  process.exit(1);
 });
 
 // Handle graceful shutdown
