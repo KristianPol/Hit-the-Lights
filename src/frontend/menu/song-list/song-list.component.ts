@@ -7,7 +7,16 @@ import { debounceTime } from 'rxjs/operators';
 import { AuthService, User } from '../../../app/services/auth.service';
 import { SongService, Song, AddSongRequest } from '../../../app/services/song.service';
 import { normalizeSong, isSongOwnedByViewer } from '../menu-helpers';
-import { GENRES } from '../genres';
+
+const GENRES = [
+  'Electronic', 'House', 'Techno', 'Trance', 'Dubstep', 'Drum & Bass', 'Hardstyle',
+  'Future Bass', 'Synthwave', 'Vaporwave', 'Hyperpop', 'Phonk', 'EDM', 'Trap',
+  'Hip Hop', 'Pop', 'Rock', 'Metal', 'Jazz', 'Classical', 'Funk', 'R&B',
+  'K-Pop', 'J-Pop', 'Anime', 'Game', 'Chiptune', '8-bit', 'Orchestral',
+  'Ambient', 'Lo-Fi', 'Downtempo', 'Experimental', 'Industrial', 'Speedcore',
+  'Happy Hardcore', 'UK Garage', 'Breakbeat', 'Jungle', 'Folk', 'Country',
+  'Blues', 'Soul', 'Reggae', 'Latin', 'Afrobeat', 'World', 'Other'
+];
 
 interface AddSongFormData {
   name?: string;
