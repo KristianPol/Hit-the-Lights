@@ -98,6 +98,14 @@ export class Gameplay implements AfterViewInit, OnDestroy {
   private readonly shardGravity = 0.15;
   private canvas!: HTMLCanvasElement;
   private ctx!: CanvasRenderingContext2D;
+  protected readonly currentSongTimeMs = signal(0);
+  protected readonly totalSongDurationMs = signal(0);
+  protected readonly songProgressPercent = computed(() => {
+    const total = this.totalSongDurationMs();
+    if (total <= 0) return 0;
+    const percent = (this.currentSongTimeMs() / total) * 100;
+    return Math.min(percent, 100);
+  });
   private animationFrameId: number | null = null;
   // Playtime tracking
   private playtimeIntervalId: number | null = null;
@@ -523,6 +531,9 @@ export class Gameplay implements AfterViewInit, OnDestroy {
     }
 
     const audioTime = this.getAudioTimeMs();
+
+    this.currentSongTimeMs.set(audioTime);
+    this.totalSongDurationMs.set(this.audio.duration ? this.audio.duration * 1000 : 0);
 
     // Check for notes that have passed the hit zone without being judged
     this.updateMissedNotes(audioTime);
@@ -1486,5 +1497,14 @@ export class Gameplay implements AfterViewInit, OnDestroy {
       this.ctx.restore();
     }
   }
+
+  protected formatTime(ms: number): string {
+    const totalSeconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  }
+
+
 }
 

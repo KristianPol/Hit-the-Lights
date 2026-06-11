@@ -692,3 +692,30 @@
     max-width: unset;
   }
 }
+
+.song-progress-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  z-index: 50;
+
+  .song-progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, $yellow-primary, $yellow-bright);
+    box-shadow: 0 0 12px rgba(var(--color-accent-rgb), 0.5);
+    transition: width 0.1s linear;
+  }
+
+  .song-progress-time {
+    position: absolute;
+    top: 8px;
+    right: 1.5rem;
+    font-size: 0.72rem;
+    color: rgba(255, 255, 255, 0.55);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.04em;
+  }
+}
