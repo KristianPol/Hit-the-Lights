@@ -344,6 +344,11 @@
                       @for (line of scoreShare.lines; track line) {
                         <p>{{ line }}</p>
                       }
+                      @if (msg.senderId !== currentUser?.id && canChallenge(msg.content)) {
+                        <button class="challenge-btn" (click)="challengeFriend(msg.content, msg.senderId)">
+                          <i class="fas fa-gamepad"></i> Challenge
+                        </button>
+                      }
                     </div>
                   </div>
                 } @else {

@@ -13,6 +13,7 @@ import {
   MessageResult,
   ConversationPreview
 } from '../../app/services/message.service';
+import { SongService } from '../../app/services/song.service';
 import { Subscription, interval } from 'rxjs';
 
 type TabType = 'conversations' | 'friends' | 'requests';
@@ -101,6 +102,7 @@ export class Messages implements OnInit, OnDestroy {
     private authService: AuthService,
     private friendshipService: FriendshipService,
     private messageService: MessageService,
+    private songService: SongService,
     private router: Router
   ) {}
 
@@ -503,17 +505,50 @@ export class Messages implements OnInit, OnDestroy {
     return content.startsWith('Score Share');
   }
 
-  parseScoreShare(content: string): { lines: string[]; coverUrl: string | null } {
+  parseScoreShare(content: string): { lines: string[]; coverUrl: string | null; songId: number | null; difficultyId: number | null } {
     const lines = content.split('\n');
     let coverUrl: string | null = null;
+    let songId: number | null = null;
+    let difficultyId: number | null = null;
     const filteredLines: string[] = [];
     for (const line of lines) {
       if (line.startsWith('Cover: ')) {
         coverUrl = line.slice('Cover: '.length).trim();
+      } else if (line.startsWith('Song ID: ')) {
+        const parsed = Number(line.slice('Song ID: '.length).trim());
+        if (Number.isFinite(parsed) && parsed > 0) songId = parsed;
+      } else if (line.startsWith('Difficulty ID: ')) {
+        const parsed = Number(line.slice('Difficulty ID: '.length).trim());
+        if (Number.isFinite(parsed) && parsed > 0) difficultyId = parsed;
       } else {
         filteredLines.push(line);
       }
     }
-    return { lines: filteredLines, coverUrl };
+    return { lines: filteredLines, coverUrl, songId, difficultyId };
+  }
+
+  canChallenge(content: string): boolean {
+    const share = this.parseScoreShare(content);
+    return share.songId != null && share.difficultyId != null;
+  }
+
+  challengeFriend(content: string, senderId: number): void {
+    const share = this.parseScoreShare(content);
+    if (!share.songId || !share.difficultyId) return;
+
+    this.songService.getSongById(share.songId).subscribe({
+      next: response => {
+        if (response.success && response.song) {
+          this.router.navigate(['/gameplay'], {
+            state: {
+              song: response.song,
+              difficultyId: share.difficultyId,
+              challengeFrom: senderId
+            }
+          });
+        }
+      },
+      error: err => console.warn('Failed to load song for challenge:', err)
+    });
   }
 }

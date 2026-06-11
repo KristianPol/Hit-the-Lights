@@ -113,6 +113,9 @@ export class Gameplay implements AfterViewInit, OnDestroy {
   private resolvedDifficultyId: number | null = this.difficultyIdFromState;
   private virtualAudioStartMs: number | null = null;
   private playCountReported = false;
+  private challengeFromUserId: number | null = null;
+  readonly challengeSent = signal(false);
+  readonly isChallengeMode = signal(false);
 
   private chartNotes: ChartNote[] = [];
   notes: ChartNote[] = [];
@@ -322,6 +325,8 @@ export class Gameplay implements AfterViewInit, OnDestroy {
     const testChart = state?.chartTest as boolean | undefined;
     const testChartData = state?.chart as { metadata: ChartMetadata; notes: { time: number; lane: number }[] } | undefined;
     const stateSong = state?.song as Song | undefined;
+    this.challengeFromUserId = state?.challengeFrom ?? null;
+    this.isChallengeMode.set(this.challengeFromUserId !== null);
 
     if (testChart && testChartData && testChartData.notes) {
       this.currentSong.set(stateSong ?? null);
@@ -940,6 +945,7 @@ export class Gameplay implements AfterViewInit, OnDestroy {
     this.gameRunning.set(false);
     this.gameFinished.set(false);
     this.playCountReported = false;
+    this.challengeSent.set(false);
     this.audio.pause();
     this.audio.currentTime = 0;
     if (this.animationFrameId !== null) {
@@ -1012,6 +1018,10 @@ export class Gameplay implements AfterViewInit, OnDestroy {
       songId: currentSong?.id ?? 0,
       rank: this.resultRank()
     });
+
+    if (this.challengeFromUserId) {
+      this.sendChallengeResponse();
+    }
 
     this.render(this.getAudioTimeMs());
     void this.submitFinalScore();
@@ -1139,7 +1149,9 @@ export class Gameplay implements AfterViewInit, OnDestroy {
     const mapName = song?.name || this.chartMetadata().title || 'Unknown Map';
     const diffName = diff ? difficultyNumberToName(diff.difficulty) : 'Unknown';
     const coverUrl = song?.coverUrl || '';
-    const message = `Score Share\nMap: ${mapName}\nDifficulty: ${diffName}\nScore: ${stats.score.toLocaleString()}\nAccuracy: ${stats.accuracy.toFixed(1)}%\nRank: ${this.resultRank()}${coverUrl ? '\nCover: ' + coverUrl : ''}`;
+    const songId = song?.id ?? 0;
+    const difficultyId = diff?.id ?? 0;
+    const message = `Score Share\nMap: ${mapName}\nDifficulty: ${diffName}\nScore: ${stats.score.toLocaleString()}\nAccuracy: ${stats.accuracy.toFixed(1)}%\nRank: ${this.resultRank()}\nSong ID: ${songId}\nDifficulty ID: ${difficultyId}${coverUrl ? '\nCover: ' + coverUrl : ''}`;
 
     this.sendingScore.set(true);
     this.sendScoreError.set(null);
@@ -1169,6 +1181,33 @@ export class Gameplay implements AfterViewInit, OnDestroy {
         }
       });
     }
+  }
+
+  private sendChallengeResponse(): void {
+    const userId = this.authService.currentUser?.id;
+    if (!userId || !this.challengeFromUserId) {
+      return;
+    }
+
+    const song = this.currentSong();
+    const diff = this.resolvedDifficulty();
+    const stats = this.stats();
+    const mapName = song?.name || this.chartMetadata().title || 'Unknown Map';
+    const diffName = diff ? difficultyNumberToName(diff.difficulty) : 'Unknown';
+    const coverUrl = song?.coverUrl || '';
+    const songId = song?.id ?? 0;
+    const difficultyId = diff?.id ?? 0;
+    const message = `Score Share\nMap: ${mapName}\nDifficulty: ${diffName}\nScore: ${stats.score.toLocaleString()}\nAccuracy: ${stats.accuracy.toFixed(1)}%\nRank: ${this.resultRank()}\nSong ID: ${songId}\nDifficulty ID: ${difficultyId}${coverUrl ? '\nCover: ' + coverUrl : ''}`;
+
+    this.messageService.sendMessage(this.challengeFromUserId, message).subscribe({
+      next: response => {
+        if (response.success) {
+          this.challengeSent.set(true);
+          this.achievementService.trackScoreShare();
+        }
+      },
+      error: err => console.warn('Failed to send challenge response:', err)
+    });
   }
 
   private createInitialStats(): GameStats {

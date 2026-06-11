@@ -1,4 +1,4 @@
-﻿<div class="gameplay-page">
+<div class="gameplay-page">
   <div class="gameplay-layout">
     <aside class="stats-column left-column">
       <div class="track-meta">
@@ -119,8 +119,15 @@
 
         <div class="results-actions">
           <button type="button" class="menu-button play-again" (click)="restartSong()">Play Again</button>
-          @if (authService.isLoggedIn) {
+          @if (authService.isLoggedIn && !isChallengeMode()) {
             <button type="button" class="menu-button send-score" (click)="openSendScoreModal()">Send to Friends</button>
+          }
+          @if (isChallengeMode()) {
+            @if (challengeSent()) {
+              <span class="challenge-status sent"><i class="fas fa-check"></i> Challenge sent!</span>
+            } @else {
+              <span class="challenge-status sending"><i class="fas fa-paper-plane"></i> Sending challenge response...</span>
+            }
           }
           <button type="button" class="menu-button" (click)="returnToMenu()">Back to Menu</button>
         </div>
