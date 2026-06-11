@@ -1,14 +1,11 @@
 import { Component, signal, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { ThemeService } from './services/theme.service';
-import {Login} from '../frontend/login/login';
-import {Register} from '../frontend/register/register';
-import {bootstrapApplication} from '@angular/platform-browser';
-import {appConfig} from './app.config';
+import { ToastNotificationComponent } from './components/toast-notification/toast-notification';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet],
+  imports: [RouterOutlet, ToastNotificationComponent],
   templateUrl: './app.html',
   styleUrl: './app.scss'
 })
