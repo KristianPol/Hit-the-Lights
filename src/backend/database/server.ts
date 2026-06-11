@@ -84,7 +84,7 @@ app.use(cors({
 
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 200,
+  max: 5000,
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, error: 'Too many requests, please try again later.' }
@@ -92,15 +92,24 @@ const globalLimiter = rateLimit({
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10,
+  max: 50,
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, error: 'Too many attempts, please try again later.' }
 });
 
+const songUploadLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 50,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Too many song uploads, please try again later.' }
+});
+
 app.use(globalLimiter);
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
+app.use('/api/songs/add', songUploadLimiter);
 
 app.use(express.json({ limit: '25mb' }));
 app.use('/uploads', authMiddleware, express.static(path.resolve(process.cwd(), 'uploads')));
