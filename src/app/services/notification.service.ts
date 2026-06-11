@@ -9,6 +9,7 @@ export interface Toast {
   message: string;
   type: 'info' | 'success' | 'message' | 'error';
   duration: number;
+  senderId?: number;
 }
 
 @Injectable({
@@ -30,9 +31,9 @@ export class NotificationService {
     this.startMessagePolling();
   }
 
-  showToast(title: string, message: string, type: Toast['type'] = 'info', duration = 5000): void {
+  showToast(title: string, message: string, type: Toast['type'] = 'info', duration = 5000, senderId?: number): void {
     const id = ++this.toastIdCounter;
-    const toast: Toast = { id, title, message, type, duration };
+    const toast: Toast = { id, title, message, type, duration, senderId };
     this.toastsSignal.update(current => [...current, toast]);
 
     if (duration > 0) {
@@ -89,7 +90,8 @@ export class NotificationService {
                   conv.otherUsername,
                   preview,
                   'message',
-                  6000
+                  6000,
+                  conv.otherUserId
                 );
               }
             }

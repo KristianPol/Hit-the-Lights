@@ -545,6 +545,12 @@ export class ChartMaker implements AfterViewInit, OnDestroy {
     this.notes.update(notes => notes.filter(n => !toRemove.some(r => r.time === n.time && r.lane === n.lane)));
   }
 
+  // ─── Navigation ───────────────────────────────────────────
+
+  goToMenu(): void {
+    this.router.navigate(['/menu']);
+  }
+
   // ─── Audio Controls ───────────────────────────────────────
 
   togglePlay(): void {

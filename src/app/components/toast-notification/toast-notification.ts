@@ -1,5 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import { NotificationService } from '../../services/notification.service';
 
 @Component({
@@ -11,10 +12,20 @@ import { NotificationService } from '../../services/notification.service';
 })
 export class ToastNotificationComponent {
   private notificationService = inject(NotificationService);
+  private router = inject(Router);
   toasts = this.notificationService.toasts;
 
   dismiss(id: number): void {
     this.notificationService.dismissToast(id);
+  }
+
+  onToastClick(toast: { id: number; senderId?: number }): void {
+    if (toast.senderId) {
+      this.dismiss(toast.id);
+      this.router.navigate(['/messages'], {
+        state: { openChatWith: toast.senderId }
+      });
+    }
   }
 
   getIconClass(type: string): string {

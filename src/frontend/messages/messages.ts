@@ -61,6 +61,7 @@ export class Messages implements OnInit, OnDestroy {
   private authSubscription: Subscription | null = null;
 
   @ViewChild('messagesScroll') messagesScrollRef!: ElementRef<HTMLDivElement>;
+  @ViewChild('messageInput') messageInputRef!: ElementRef<HTMLInputElement>;
 
   get selectedOtherUserId(): number | null {
     const friend = this.selectedFriend();
@@ -124,6 +125,39 @@ export class Messages implements OnInit, OnDestroy {
     this.refreshSubscription = interval(3000).subscribe(() => {
       this.refreshData();
     });
+
+    // Check if we should open a specific chat from navigation state
+    const openChatWith = window.history.state?.openChatWith as number | undefined;
+    if (openChatWith) {
+      setTimeout(() => this.tryOpenChatWith(openChatWith), 500);
+    }
+  }
+
+  private tryOpenChatWith(userId: number): void {
+    // First check conversations
+    const conv = this.conversations().find(c => c.otherUserId === userId);
+    if (conv) {
+      this.selectConversation(conv);
+      return;
+    }
+    // Then check friends
+    const friend = this.friends().find(f => f.otherUser.id === userId);
+    if (friend) {
+      this.selectFriend(friend);
+      return;
+    }
+    // If not found yet, wait for data to load and retry once
+    setTimeout(() => {
+      const retryConv = this.conversations().find(c => c.otherUserId === userId);
+      if (retryConv) {
+        this.selectConversation(retryConv);
+        return;
+      }
+      const retryFriend = this.friends().find(f => f.otherUser.id === userId);
+      if (retryFriend) {
+        this.selectFriend(retryFriend);
+      }
+    }, 800);
   }
 
   ngOnDestroy(): void {
@@ -430,6 +464,7 @@ export class Messages implements OnInit, OnDestroy {
           this.chatError.set(response.error || 'Failed to send message');
         }
         this.sendingMessage.set(false);
+        setTimeout(() => this.messageInputRef?.nativeElement?.focus(), 50);
       },
       error: err => {
         this.chatError.set(err.message || 'Failed to send message');
@@ -495,10 +530,14 @@ export class Messages implements OnInit, OnDestroy {
   }
 
   private scrollToBottom(): void {
-    const el = this.messagesScrollRef?.nativeElement;
-    if (el) {
-      el.scrollTop = el.scrollHeight;
-    }
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        const el = this.messagesScrollRef?.nativeElement;
+        if (el) {
+          el.scrollTop = el.scrollHeight;
+        }
+      }, 50);
+    });
   }
 
   isScoreShareMessage(content: string): boolean {
