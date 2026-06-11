@@ -15,7 +15,16 @@ import {
 } from '../../../app/services/song.service';
 import { AchievementService } from '../../../app/services/achievement.service';
 import { Song, Comment, normalizeSong, isSongPublic, isSongOwnedByViewer } from '../menu-helpers';
-import { GENRES } from '../genres';
+
+const GENRES = [
+  'Electronic', 'House', 'Techno', 'Trance', 'Dubstep', 'Drum & Bass', 'Hardstyle',
+  'Future Bass', 'Synthwave', 'Vaporwave', 'Hyperpop', 'Phonk', 'EDM', 'Trap',
+  'Hip Hop', 'Pop', 'Rock', 'Metal', 'Jazz', 'Classical', 'Funk', 'R&B',
+  'K-Pop', 'J-Pop', 'Anime', 'Game', 'Chiptune', '8-bit', 'Orchestral',
+  'Ambient', 'Lo-Fi', 'Downtempo', 'Experimental', 'Industrial', 'Speedcore',
+  'Happy Hardcore', 'UK Garage', 'Breakbeat', 'Jungle', 'Folk', 'Country',
+  'Blues', 'Soul', 'Reggae', 'Latin', 'Afrobeat', 'World', 'Other'
+];
 
 const songOwnedByViewer = isSongOwnedByViewer;
 

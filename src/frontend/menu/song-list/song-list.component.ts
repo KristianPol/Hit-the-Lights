@@ -2,12 +2,22 @@ import { Component, OnInit, OnDestroy, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { ScrollingModule } from '@angular/cdk/scrolling';
 import { Subject, Subscription } from 'rxjs';
 import { debounceTime } from 'rxjs/operators';
 import { AuthService, User } from '../../../app/services/auth.service';
 import { SongService, Song, AddSongRequest } from '../../../app/services/song.service';
 import { normalizeSong, isSongOwnedByViewer } from '../menu-helpers';
-import { GENRES } from '../genres';
+
+const GENRES = [
+  'Electronic', 'House', 'Techno', 'Trance', 'Dubstep', 'Drum & Bass', 'Hardstyle',
+  'Future Bass', 'Synthwave', 'Vaporwave', 'Hyperpop', 'Phonk', 'EDM', 'Trap',
+  'Hip Hop', 'Pop', 'Rock', 'Metal', 'Jazz', 'Classical', 'Funk', 'R&B',
+  'K-Pop', 'J-Pop', 'Anime', 'Game', 'Chiptune', '8-bit', 'Orchestral',
+  'Ambient', 'Lo-Fi', 'Downtempo', 'Experimental', 'Industrial', 'Speedcore',
+  'Happy Hardcore', 'UK Garage', 'Breakbeat', 'Jungle', 'Folk', 'Country',
+  'Blues', 'Soul', 'Reggae', 'Latin', 'Afrobeat', 'World', 'Other'
+];
 
 interface AddSongFormData {
   name?: string;
@@ -22,7 +32,7 @@ interface AddSongFormData {
 @Component({
   selector: 'app-song-list',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule],
+  imports: [CommonModule, RouterModule, FormsModule, ScrollingModule],
   templateUrl: './song-list.component.html',
   styleUrls: ['./song-list.component.scss']
 })
@@ -378,5 +388,9 @@ export class SongListComponent implements OnInit, OnDestroy {
     const minutes = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${minutes}:${secs.toString().padStart(2, '0')}`;
+  }
+
+  trackBySongId(_index: number, song: Song): number {
+    return song.id;
   }
 }

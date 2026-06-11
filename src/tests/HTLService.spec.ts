@@ -166,6 +166,11 @@ describe('HTLService', () => {
         .toThrow('Username must be at least 3 characters');
     });
 
+    it('should reject long username', () => {
+      expect(() => service.userFromJSON({ username: 'a'.repeat(21), password: 'Password123' }))
+        .toThrow('Username must be at most 20 characters');
+    });
+
     it('should reject short password', () => {
       expect(() => service.userFromJSON({ username: 'validuser', password: 'short' }))
         .toThrow('Password must be at least 8 characters long');
@@ -208,6 +213,11 @@ describe('HTLService', () => {
     it('should reject empty name', () => {
       expect(() => service.songFromJSON({ name: '', author: 'Artist', bpm: 120 }))
         .toThrow('Song name is required');
+    });
+
+    it('should reject long name', () => {
+      expect(() => service.songFromJSON({ name: 'a'.repeat(101), author: 'Artist', bpm: 120 }))
+        .toThrow('Song name must be at most 100 characters');
     });
   });
 

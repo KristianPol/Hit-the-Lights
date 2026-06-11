@@ -214,6 +214,9 @@ export class HTLService {
     if (!json.username || json.username.length < 3) {
       throw new Error('Username must be at least 3 characters');
     }
+    if (json.username.length > 20) {
+      throw new Error('Username must be at most 20 characters');
+    }
 
     const passwordCheck = PasswordValidator.validate(json.password);
     if (!passwordCheck.valid) {
@@ -239,6 +242,9 @@ export class HTLService {
   } {
     if (!json.name || json.name.trim().length === 0) {
       throw new Error('Song name is required');
+    }
+    if (json.name.trim().length > 100) {
+      throw new Error('Song name must be at most 100 characters');
     }
     if (!json.author || json.author.trim().length === 0) {
       throw new Error('Song author is required');
