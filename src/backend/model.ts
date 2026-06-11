@@ -7,7 +7,16 @@ export type User = {
   joinDate: string,
   playtimeSeconds?: number,
   role?: string,
-  isBanned?: boolean
+  isBanned?: boolean,
+  bio?: string | null,
+  location?: string | null,
+  favoriteGenre?: string | null,
+  githubUrl?: string | null,
+  osuUrl?: string | null,
+  robloxUrl?: string | null,
+  discordUrl?: string | null,
+  youtubeUrl?: string | null,
+  twitchUrl?: string | null
 };
 
 export interface UserControls {

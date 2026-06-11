@@ -47,6 +47,15 @@ export interface UserJSON {
   role?: string;
   isBanned?: boolean;
   highscores?: HighscoreJSON[];
+  bio?: string | null;
+  location?: string | null;
+  favoriteGenre?: string | null;
+  githubUrl?: string | null;
+  osuUrl?: string | null;
+  robloxUrl?: string | null;
+  discordUrl?: string | null;
+  youtubeUrl?: string | null;
+  twitchUrl?: string | null;
 }
 
 export class HTLService {
@@ -67,7 +76,16 @@ export class HTLService {
       // include cumulative playtime so front-end always receives the total
       playtimeSeconds: typeof (user as any).playtimeSeconds === 'number' ? (user as any).playtimeSeconds : 0,
       role: user.role,
-      isBanned: user.isBanned
+      isBanned: user.isBanned,
+      bio: (user as any).bio ?? null,
+      location: (user as any).location ?? null,
+      favoriteGenre: (user as any).favoriteGenre ?? null,
+      githubUrl: (user as any).githubUrl ?? null,
+      osuUrl: (user as any).osuUrl ?? null,
+      robloxUrl: (user as any).robloxUrl ?? null,
+      discordUrl: (user as any).discordUrl ?? null,
+      youtubeUrl: (user as any).youtubeUrl ?? null,
+      twitchUrl: (user as any).twitchUrl ?? null
     };
   }
 

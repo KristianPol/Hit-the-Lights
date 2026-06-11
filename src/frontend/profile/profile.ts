@@ -5,10 +5,21 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { AuthService, User } from '../../app/services/auth.service';
 import { SongService, Song, SongDifficulty, difficultyNumberToName } from '../../app/services/song.service';
-import { MessageService } from '../../app/services/message.service';
 import { AchievementService } from '../../app/services/achievement.service';
 import { Achievement } from '../../app/services/achievement.model';
-import { catchError, of, tap, finalize, take, map } from 'rxjs';
+import { catchError, of, tap, finalize, take, map, firstValueFrom } from 'rxjs';
+
+interface ProfileEditForm {
+  bio: string;
+  location: string;
+  favoriteGenre: string;
+  githubUrl: string;
+  osuUrl: string;
+  robloxUrl: string;
+  discordUrl: string;
+  youtubeUrl: string;
+  twitchUrl: string;
+}
 
 @Component({
   selector: 'app-profile',
@@ -34,10 +45,6 @@ export class ProfileComponent implements OnInit {
   private uploadedSongCountSignal = signal<number>(0);
   get uploadedSongCount(): number { return this.uploadedSongCountSignal(); }
   set uploadedSongCount(v: number) { this.uploadedSongCountSignal.set(v); }
-
-  private unreadMessageCountSignal = signal<number>(0);
-  get unreadMessageCount(): number { return this.unreadMessageCountSignal(); }
-  set unreadMessageCount(v: number) { this.unreadMessageCountSignal.set(v); }
 
   private totalGamesPlayedSignal = signal<number>(0);
   get totalGamesPlayed(): number { return this.totalGamesPlayedSignal(); }
@@ -79,6 +86,38 @@ export class ProfileComponent implements OnInit {
   private updateSuccessSignal = signal<boolean>(false);
   get updateSuccess(): boolean { return this.updateSuccessSignal(); }
   set updateSuccess(v: boolean) { this.updateSuccessSignal.set(v); }
+
+  private editProfileFormSignal = signal<ProfileEditForm>({
+    bio: '',
+    location: '',
+    favoriteGenre: '',
+    githubUrl: '',
+    osuUrl: '',
+    robloxUrl: '',
+    discordUrl: '',
+    youtubeUrl: '',
+    twitchUrl: ''
+  });
+  get editProfileForm(): ProfileEditForm { return this.editProfileFormSignal(); }
+  updateEditProfileForm(partial: Partial<ProfileEditForm>): void {
+    this.editProfileFormSignal.update(form => ({ ...form, ...partial }));
+  }
+
+  private isSavingProfileSignal = signal<boolean>(false);
+  get isSavingProfile(): boolean { return this.isSavingProfileSignal(); }
+  set isSavingProfile(v: boolean) { this.isSavingProfileSignal.set(v); }
+
+  private profileUpdateErrorSignal = signal<string | null>(null);
+  get profileUpdateError(): string | null { return this.profileUpdateErrorSignal(); }
+  set profileUpdateError(v: string | null) { this.profileUpdateErrorSignal.set(v); }
+
+  private profileUpdateSuccessSignal = signal<boolean>(false);
+  get profileUpdateSuccess(): boolean { return this.profileUpdateSuccessSignal(); }
+  set profileUpdateSuccess(v: boolean) { this.profileUpdateSuccessSignal.set(v); }
+
+  private copySuccessSignal = signal<boolean>(false);
+  get copySuccess(): boolean { return this.copySuccessSignal(); }
+  set copySuccess(v: boolean) { this.copySuccessSignal.set(v); }
 
   // Password reset state
   private showPasswordResetSignal = signal<boolean>(false);
@@ -137,6 +176,21 @@ export class ProfileComponent implements OnInit {
   get adminError(): string | null { return this.adminErrorSignal(); }
   set adminError(v: string | null) { this.adminErrorSignal.set(v); }
 
+  private adminSearchQuerySignal = signal<string>('');
+  get adminSearchQuery(): string { return this.adminSearchQuerySignal(); }
+  set adminSearchQuery(v: string) { this.adminSearchQuerySignal.set(v); }
+
+  readonly filteredAdminUsers = computed(() => {
+    const query = this.adminSearchQuerySignal().trim().toLowerCase();
+    if (!query) {
+      return this.adminUsersSignal();
+    }
+    return this.adminUsersSignal().filter(u =>
+      u.username.toLowerCase().includes(query) ||
+      u.id.toString().includes(query)
+    );
+  });
+
   private uploadedSongsSignal = signal<Song[]>([]);
   get uploadedSongs(): Song[] { return this.uploadedSongsSignal(); }
   set uploadedSongs(v: Song[]) { this.uploadedSongsSignal.set(v); }
@@ -165,12 +219,57 @@ export class ProfileComponent implements OnInit {
     return charts;
   });
 
+  playerLevel = computed(() => {
+    const games = this.totalGamesPlayedSignal() || 0;
+    return Math.floor(Math.sqrt(games)) + 1;
+  });
+
+  gamesToNextLevel = computed(() => {
+    return this.playerLevel() ** 2;
+  });
+
+  levelProgress = computed(() => {
+    const games = this.totalGamesPlayedSignal() || 0;
+    const current = (this.playerLevel() - 1) ** 2;
+    const next = this.gamesToNextLevel();
+    const range = next - current;
+    if (range <= 0) return 100;
+    return Math.min(100, Math.max(0, ((games - current) / range) * 100));
+  });
+
+  playerRank = computed(() => {
+    const user = this.userSignal();
+    const username = user?.username?.trim().toLowerCase() ?? '';
+    const coCreators = new Set(['krizen', 'alexfly', 'aniket']);
+
+    if (coCreators.has(username)) {
+      return { name: 'Co-Creator', icon: 'fa-code', color: '#ff5e5e' };
+    }
+    if (user?.role === 'admin') {
+      return { name: 'Admin', icon: 'fa-shield-halved', color: '#ff4444' };
+    }
+
+    const games = this.totalGamesPlayedSignal() || 0;
+    if (games >= 500) return { name: 'Rhythm Legend', icon: 'fa-crown', color: '#ffd700' };
+    if (games >= 200) return { name: 'Maestro', icon: 'fa-star', color: '#ff88ff' };
+    if (games >= 100) return { name: 'Veteran', icon: 'fa-medal', color: '#66ccff' };
+    if (games >= 50) return { name: 'Enthusiast', icon: 'fa-bolt', color: '#88ff88' };
+    if (games >= 10) return { name: 'Rookie', icon: 'fa-seedling', color: '#ffaa66' };
+    return { name: 'Newcomer', icon: 'fa-user', color: '#aaaaaa' };
+  });
+
+  recentActivity = computed(() => {
+    return this.uploadedSongsSignal().slice(0, 3).map(song => ({
+      icon: 'fa-music',
+      text: `Uploaded "${song.name}"`
+    }));
+  });
+
   constructor(
     private authService: AuthService,
     private router: Router,
     private route: ActivatedRoute,
     private songService: SongService,
-    private messageService: MessageService,
     private achievementService: AchievementService,
     private http: HttpClient,
     private ngZone: NgZone,
@@ -220,7 +319,6 @@ export class ProfileComponent implements OnInit {
       this.authService.refreshUser(currentUser.id).subscribe();
       // Load counts immediately
       this.loadUploadedSongCount(currentUser.id);
-      this.loadUnreadCount(currentUser.id);
       this.loadPinnedAchievements(currentUser.id);
       this.loadCreations(currentUser.id);
       this.totalGamesPlayed = currentUser.gamesPlayed ?? 0;
@@ -239,7 +337,6 @@ export class ProfileComponent implements OnInit {
         } else {
           this.ngZone.run(() => {
             this.uploadedSongCount = 0;
-            this.unreadMessageCount = 0;
             this.totalGamesPlayed = 0;
             this.pinnedAchievements = [];
             this.uploadedSongs = [];
@@ -283,7 +380,6 @@ export class ProfileComponent implements OnInit {
           this.loadUploadedSongCount(userId);
           this.loadPinnedAchievements(userId);
           this.loadCreations(userId);
-          this.unreadMessageCount = 0;
           this.totalGamesPlayed = response.user.gamesPlayed ?? 0;
         } else {
           this.error = response.error || 'User not found';
@@ -314,6 +410,36 @@ export class ProfileComponent implements OnInit {
   goToMessages(): void {
     if (this.user) {
       this.router.navigate(['/messages']);
+    }
+  }
+
+  async copyProfileLink(): Promise<void> {
+    if (!this.user) return;
+    const url = `${window.location.origin}/profile/${this.user.id}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      this.copySuccess = true;
+      window.setTimeout(() => {
+        this.copySuccess = false;
+      }, 1500);
+    } catch {
+      // Fallback for older browsers / denied permission
+      const textarea = document.createElement('textarea');
+      textarea.value = url;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        document.execCommand('copy');
+        this.copySuccess = true;
+        window.setTimeout(() => {
+          this.copySuccess = false;
+        }, 1500);
+      } catch {
+        // silently ignore
+      }
+      document.body.removeChild(textarea);
     }
   }
 
@@ -350,6 +476,19 @@ export class ProfileComponent implements OnInit {
     this.profilePicturePreview = null;
     this.updateError = null;
     this.updateSuccess = false;
+    this.profileUpdateError = null;
+    this.profileUpdateSuccess = false;
+    this.editProfileFormSignal.set({
+      bio: this.user?.bio ?? '',
+      location: this.user?.location ?? '',
+      favoriteGenre: this.user?.favoriteGenre ?? '',
+      githubUrl: this.user?.githubUrl ?? '',
+      osuUrl: this.user?.osuUrl ?? '',
+      robloxUrl: this.user?.robloxUrl ?? '',
+      discordUrl: this.user?.discordUrl ?? '',
+      youtubeUrl: this.user?.youtubeUrl ?? '',
+      twitchUrl: this.user?.twitchUrl ?? ''
+    });
   }
 
   closeEditModal(): void {
@@ -438,6 +577,52 @@ export class ProfileComponent implements OnInit {
           });
         });
     }
+
+  async saveProfileChanges(): Promise<void> {
+    if (!this.user) return;
+
+    this.isSavingProfile = true;
+    this.profileUpdateError = null;
+    this.profileUpdateSuccess = false;
+    this.updateError = null;
+    this.updateSuccess = false;
+
+    try {
+      if (this.selectedProfilePicture) {
+        const base64 = await this.fileToBase64(this.selectedProfilePicture);
+        await firstValueFrom(this.authService.updateProfilePicture(this.user.id, base64));
+      }
+
+      const form = this.editProfileForm;
+      const result = await firstValueFrom(this.authService.updateProfile({
+        bio: form.bio || null,
+        location: form.location || null,
+        favoriteGenre: form.favoriteGenre || null,
+        githubUrl: form.githubUrl || null,
+        osuUrl: form.osuUrl || null,
+        robloxUrl: form.robloxUrl || null,
+        discordUrl: form.discordUrl || null,
+        youtubeUrl: form.youtubeUrl || null,
+        twitchUrl: form.twitchUrl || null
+      }));
+
+      this.ngZone.run(() => {
+        this.isSavingProfile = false;
+        if (result.success && result.user) {
+          this.user = result.user;
+          this.profileUpdateSuccess = true;
+          this.closeEditModal();
+        } else {
+          this.profileUpdateError = result.error || 'Failed to update profile';
+        }
+      });
+    } catch (err: any) {
+      this.ngZone.run(() => {
+        this.isSavingProfile = false;
+        this.profileUpdateError = err.message || 'Failed to update profile';
+      });
+    }
+  }
 
   private fileToBase64(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
@@ -536,21 +721,6 @@ export class ProfileComponent implements OnInit {
     });
   }
 
-  private loadUnreadCount(userId: number): void {
-    this.messageService.getUnreadCount(userId).subscribe({
-      next: response => {
-        this.ngZone.run(() => {
-          this.unreadMessageCount = response.success ? response.count : 0;
-        });
-      },
-      error: () => {
-        this.ngZone.run(() => {
-          this.unreadMessageCount = 0;
-        });
-      }
-    });
-  }
-
   private loadCreations(userId: number): void {
     this.creationsLoading = true;
     this.creationsError = null;
@@ -635,7 +805,7 @@ export class ProfileComponent implements OnInit {
   loadAdminUsers(): void {
     this.adminLoading = true;
     this.adminError = null;
-    this.authService.getAllUsers().subscribe({
+    this.authService.getAllUsers(this.adminSearchQuery).subscribe({
       next: response => {
         this.ngZone.run(() => {
           this.adminLoading = false;

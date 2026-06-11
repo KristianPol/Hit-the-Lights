@@ -35,6 +35,35 @@ export interface GetUserResponse {
   playtimeSeconds?: number;
   gamesPlayed?: number;
   profilePictureUrl?: string;
+  role?: string;
+  bio?: string | null;
+  location?: string | null;
+  favoriteGenre?: string | null;
+  githubUrl?: string | null;
+  osuUrl?: string | null;
+  robloxUrl?: string | null;
+  discordUrl?: string | null;
+  youtubeUrl?: string | null;
+  twitchUrl?: string | null;
+}
+
+export interface UpdateProfileRequest {
+  userId: number;
+  bio?: string | null;
+  location?: string | null;
+  favoriteGenre?: string | null;
+  githubUrl?: string | null;
+  osuUrl?: string | null;
+  robloxUrl?: string | null;
+  discordUrl?: string | null;
+  youtubeUrl?: string | null;
+  twitchUrl?: string | null;
+}
+
+export interface UpdateProfileResponse {
+  success: boolean;
+  user?: GetUserResponse;
+  error?: string;
 }
 
 export interface UserAchievementState {
@@ -164,6 +193,69 @@ export class UserService {
     }
   }
 
+  public async updateProfile(request: UpdateProfileRequest): Promise<UpdateProfileResponse> {
+    try {
+      if (!request.userId || request.userId <= 0) {
+        return { success: false, error: 'Invalid user ID' };
+      }
+
+      const user = await this.unit.prepare<{ id: number }, { userId: number }>(
+        'SELECT id FROM User WHERE id = $userId',
+        { userId: request.userId }
+      ).get();
+      if (!user) {
+        return { success: false, error: 'User not found' };
+      }
+
+      const updates: string[] = [];
+      const params: Record<string, unknown> = { userId: request.userId };
+
+      const setField = (key: string, value: unknown) => {
+        if (value === undefined) return;
+        updates.push(`${key} = $${key}`);
+        params[key] = value === null || (typeof value === 'string' && value.trim() === '') ? null : value;
+      };
+
+      setField('bio', request.bio);
+      setField('location', request.location);
+      setField('favoriteGenre', request.favoriteGenre);
+      setField('githubUrl', request.githubUrl);
+      setField('osuUrl', request.osuUrl);
+      setField('robloxUrl', request.robloxUrl);
+      setField('discordUrl', request.discordUrl);
+      setField('youtubeUrl', request.youtubeUrl);
+      setField('twitchUrl', request.twitchUrl);
+
+      // Validate lengths
+      if (typeof params.bio === 'string' && params.bio.length > 250) {
+        return { success: false, error: 'Bio must be at most 250 characters' };
+      }
+      if (typeof params.location === 'string' && params.location.length > 60) {
+        return { success: false, error: 'Location must be at most 60 characters' };
+      }
+      if (typeof params.favoriteGenre === 'string' && params.favoriteGenre.length > 40) {
+        return { success: false, error: 'Favorite genre must be at most 40 characters' };
+      }
+
+      if (updates.length === 0) {
+        const current = await this.getUserById(request.userId);
+        return { success: true, user: current };
+      }
+
+      const stmt = this.unit.prepare<{ changes: number }, Record<string, unknown>>(
+        `UPDATE User SET ${updates.join(', ')} WHERE id = $userId`,
+        params
+      );
+      await stmt.run();
+
+      const updated = await this.getUserById(request.userId);
+      return { success: true, user: updated };
+    } catch (error: any) {
+      console.error('Error in updateProfile:', error);
+      return { success: false, error: error.message || 'Failed to update profile' };
+    }
+  }
+
   /**
    * Gets a user's profile picture as buffer
    * @param userId The user ID
@@ -188,10 +280,30 @@ export class UserService {
    */
   public async getUserById(userId: number): Promise<GetUserResponse | undefined> {
     const stmt = this.unit.prepare<
-      { id: number; username: string; joinDate: string; profilePicture: Buffer | null; profilePictureUrl: string | null; playtime_seconds?: number; runs_count?: number },
+      {
+        id: number;
+        username: string;
+        joinDate: string;
+        profilePicture: Buffer | null;
+        profilePictureUrl: string | null;
+        role?: string;
+        playtime_seconds?: number;
+        runs_count?: number;
+        bio?: string | null;
+        location?: string | null;
+        favoriteGenre?: string | null;
+        githubUrl?: string | null;
+        osuUrl?: string | null;
+        robloxUrl?: string | null;
+        discordUrl?: string | null;
+        youtubeUrl?: string | null;
+        twitchUrl?: string | null;
+      },
       { userId: number }
     >(
-      'SELECT id, username, joinDate, profilePicture, profilePictureUrl, playtime_seconds, runs_count FROM User WHERE id = $userId',
+      `SELECT id, username, joinDate, role, profilePicture, profilePictureUrl, playtime_seconds, runs_count,
+        bio, location, favoriteGenre, githubUrl, osuUrl, robloxUrl, discordUrl, youtubeUrl, twitchUrl
+       FROM User WHERE id = $userId`,
       { userId }
     );
     const result = await stmt.get();
@@ -206,11 +318,21 @@ export class UserService {
       joinDate: result.joinDate,
       playtimeSeconds: typeof result.playtime_seconds === 'number' ? result.playtime_seconds : 0,
       gamesPlayed: typeof result.runs_count === 'number' ? result.runs_count : 0,
+      role: result.role,
       profilePictureUrl: result.profilePictureUrl
         ? result.profilePictureUrl
         : result.profilePicture
           ? `/api/auth/profile-picture/${result.id}?t=${Date.now()}`
-          : undefined
+          : undefined,
+      bio: result.bio,
+      location: result.location,
+      favoriteGenre: result.favoriteGenre,
+      githubUrl: result.githubUrl,
+      osuUrl: result.osuUrl,
+      robloxUrl: result.robloxUrl,
+      discordUrl: result.discordUrl,
+      youtubeUrl: result.youtubeUrl,
+      twitchUrl: result.twitchUrl
     };
   }
 

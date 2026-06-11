@@ -139,6 +139,40 @@ authRouter.post('/profile-picture', authMiddleware, async (req: Request, res: Re
   }
 });
 
+authRouter.patch('/profile', authMiddleware, async (req: Request, res: Response) => {
+  const unit = new Unit(false);
+  try {
+    const userId = req.authenticatedUserId!;
+    const userService = new (require('../services/UserService').UserService)(unit);
+
+    const result = await userService.updateProfile({
+      userId,
+      bio: req.body?.bio,
+      location: req.body?.location,
+      favoriteGenre: req.body?.favoriteGenre,
+      githubUrl: req.body?.githubUrl,
+      osuUrl: req.body?.osuUrl,
+      robloxUrl: req.body?.robloxUrl,
+      discordUrl: req.body?.discordUrl,
+      youtubeUrl: req.body?.youtubeUrl,
+      twitchUrl: req.body?.twitchUrl
+    });
+    await unit.complete(true);
+
+    if (!result.success) {
+      const status = result.error === 'User not found' ? 404 : 400;
+      res.status(status).json(result);
+      return;
+    }
+
+    res.status(200).json(result);
+  } catch (err: any) {
+    await unit.complete(false);
+    console.error('PATCH profile error', err);
+    res.status(500).json({ success: false, error: err.message || 'Internal error' });
+  }
+});
+
 // Serve stored profile picture binary for a user
 authRouter.get('/profile-picture/:userId', async (req: Request, res: Response) => {
   const unit = new Unit(true);
@@ -487,10 +521,21 @@ authRouter.get('/user/:userId/analytics', authMiddleware, async (req: Request, r
 authRouter.get('/users', authMiddleware, adminMiddleware, async (req: Request, res: Response) => {
   const unit = new Unit(true);
   try {
+    const search = typeof req.query['search'] === 'string' ? req.query['search'].trim() : '';
+    const conditions: string[] = [];
+    const params: Record<string, unknown> = {};
+    if (search) {
+      conditions.push('LOWER(username) LIKE $search');
+      params.search = `%${search.toLowerCase()}%`;
+    }
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
     const rows = await unit.prepare<
       { id: number; username: string; joinDate: string; role: string; is_banned: number },
-      Record<string, never>
-    >('SELECT id, username, joinDate, role, is_banned FROM "User" ORDER BY id ASC', {}).all();
+      Record<string, unknown>
+    >(
+      `SELECT id, username, joinDate, role, is_banned FROM "User" ${whereClause} ORDER BY id ASC`,
+      params
+    ).all();
     await unit.complete();
     res.status(200).json({
       success: true,

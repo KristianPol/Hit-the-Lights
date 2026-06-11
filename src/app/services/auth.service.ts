@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { signal, computed } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { Observable, catchError, throwError, map } from 'rxjs';
@@ -23,6 +23,27 @@ export interface User {
   gamesPlayed?: number;
   role?: string;
   isBanned?: boolean;
+  bio?: string | null;
+  location?: string | null;
+  favoriteGenre?: string | null;
+  githubUrl?: string | null;
+  osuUrl?: string | null;
+  robloxUrl?: string | null;
+  discordUrl?: string | null;
+  youtubeUrl?: string | null;
+  twitchUrl?: string | null;
+}
+
+export interface UpdateProfileRequest {
+  bio?: string | null;
+  location?: string | null;
+  favoriteGenre?: string | null;
+  githubUrl?: string | null;
+  osuUrl?: string | null;
+  robloxUrl?: string | null;
+  discordUrl?: string | null;
+  youtubeUrl?: string | null;
+  twitchUrl?: string | null;
 }
 
 export interface UpdateProfilePictureResponse {
@@ -176,6 +197,28 @@ export class AuthService {
     );
   }
 
+  updateProfile(request: UpdateProfileRequest): Observable<{ success: boolean; user?: User; error?: string }> {
+    return this.http.patch<{ success: boolean; user?: User; error?: string }>(
+      `${this.apiUrl}/profile`,
+      request
+    ).pipe(
+      map(response => {
+        if (response.success && response.user) {
+          const user = this.normalizeUser(response.user);
+          const currentUser = this.currentUser;
+          if (currentUser && currentUser.id === user.id) {
+            const merged: User = { ...(currentUser ?? {}), ...user };
+            localStorage.setItem('currentUser', JSON.stringify(merged));
+            this.currentUserSignal.set(merged);
+          }
+          return { success: true, user };
+        }
+        return response;
+      }),
+      catchError(error => throwError(() => new Error(error.error?.error || 'Failed to update profile')))
+    );
+  }
+
   /**
    * Refresh user data from server
    */
@@ -270,8 +313,12 @@ export class AuthService {
 
   // ─── Admin Endpoints ──────────────────────────────────────
 
-  getAllUsers(): Observable<{ success: boolean; users?: Array<{ id: number; username: string; joinDate: string; role: string; isBanned: boolean }>; error?: string }> {
-    return this.http.get<any>(`${this.apiUrl}/users`).pipe(
+  getAllUsers(search?: string): Observable<{ success: boolean; users?: Array<{ id: number; username: string; joinDate: string; role: string; isBanned: boolean }>; error?: string }> {
+    let params = new HttpParams();
+    if (search) {
+      params = params.set('search', search);
+    }
+    return this.http.get<any>(`${this.apiUrl}/users`, { params }).pipe(
       catchError(error => throwError(() => new Error(error.error?.error || 'Failed to fetch users')))
     );
   }

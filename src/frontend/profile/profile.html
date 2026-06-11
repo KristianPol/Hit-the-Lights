@@ -1,5 +1,4 @@
 <div class="profile-container">
-  <!-- When u can't load a website in  0.5 sec -->
   @if (loading) {
     <div class="loading-state">
       <div class="spinner"></div>
@@ -7,7 +6,6 @@
     </div>
   }
 
-  <!-- Error State -->
   @if (error && !loading) {
     <div class="error-state">
       <div class="error-icon"><i class="fas fa-exclamation-circle"></i></div>
@@ -16,19 +14,36 @@
     </div>
   }
 
-  <!-- How the profile should look -->
   @if (!loading && !error) {
     <div class="profile-header">
-      <button class="btn btn-secondary back-to-menu" (click)="goToMenu()">Back to Menu</button>
+      <button class="btn btn-secondary back-to-menu" (click)="goToMenu()">
+        <i class="fas fa-arrow-left"></i> Back
+      </button>
       <h1>{{ isOwnProfile ? 'Profile' : 'User Profile' }}</h1>
-      @if (isOwnProfile) {
-        <button class="btn btn-secondary achievements-shortcut" routerLink="/achievements">Achievements</button>
-      }
+      <div class="header-actions">
+        <button class="btn btn-icon" (click)="copyProfileLink()" title="Copy profile link">
+          <i class="fas" [class.fa-link]="!copySuccess" [class.fa-check]="copySuccess"></i>
+        </button>
+        @if (isOwnProfile) {
+          <button class="btn btn-icon" (click)="editProfile()" title="Edit Profile">
+            <i class="fas fa-pen"></i>
+          </button>
+          <button class="btn btn-icon btn-logout" (click)="logout()" title="Logout">
+            <i class="fas fa-sign-out-alt"></i>
+          </button>
+          <a class="btn btn-icon" routerLink="/achievements" title="Achievements">
+            <i class="fas fa-trophy"></i>
+          </a>
+        } @else {
+          <button class="btn btn-secondary" (click)="goToMessages()">
+            <i class="fas fa-envelope"></i> Message
+          </button>
+        }
+      </div>
     </div>
 
     @if (user) {
       <div class="profile-content">
-        <!-- Avatar stuff -->
         <div class="avatar-section">
           <div class="avatar-wrapper">
             <div class="avatar-glow"></div>
@@ -49,9 +64,44 @@
           </div>
           <h2 class="username">{{ user.username }}</h2>
           <span class="user-id">ID: {{ user.id }}</span>
+          <span class="rank-badge" [style.--rank-color]="playerRank().color">
+            <i class="fas {{ playerRank().icon }}"></i> {{ playerRank().name }}
+          </span>
+          <p class="profile-bio">{{ user.bio || 'Rhythm game player • chasing high scores ⚡' }}</p>
+
+          @if (user.location || user.favoriteGenre) {
+            <div class="profile-tags">
+              @if (user.location) {
+                <span class="profile-tag"><i class="fas fa-map-marker-alt"></i> {{ user.location }}</span>
+              }
+              @if (user.favoriteGenre) {
+                <span class="profile-tag"><i class="fas fa-music"></i> {{ user.favoriteGenre }}</span>
+              }
+            </div>
+          }
+
+          <div class="social-links">
+            @if (user.discordUrl) {
+              <a class="social-link" [href]="user.discordUrl" target="_blank" rel="noopener" title="Discord"><i class="fab fa-discord"></i></a>
+            }
+            @if (user.youtubeUrl) {
+              <a class="social-link" [href]="user.youtubeUrl" target="_blank" rel="noopener" title="YouTube"><i class="fab fa-youtube"></i></a>
+            }
+            @if (user.twitchUrl) {
+              <a class="social-link" [href]="user.twitchUrl" target="_blank" rel="noopener" title="Twitch"><i class="fab fa-twitch"></i></a>
+            }
+            @if (user.githubUrl) {
+              <a class="social-link" [href]="user.githubUrl" target="_blank" rel="noopener" title="GitHub"><i class="fab fa-github"></i></a>
+            }
+            @if (user.osuUrl) {
+              <a class="social-link" [href]="user.osuUrl" target="_blank" rel="noopener" title="osu!"><i class="fas fa-circle"></i></a>
+            }
+            @if (user.robloxUrl) {
+              <a class="social-link" [href]="user.robloxUrl" target="_blank" rel="noopener" title="Roblox"><i class="fas fa-gamepad"></i></a>
+            }
+          </div>
         </div>
 
-        <!-- Tabs -->
         <div class="profile-tabs">
           <button
             class="tab-btn"
@@ -79,93 +129,80 @@
         </div>
 
         @if (activeTab === 'about') {
-          <div class="info-grid">
-            <div class="info-item">
-              <div class="info-icon"><i class="fas fa-user"></i></div>
-              <span class="info-label">Username</span>
-              <span class="info-value">{{ user.username }}</span>
+          <div class="about-tab">
+            <div class="stats-section">
+              <div class="stats-grid">
+                <div class="stat-box">
+                  <div class="stat-icon"><i class="fas fa-music"></i></div>
+                  <span class="stat-value">{{ uploadedSongCount }}</span>
+                  <span class="stat-label">Tracks</span>
+                </div>
+                <div class="stat-box">
+                  <div class="stat-icon"><i class="fas fa-hourglass-end"></i></div>
+                  <span class="stat-value">{{ formattedPlaytime }}</span>
+                  <span class="stat-label">Playtime</span>
+                </div>
+                <div class="stat-box">
+                  <div class="stat-icon"><i class="fas fa-gamepad"></i></div>
+                  <span class="stat-value">{{ totalGamesPlayed }}</span>
+                  <span class="stat-label">Games</span>
+                </div>
+                <div class="stat-box">
+                  <div class="stat-icon"><i class="fas fa-layer-group"></i></div>
+                  <span class="stat-value">{{ chartsMade().length }}</span>
+                  <span class="stat-label">Charts</span>
+                </div>
+              </div>
             </div>
-            <div class="info-item">
-              <div class="info-icon"><i class="fas fa-id-card"></i></div>
-              <span class="info-label">User ID</span>
-              <span class="info-value">#{{ user.id }}</span>
-            </div>
-            <div class="info-item">
-              <div class="info-icon"><i class="fas fa-calendar"></i></div>
-              <span class="info-label">Member Since</span>
-              <span class="info-value">{{ formattedJoinDate }}</span>
-            </div>
-            <div class="info-item">
-              <div class="info-icon"><i class="fas fa-envelope"></i></div>
-              <span class="info-label">Unread Messages</span>
-              <span class="info-value">{{ unreadMessageCount }}</span>
-            </div>
-          </div>
 
-          <!-- User's stats -->
-          <div class="stats-section">
-            <div class="stats-header">Activity Stats</div>
-            <!-- Activity Stats -->
-            <div class="stats-grid">
-              <div class="stat-box">
-                <div class="stat-icon"><i class="fas fa-music"></i></div>
-                <span class="stat-value">{{ uploadedSongCount }}</span>
-                <span class="stat-label">Uploaded Tracks</span>
+            <div class="profile-extras">
+              <div class="extra-card level-card">
+                <div class="extra-header"><i class="fas fa-star"></i> Level {{ playerLevel() }}</div>
+                <div class="xp-bar">
+                  <div class="xp-fill" [style.width.%]="levelProgress()"></div>
+                </div>
+                <div class="xp-label">{{ totalGamesPlayed }} / {{ gamesToNextLevel() }} games to next level</div>
               </div>
-              <div class="stat-box">
-                <div class="stat-icon"><i class="fas fa-hourglass-end"></i></div>
-                <span class="stat-value">{{ formattedPlaytime }}</span>
-                <span class="stat-label">Playtime</span>
-              </div>
-              <div class="stat-box">
-                <div class="stat-icon"><i class="fas fa-gamepad"></i></div>
-                <span class="stat-value">{{ totalGamesPlayed }}</span>
-                <span class="stat-label">Games Played</span>
-              </div>
-            </div>
-          </div>
 
-          <!-- Pinned Achievements -->
-          @if (pinnedAchievements.length > 0) {
-            <div class="pinned-achievements-section">
-              <div class="pinned-header">
-                <i class="fas fa-thumbtack"></i>
-                <span>Pinned Achievements</span>
-              </div>
-              <div class="pinned-list">
-                @for (a of pinnedAchievements; track a.id) {
-                  <div class="pinned-card">
-                    <div class="pinned-cover" [ngClass]="a.category.toLowerCase()">
-                      <span>{{ a.category.charAt(0) }}</span>
-                    </div>
-                    <div class="pinned-info">
-                      <div class="pinned-title">{{ a.name }}</div>
-                      <div class="pinned-desc">{{ a.description }}</div>
-                      <div class="pinned-category">{{ a.category }}</div>
-                    </div>
-                  </div>
+              <div class="extra-card activity-card">
+                <div class="extra-header"><i class="fas fa-clock-rotate-left"></i> Recent Activity</div>
+                @if (recentActivity().length > 0) {
+                  <ul class="activity-list">
+                    @for (item of recentActivity(); track $index) {
+                      <li><i class="fas {{ item.icon }}"></i> {{ item.text }}</li>
+                    }
+                  </ul>
+                } @else {
+                  <p class="empty-activity">No recent activity yet.</p>
                 }
               </div>
             </div>
-          }
 
-          <!-- Action buttons -->
-          <div class="action-buttons">
-            @if (isOwnProfile) {
-              <button class="btn btn-primary" (click)="editProfile()">
-                Edit Profile
-              </button>
-              <button class="btn btn-secondary" (click)="logout()">
-                Logout
-              </button>
-            } @else {
-              <button class="btn btn-primary" (click)="goToMessages()">
-                Message
-              </button>
-              <button class="btn btn-secondary" (click)="goToMenu()">
-                Back to Menu
-              </button>
+            @if (pinnedAchievements.length > 0) {
+              <div class="pinned-achievements-section">
+                <div class="pinned-header">
+                  <i class="fas fa-thumbtack"></i>
+                  <span>Pinned Achievements</span>
+                </div>
+                <div class="pinned-list">
+                  @for (a of pinnedAchievements; track a.id) {
+                    <div class="pinned-card">
+                      <div class="pinned-cover" [ngClass]="a.category.toLowerCase()">
+                        <span>{{ a.category.charAt(0) }}</span>
+                      </div>
+                      <div class="pinned-info">
+                        <div class="pinned-title">{{ a.name }}</div>
+                        <div class="pinned-desc">{{ a.description }}</div>
+                      </div>
+                    </div>
+                  }
+                </div>
+              </div>
             }
+
+            <div class="join-date">
+              Member since {{ formattedJoinDate }}
+            </div>
           </div>
         }
 
@@ -186,7 +223,6 @@
             }
 
             @if (!creationsLoading && !creationsError) {
-              <!-- Uploaded Songs -->
               <div class="creations-section">
                 <div class="creations-header">
                   <i class="fas fa-music"></i>
@@ -222,7 +258,6 @@
                 }
               </div>
 
-              <!-- Charts Made -->
               <div class="creations-section">
                 <div class="creations-header">
                   <i class="fas fa-chart-bar"></i>
@@ -262,6 +297,15 @@
               <span>Admin Panel</span>
             </div>
 
+            <div class="admin-search">
+              <i class="fas fa-search"></i>
+              <input
+                type="text"
+                placeholder="Search users by name or ID..."
+                [(ngModel)]="adminSearchQuery"
+              />
+            </div>
+
             @if (adminLoading) {
               <div class="loading-state"><div class="spinner"></div><p>Loading users...</p></div>
             }
@@ -272,7 +316,7 @@
 
             @if (!adminLoading && !adminError) {
               <div class="admin-users-list">
-                @for (u of adminUsers; track u.id) {
+                @for (u of filteredAdminUsers(); track u.id) {
                   <div class="admin-user-card" [class.banned]="u.isBanned">
                     <div class="admin-user-info">
                       <span class="admin-user-name">{{ u.username }}</span>
@@ -314,7 +358,6 @@
         }
       </div>
     } @else {
-      <!-- No User Data -->
       <div class="profile-content error-state">
         <div class="error-icon"><i class="fas fa-user-slash"></i></div>
         <p>No user data found</p>
@@ -334,7 +377,6 @@
       </div>
 
       <div class="modal-body">
-        <!-- Current Profile Picture -->
         <div class="current-picture-section">
           <label>Current Profile Picture</label>
           <div class="current-avatar-wrapper">
@@ -360,7 +402,6 @@
           </div>
         </div>
 
-        <!-- Profile Picture Upload -->
         <div class="form-group">
           <label>Change Profile Picture</label>
           <input
@@ -378,7 +419,117 @@
 
         <hr class="modal-divider">
 
-        <!-- Reset Password -->
+        <div class="form-group">
+          <label for="editBio">Bio</label>
+          <textarea
+            id="editBio"
+            class="form-input"
+            [ngModel]="editProfileForm.bio"
+            (ngModelChange)="updateEditProfileForm({ bio: $event })"
+            placeholder="Tell others about yourself..."
+            rows="2"
+            maxlength="250"
+          ></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="editLocation">Location</label>
+            <input
+              id="editLocation"
+              type="text"
+              class="form-input"
+              [ngModel]="editProfileForm.location"
+              (ngModelChange)="updateEditProfileForm({ location: $event })"
+              placeholder="e.g. Vienna"
+              maxlength="60"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="editFavoriteGenre">Favorite Genre</label>
+            <input
+              id="editFavoriteGenre"
+              type="text"
+              class="form-input"
+              [ngModel]="editProfileForm.favoriteGenre"
+              (ngModelChange)="updateEditProfileForm({ favoriteGenre: $event })"
+              placeholder="e.g. Drum & Bass"
+              maxlength="40"
+            />
+          </div>
+        </div>
+
+        <hr class="modal-divider">
+
+        <div class="form-group">
+          <label>Social Links</label>
+          <div class="social-inputs">
+            <div class="social-input-row">
+              <i class="fab fa-github"></i>
+              <input
+                type="url"
+                class="form-input"
+                [ngModel]="editProfileForm.githubUrl"
+                (ngModelChange)="updateEditProfileForm({ githubUrl: $event })"
+                placeholder="GitHub URL"
+              />
+            </div>
+            <div class="social-input-row">
+              <i class="fas fa-circle"></i>
+              <input
+                type="url"
+                class="form-input"
+                [ngModel]="editProfileForm.osuUrl"
+                (ngModelChange)="updateEditProfileForm({ osuUrl: $event })"
+                placeholder="osu! profile URL"
+              />
+            </div>
+            <div class="social-input-row">
+              <i class="fas fa-gamepad"></i>
+              <input
+                type="url"
+                class="form-input"
+                [ngModel]="editProfileForm.robloxUrl"
+                (ngModelChange)="updateEditProfileForm({ robloxUrl: $event })"
+                placeholder="Roblox profile URL"
+              />
+            </div>
+            <div class="social-input-row">
+              <i class="fab fa-discord"></i>
+              <input
+                type="url"
+                class="form-input"
+                [ngModel]="editProfileForm.discordUrl"
+                (ngModelChange)="updateEditProfileForm({ discordUrl: $event })"
+                placeholder="Discord invite or profile URL"
+              />
+            </div>
+            <div class="social-input-row">
+              <i class="fab fa-youtube"></i>
+              <input
+                type="url"
+                class="form-input"
+                [ngModel]="editProfileForm.youtubeUrl"
+                (ngModelChange)="updateEditProfileForm({ youtubeUrl: $event })"
+                placeholder="YouTube channel URL"
+              />
+            </div>
+            <div class="social-input-row">
+              <i class="fab fa-twitch"></i>
+              <input
+                type="url"
+                class="form-input"
+                [ngModel]="editProfileForm.twitchUrl"
+                (ngModelChange)="updateEditProfileForm({ twitchUrl: $event })"
+                placeholder="Twitch channel URL"
+              />
+            </div>
+          </div>
+        </div>
+
+        <hr class="modal-divider">
+
         <div class="form-group">
           <label>Password</label>
           <button class="file-btn" (click)="togglePasswordReset()">
@@ -441,17 +592,27 @@
           </div>
         }
 
-         <!-- Error Message -->
          @if (updateError) {
            <div class="error-message">
              {{ updateError }}
            </div>
          }
 
-         <!-- Success Message -->
          @if (updateSuccess) {
            <div class="success-message">
              Profile picture updated successfully!
+           </div>
+         }
+
+         @if (profileUpdateError) {
+           <div class="error-message">
+             {{ profileUpdateError }}
+           </div>
+         }
+
+         @if (profileUpdateSuccess) {
+           <div class="success-message">
+             Profile updated successfully!
            </div>
          }
       </div>
@@ -460,11 +621,11 @@
         <button class="btn-cancel" (click)="closeEditModal()">Cancel</button>
         <button
           class="btn-submit"
-          [disabled]="!selectedProfilePicture || updatingProfilePicture"
-          (click)="updateProfilePicture()"
+          [disabled]="isSavingProfile"
+          (click)="saveProfileChanges()"
         >
-          @if (updatingProfilePicture) {
-            <span>Updating...</span>
+          @if (isSavingProfile) {
+            <span>Saving...</span>
           } @else {
             <span>Save Changes</span>
           }

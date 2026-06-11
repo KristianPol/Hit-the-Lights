@@ -62,6 +62,15 @@ const COLUMN_MAP: Record<string, string> = {
   likecount: 'likeCount',
   islikedbyuser: 'isLikedByUser',
   ownerusername: 'ownerUsername',
+  bio: 'bio',
+  location: 'location',
+  favoritegenre: 'favoriteGenre',
+  githuburl: 'githubUrl',
+  osuurl: 'osuUrl',
+  robloxurl: 'robloxUrl',
+  discordurl: 'discordUrl',
+  youtubeurl: 'youtubeUrl',
+  twitchurl: 'twitchUrl',
 };
 
 function normalizeRow(row: Record<string, unknown>): Record<string, unknown> {
@@ -337,6 +346,26 @@ export class Unit {
       await getSql().unsafe(`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS last_song_upload_at TIMESTAMP`);
     } catch (e: any) {
       // ignore
+    }
+
+    // Profile details
+    const profileColumns = [
+      'bio TEXT',
+      'location TEXT',
+      'favoriteGenre TEXT',
+      'githubUrl TEXT',
+      'osuUrl TEXT',
+      'robloxUrl TEXT',
+      'discordUrl TEXT',
+      'youtubeUrl TEXT',
+      'twitchUrl TEXT'
+    ];
+    for (const columnDef of profileColumns) {
+      try {
+        await getSql().unsafe(`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS ${columnDef}`);
+      } catch (e: any) {
+        // ignore
+      }
     }
 
     await getSql().unsafe(`
