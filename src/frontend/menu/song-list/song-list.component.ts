@@ -79,12 +79,10 @@ export class SongListComponent implements OnInit, OnDestroy {
   loadSongsFromDatabase(): void {
     this.isLoading.set(true);
     this.loadingError.set(null);
-    const viewerId = this.currentUser()?.id;
     const options = {
       search: this.searchQuery().trim() || undefined,
       genre: this.selectedGenre() || undefined,
-      sort: this.sortOption() || undefined,
-      ownerId: viewerId
+      sort: this.sortOption() || undefined
     };
 
     this.songService.getAllSongs(options).subscribe({

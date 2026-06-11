@@ -228,8 +228,8 @@ export class Gameplay implements AfterViewInit, OnDestroy {
   readonly hitAreaRadius = 40;
   readonly hitWindow = 130;
   readonly okayWindow = 80;
-  readonly perfectWindow = 25;
-  readonly shinningWindow = 50;
+  readonly perfectWindow = 40;
+  readonly shinningWindow = 60;
   readonly earlyBuffer = 300; // ms before note where presses are ignored (adjusted for note/hitzone size)
 
   constructor(
