@@ -157,6 +157,25 @@
     text-transform: uppercase;
   }
 
+  .detail-uploader {
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 0.65rem;
+    font-weight: 500;
+    margin: 0;
+    letter-spacing: 0.05em;
+
+    a {
+      color: rgba(255, 255, 255, 0.7);
+      text-decoration: none;
+      transition: color 0.2s ease;
+
+      &:hover {
+        color: $yellow-primary;
+        text-decoration: underline;
+      }
+    }
+  }
+
   .detail-stats-bar {
     display: flex;
     flex-wrap: wrap;

@@ -32,6 +32,14 @@
         <div class="detail-header-center">
           <h1 class="detail-title">{{ song()!.name }}</h1>
           <p class="detail-artist">{{ song()!.author }}</p>
+          <p class="detail-uploader">
+            Uploaded by
+            @if (song()!.ownerId && song()!.ownerUsername) {
+              <a [routerLink]="['/profile', song()!.ownerId]">{{ song()!.ownerUsername }}</a>
+            } @else {
+              <span>Unknown</span>
+            }
+          </p>
         </div>
 
         <div class="detail-header-right">

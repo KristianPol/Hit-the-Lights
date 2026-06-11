@@ -61,6 +61,7 @@ const COLUMN_MAP: Record<string, string> = {
   notecount: 'noteCount',
   likecount: 'likeCount',
   islikedbyuser: 'isLikedByUser',
+  ownerusername: 'ownerUsername',
 };
 
 function normalizeRow(row: Record<string, unknown>): Record<string, unknown> {

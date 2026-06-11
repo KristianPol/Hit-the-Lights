@@ -32,6 +32,7 @@ export interface SongRecord {
   songUrl: string;
   coverUrl: string;
   ownerId: number | null;
+  ownerUsername?: string | null;
   isPublic: number | boolean | string;
   genre?: string | null;
   play_count?: number;
@@ -46,6 +47,7 @@ export interface SongResponse {
   songUrl: string;
   coverUrl: string;
   ownerId: number | null;
+  ownerUsername?: string | null;
   isPublic: boolean;
   genre?: string | null;
   playCount: number;
@@ -383,9 +385,11 @@ export class SongService {
     const sql = `
       SELECT
         s.id, s.name, s.author, s.bpm, s.length, s.songUrl, s.coverUrl, s.ownerId, s.isPublic, s.genre, s.play_count,
+        u.username AS ownerusername,
         (SELECT COUNT(*) FROM SongLike WHERE song_id = s.id) as likeCount,
         EXISTS(SELECT 1 FROM SongLike WHERE song_id = s.id AND user_id = $viewerId) as isLikedByUser
       FROM Song s
+      LEFT JOIN User u ON u.id = s.ownerId
       ${whereClause}
       ORDER BY ${orderBy}
     `;
@@ -514,9 +518,11 @@ export class SongService {
     const stmt = this.unit.prepare<EnrichedSongRecord, { id: number; viewerId: number | null }>(
       `SELECT
         s.id, s.name, s.author, s.bpm, s.length, s.songUrl, s.coverUrl, s.ownerId, s.isPublic, s.genre, s.play_count,
+        u.username AS ownerusername,
         (SELECT COUNT(*) FROM SongLike WHERE song_id = s.id) as likeCount,
         EXISTS(SELECT 1 FROM SongLike WHERE song_id = s.id AND user_id = $viewerId) as isLikedByUser
       FROM Song s
+      LEFT JOIN User u ON u.id = s.ownerId
       WHERE s.id = $id`,
       { id: songId, viewerId: viewerId ?? null }
     );
@@ -1185,7 +1191,10 @@ export class SongService {
 
   private async getRawSongById(songId: number): Promise<SongRecord | undefined> {
     const stmt = this.unit.prepare<SongRecord, { id: number }>(
-      'SELECT id, name, author, bpm, length, songUrl, coverUrl, ownerId, isPublic, genre, play_count FROM Song WHERE id = $id',
+      `SELECT s.id, s.name, s.author, s.bpm, s.length, s.songUrl, s.coverUrl, s.ownerId, s.isPublic, s.genre, s.play_count, u.username AS ownerusername
+       FROM Song s
+       LEFT JOIN User u ON u.id = s.ownerId
+       WHERE s.id = $id`,
       { id: songId }
     );
 
@@ -1277,6 +1286,7 @@ export class SongService {
       songUrl: song.songUrl,
       coverUrl: song.coverUrl,
       ownerId: song.ownerId,
+      ownerUsername: song.ownerUsername ?? null,
       isPublic: this.isPublicSong(song.isPublic),
       genre: song.genre ?? null,
       playCount: song.play_count ?? 0,

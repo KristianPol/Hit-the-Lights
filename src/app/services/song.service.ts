@@ -12,6 +12,7 @@ export interface Song {
   songUrl: string;
   coverUrl: string;
   ownerId?: number | null;
+  ownerUsername?: string | null;
   isPublic?: boolean;
   genre?: string | null;
   playCount?: number;

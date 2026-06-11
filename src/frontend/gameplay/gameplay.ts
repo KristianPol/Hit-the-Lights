@@ -8,9 +8,6 @@ import { GameSettingsService, formatBindingLabel, formatBindingList, normalizeBi
 import { FriendshipService, FriendshipResult } from '../../app/services/friendship.service';
 import { MessageService } from '../../app/services/message.service';
 import { AchievementService } from '../../app/services/achievement.service';
-import {MatProgressBar} from '@angular/material/progress-bar';
-
-
 interface HitFeedback {
   lane: number;
   y: number;
@@ -64,7 +61,7 @@ interface ShatterShard {
 @Component({
   selector: 'app-gameplay',
   standalone: true,
-  imports: [CommonModule, MatProgressBar],
+  imports: [CommonModule],
   templateUrl: './gameplay.html',
   styleUrls: ['./gameplay.scss']
 })

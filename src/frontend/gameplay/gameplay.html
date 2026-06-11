@@ -1,9 +1,9 @@
 <div class="gameplay-page">
-  <mat-progress-bar
+  <progress
     class="song-progress-bar"
-    mode="determinate"
-    [value]="songProgressPercent()">
-  </mat-progress-bar>
+    [value]="songProgressPercent()"
+    max="100">
+  </progress>
   <span class="song-progress-time">{{ formatTime(currentSongTimeMs()) }}
     / {{ formatTime(totalSongDurationMs()) }}</span>
   <div class="gameplay-layout">
