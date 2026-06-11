@@ -38,8 +38,17 @@ console.log('📁 PROJECT_ROOT:', PROJECT_ROOT);
 console.log('📁 FRONTEND_DIST:', FRONTEND_DIST);
 
 // Ensure tables exist before accepting requests
-Unit.initTables().then(() => {
+Unit.initTables().then(async () => {
   console.log('✅ Database schema ensured');
+  // Seed Alexfly as founder admin if the user exists
+  try {
+    const sql = require('./unit').sql;
+    const db = sql();
+    await db.unsafe(`UPDATE "User" SET role = 'admin' WHERE username = 'Alexfly' AND (role IS NULL OR role = 'user')`);
+    console.log('👑 Founder admin seed checked');
+  } catch (seedErr: any) {
+    console.warn('⚠️ Founder admin seed skipped:', seedErr.message);
+  }
 }).catch((err) => {
   console.error('❌ Failed to ensure database schema:', err);
 });

@@ -4,7 +4,9 @@ import { RegistrationService } from '../services/RegistrationService';
 import { AuthenticationService } from '../services/AuthenticationService';
 import { Unit } from '../database/unit';
 import { JWTService } from '../utils/JWTService';
-import { authMiddleware } from '../middleware/authMiddleware';
+import { PasswordValidator } from '../utils/PasswordValidator';
+import { PasswordHasher } from '../utils/PasswordHasher';
+import { authMiddleware, adminMiddleware } from '../middleware/authMiddleware';
 
 export const authRouter = Router();
 
@@ -76,7 +78,7 @@ authRouter.post('/login', async (req: Request, res: Response) => {
     if (result.success) {
       const htlService = new HTLService(null as any);
       const userJson = htlService.userToJSON(result.user!);
-      const token = JWTService.sign(userJson.id, userJson.username);
+      const token = JWTService.sign(userJson.id, userJson.username, (result.user as any)?.role);
 
       res.status(200).json({
         success: true,
@@ -476,6 +478,197 @@ authRouter.get('/user/:userId/analytics', authMiddleware, async (req: Request, r
   } catch (err: any) {
     await unit.complete();
     console.error('GET analytics error', err);
+    res.status(500).json({ success: false, error: err.message || 'Internal error' });
+  }
+});
+
+// ─── Admin Endpoints ─────────────────────────────────────────
+
+authRouter.get('/users', authMiddleware, adminMiddleware, async (req: Request, res: Response) => {
+  const unit = new Unit(true);
+  try {
+    const rows = await unit.prepare<
+      { id: number; username: string; joinDate: string; role: string; is_banned: number },
+      Record<string, never>
+    >('SELECT id, username, joinDate, role, is_banned FROM "User" ORDER BY id ASC', {}).all();
+    await unit.complete();
+    res.status(200).json({
+      success: true,
+      users: rows.map(r => ({
+        id: r.id,
+        username: r.username,
+        joinDate: r.joinDate,
+        role: r.role || 'user',
+        isBanned: r.is_banned === 1
+      }))
+    });
+  } catch (err: any) {
+    await unit.complete();
+    res.status(500).json({ success: false, error: err.message || 'Internal error' });
+  }
+});
+
+authRouter.post('/grant-admin', authMiddleware, adminMiddleware, async (req: Request, res: Response) => {
+  const unit = new Unit(false);
+  try {
+    const { userId } = req.body;
+    const targetId = Number(userId);
+    if (!Number.isFinite(targetId) || targetId <= 0) {
+      await unit.complete(false);
+      res.status(400).json({ success: false, error: 'Invalid userId' });
+      return;
+    }
+
+    await unit.prepare<unknown, { userId: number }>(
+      'UPDATE "User" SET role = \'admin\' WHERE id = $userId',
+      { userId: targetId }
+    ).run();
+    await unit.complete(true);
+    res.status(200).json({ success: true, message: 'Admin rights granted' });
+  } catch (err: any) {
+    await unit.complete(false);
+    res.status(500).json({ success: false, error: err.message || 'Internal error' });
+  }
+});
+
+authRouter.post('/revoke-admin', authMiddleware, adminMiddleware, async (req: Request, res: Response) => {
+  const unit = new Unit(false);
+  try {
+    const { userId } = req.body;
+    const targetId = Number(userId);
+    if (!Number.isFinite(targetId) || targetId <= 0) {
+      await unit.complete(false);
+      res.status(400).json({ success: false, error: 'Invalid userId' });
+      return;
+    }
+
+    // Cannot revoke founder (id 2)
+    if (targetId === 2) {
+      await unit.complete(false);
+      res.status(403).json({ success: false, error: 'Cannot revoke founder admin rights' });
+      return;
+    }
+
+    await unit.prepare<unknown, { userId: number }>(
+      'UPDATE "User" SET role = \'user\' WHERE id = $userId',
+      { userId: targetId }
+    ).run();
+    await unit.complete(true);
+    res.status(200).json({ success: true, message: 'Admin rights revoked' });
+  } catch (err: any) {
+    await unit.complete(false);
+    res.status(500).json({ success: false, error: err.message || 'Internal error' });
+  }
+});
+
+authRouter.post('/ban', authMiddleware, adminMiddleware, async (req: Request, res: Response) => {
+  const unit = new Unit(false);
+  try {
+    const { userId } = req.body;
+    const targetId = Number(userId);
+    if (!Number.isFinite(targetId) || targetId <= 0) {
+      await unit.complete(false);
+      res.status(400).json({ success: false, error: 'Invalid userId' });
+      return;
+    }
+
+    // Cannot ban founder (id 2)
+    if (targetId === 2) {
+      await unit.complete(false);
+      res.status(403).json({ success: false, error: 'Cannot ban the founder' });
+      return;
+    }
+
+    await unit.prepare<unknown, { userId: number }>(
+      'UPDATE "User" SET is_banned = 1 WHERE id = $userId',
+      { userId: targetId }
+    ).run();
+    await unit.complete(true);
+    res.status(200).json({ success: true, message: 'User banned' });
+  } catch (err: any) {
+    await unit.complete(false);
+    res.status(500).json({ success: false, error: err.message || 'Internal error' });
+  }
+});
+
+authRouter.post('/unban', authMiddleware, adminMiddleware, async (req: Request, res: Response) => {
+  const unit = new Unit(false);
+  try {
+    const { userId } = req.body;
+    const targetId = Number(userId);
+    if (!Number.isFinite(targetId) || targetId <= 0) {
+      await unit.complete(false);
+      res.status(400).json({ success: false, error: 'Invalid userId' });
+      return;
+    }
+
+    await unit.prepare<unknown, { userId: number }>(
+      'UPDATE "User" SET is_banned = 0 WHERE id = $userId',
+      { userId: targetId }
+    ).run();
+    await unit.complete(true);
+    res.status(200).json({ success: true, message: 'User unbanned' });
+  } catch (err: any) {
+    await unit.complete(false);
+    res.status(500).json({ success: false, error: err.message || 'Internal error' });
+  }
+});
+
+authRouter.post('/reset-password', authMiddleware, async (req: Request, res: Response) => {
+  const unit = new Unit(false);
+  try {
+    const userId = req.authenticatedUserId!;
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      await unit.complete(false);
+      res.status(400).json({ success: false, error: 'Current password and new password are required' });
+      return;
+    }
+
+    // Validate new password
+    const validation = PasswordValidator.validate(newPassword);
+    if (!validation.valid) {
+      await unit.complete(false);
+      res.status(400).json({ success: false, error: validation.error });
+      return;
+    }
+
+    // Get current password hash
+    const userRow = await unit.prepare<{ password: string }, { userId: number }>(
+      'SELECT password FROM "User" WHERE id = $userId',
+      { userId }
+    ).get();
+
+    if (!userRow) {
+      await unit.complete(false);
+      res.status(404).json({ success: false, error: 'User not found' });
+      return;
+    }
+
+    // Verify current password
+    let currentValid = PasswordHasher.compare(currentPassword, userRow.password);
+    if (!currentValid && !PasswordHasher.isHashed(userRow.password) && userRow.password === currentPassword) {
+      currentValid = true;
+    }
+
+    if (!currentValid) {
+      await unit.complete(false);
+      res.status(403).json({ success: false, error: 'Current password is incorrect' });
+      return;
+    }
+
+    // Hash and update new password
+    const hashedNew = PasswordHasher.hash(newPassword);
+    await unit.prepare<unknown, { userId: number; password: string }>(
+      'UPDATE "User" SET password = $password WHERE id = $userId',
+      { userId, password: hashedNew }
+    ).run();
+
+    await unit.complete(true);
+    res.status(200).json({ success: true, message: 'Password updated successfully' });
+  } catch (err: any) {
+    await unit.complete(false);
     res.status(500).json({ success: false, error: err.message || 'Internal error' });
   }
 });

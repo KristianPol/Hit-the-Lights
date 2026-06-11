@@ -1178,3 +1178,133 @@
     padding-right: 1.5rem;
   }
 }
+
+// ─── Admin Panel ─────────────────────────────────────────────
+
+.admin-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.admin-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: $text-primary;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(var(--color-accent-rgb), 0.2);
+}
+
+.admin-users-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.admin-user-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background: rgba(var(--color-main-rgb), 0.5);
+  border: 1px solid rgba(var(--color-accent-rgb), 0.15);
+  border-radius: 12px;
+  transition: border-color 0.2s;
+
+  &.banned {
+    border-color: rgba(255, 68, 68, 0.3);
+    opacity: 0.7;
+  }
+
+  &:hover {
+    border-color: rgba(var(--color-accent-rgb), 0.3);
+  }
+}
+
+.admin-user-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.admin-user-name {
+  font-weight: 700;
+  color: $text-primary;
+  font-size: 0.95rem;
+}
+
+.admin-user-id {
+  font-size: 0.75rem;
+  color: $text-muted;
+  font-family: monospace;
+}
+
+.admin-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--color-accent);
+  background: rgba(var(--color-accent-rgb), 0.12);
+  padding: 0.15rem 0.5rem;
+  border-radius: 8px;
+}
+
+.ban-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #ff4444;
+  background: rgba(255, 68, 68, 0.12);
+  padding: 0.15rem 0.5rem;
+  border-radius: 8px;
+}
+
+.admin-user-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.btn-admin-action {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.35rem 0.7rem;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: opacity 0.2s, transform 0.15s;
+
+  &:hover {
+    opacity: 0.85;
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  &.grant {
+    background: rgba(var(--color-accent-rgb), 0.2);
+    color: var(--color-accent);
+  }
+
+  &.revoke {
+    background: rgba(255, 255, 255, 0.08);
+    color: $text-secondary;
+  }
+
+  &.ban {
+    background: rgba(255, 68, 68, 0.15);
+    color: #ff8888;
+  }
+
+  &.unban {
+    background: rgba(68, 255, 68, 0.12);
+    color: #88ff88;
+  }
+}

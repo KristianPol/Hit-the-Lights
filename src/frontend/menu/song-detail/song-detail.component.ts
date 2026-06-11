@@ -45,6 +45,11 @@ export class SongDetailComponent implements OnInit, OnDestroy {
   isSongOwnedByViewer = songOwnedByViewer;
   difficultyNumberToName = difficultyNumberToName;
 
+  canDeleteSong(song: Song, viewerId?: number | null): boolean {
+    if (isSongOwnedByViewer(song, viewerId)) return true;
+    return this.authService.isAdmin;
+  }
+
   song = signal<Song | null>(null);
   loading = signal<boolean>(true);
   error = signal<string | null>(null);
@@ -471,8 +476,8 @@ export class SongDetailComponent implements OnInit, OnDestroy {
   requestDeleteSong(): void {
     const song = this.song();
     if (!song) return;
-    if (!isSongOwnedByViewer(song, this.currentUser()?.id)) {
-      alert('Only the uploader can delete this song.');
+    if (!this.canDeleteSong(song, this.currentUser()?.id)) {
+      alert('Only the uploader or an admin can delete this song.');
       return;
     }
     this.showDeleteConfirm.set(true);

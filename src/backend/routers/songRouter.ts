@@ -54,16 +54,45 @@ function parseVisibility(value: unknown, fallback: boolean = true): boolean {
   return fallback;
 }
 
+const UPLOAD_COOLDOWN_MS = 20 * 60 * 1000; // 20 minutes
+
 songRouter.post('/add', authMiddleware, async (req: Request, res: Response) => {
   const unit = new Unit(false);
   try {
     const { name, author, bpm, length, audioBase64, audioMimeType, coverBase64, coverMimeType, isPublic, genre } = req.body;
     const ownerId = req.authenticatedUserId!;
+    const isAdmin = req.authenticatedUserId === 2 || req.authenticatedRole === 'admin';
 
     if (!name || !author || !bpm || !length || !audioBase64 || !coverBase64) {
       await unit.complete(false);
       res.status(400).json({ success: false, error: 'All fields are required' });
       return;
+    }
+
+    // Check upload cooldown (admins bypass)
+    if (!isAdmin) {
+      const cooldownCheck = await unit.prepare<
+        { last_song_upload_at: string | null },
+        { userId: number }
+      >(
+        'SELECT last_song_upload_at FROM "User" WHERE id = $userId',
+        { userId: ownerId }
+      ).get();
+
+      if (cooldownCheck?.last_song_upload_at) {
+        const lastUpload = new Date(cooldownCheck.last_song_upload_at).getTime();
+        const now = Date.now();
+        const remaining = UPLOAD_COOLDOWN_MS - (now - lastUpload);
+        if (remaining > 0) {
+          const minutes = Math.ceil(remaining / 60000);
+          await unit.complete(false);
+          res.status(429).json({
+            success: false,
+            error: `Upload cooldown active. Wait ${minutes} minute${minutes === 1 ? '' : 's'} before uploading again.`
+          });
+          return;
+        }
+      }
     }
 
     const audioFilename = generateFilename(audioMimeType || 'audio/mpeg');
@@ -78,6 +107,11 @@ songRouter.post('/add', authMiddleware, async (req: Request, res: Response) => {
     const svc = new SongService(unit);
     const result = await svc.addSong({ name, author, bpm: parseInt(bpm, 10), length, songUrl, coverUrl, ownerId, isPublic: parseVisibility(isPublic, true), genre });
     if (result.success) {
+      // Update last upload timestamp
+      await unit.prepare<unknown, { userId: number }>(
+        'UPDATE "User" SET last_song_upload_at = CURRENT_TIMESTAMP WHERE id = $userId',
+        { userId: ownerId }
+      ).run();
       await unit.complete(true);
       res.status(201).json({ success: true, songId: result.songId, songUrl, coverUrl, ownerId: result.ownerId, isPublic: result.isPublic, message: 'Song added successfully' });
     } else {
@@ -86,6 +120,47 @@ songRouter.post('/add', authMiddleware, async (req: Request, res: Response) => {
     }
   } catch (error: any) {
     await unit.complete(false);
+    res.status(500).json({ success: false, error: error.message || 'Internal server error' });
+  }
+});
+
+songRouter.get('/upload-status', authMiddleware, async (req: Request, res: Response) => {
+  const unit = new Unit(true);
+  try {
+    const userId = req.authenticatedUserId!;
+    const isAdmin = req.authenticatedUserId === 2 || req.authenticatedRole === 'admin';
+
+    if (isAdmin) {
+      await unit.complete();
+      res.status(200).json({ success: true, canUpload: true });
+      return;
+    }
+
+    const row = await unit.prepare<
+      { last_song_upload_at: string | null },
+      { userId: number }
+    >(
+      'SELECT last_song_upload_at FROM "User" WHERE id = $userId',
+      { userId }
+    ).get();
+
+    await unit.complete();
+
+    if (!row?.last_song_upload_at) {
+      res.status(200).json({ success: true, canUpload: true });
+      return;
+    }
+
+    const lastUpload = new Date(row.last_song_upload_at).getTime();
+    const remaining = UPLOAD_COOLDOWN_MS - (Date.now() - lastUpload);
+
+    if (remaining > 0) {
+      res.status(200).json({ success: true, canUpload: false, remainingSeconds: Math.ceil(remaining / 1000) });
+    } else {
+      res.status(200).json({ success: true, canUpload: true });
+    }
+  } catch (error: any) {
+    await unit.complete();
     res.status(500).json({ success: false, error: error.message || 'Internal server error' });
   }
 });
@@ -215,10 +290,11 @@ songRouter.delete('/:id', authMiddleware, async (req: Request, res: Response) =>
   try {
     const songId = parseInt(req.params['id'] as string, 10);
     const viewerId = req.authenticatedUserId!;
+    const isAdmin = req.authenticatedUserId === 2 || req.authenticatedRole === 'admin';
     if (isNaN(songId)) { await unit.complete(false); res.status(400).json({ success: false, error: 'Invalid song ID' }); return; }
 
     const svc = new SongService(unit);
-    const result = await svc.deleteSong(songId, viewerId);
+    const result = await svc.deleteSong(songId, viewerId, isAdmin);
     if (result.success) {
       const audioKey = R2Service.extractKey(result.song?.songUrl ?? '');
       const coverKey = R2Service.extractKey(result.song?.coverUrl ?? '');

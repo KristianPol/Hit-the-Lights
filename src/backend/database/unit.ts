@@ -303,6 +303,9 @@ export class Unit {
         totalScore INTEGER NOT NULL DEFAULT 0,
         totalAccuracy REAL NOT NULL DEFAULT 0,
         runsCount INTEGER NOT NULL DEFAULT 0,
+        role TEXT DEFAULT 'user',
+        is_banned INTEGER DEFAULT 0,
+        last_song_upload_at TIMESTAMP,
         CONSTRAINT uq_username UNIQUE (username)
       )
     `);
@@ -310,6 +313,27 @@ export class Unit {
     // Ensure profilePictureUrl exists on older User tables
     try {
       await getSql().unsafe(`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS profilePictureUrl TEXT`);
+    } catch (e: any) {
+      // ignore
+    }
+
+    // Ensure role exists on older User tables
+    try {
+      await getSql().unsafe(`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'user'`);
+    } catch (e: any) {
+      // ignore
+    }
+
+    // Ensure is_banned exists on older User tables
+    try {
+      await getSql().unsafe(`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS is_banned INTEGER DEFAULT 0`);
+    } catch (e: any) {
+      // ignore
+    }
+
+    // Ensure last_song_upload_at exists on older User tables
+    try {
+      await getSql().unsafe(`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS last_song_upload_at TIMESTAMP`);
     } catch (e: any) {
       // ignore
     }

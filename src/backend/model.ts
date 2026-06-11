@@ -5,7 +5,9 @@ export type User = {
   profilePicture?: Buffer | null,
   profilePictureUrl?: string | null,
   joinDate: string,
-  playtimeSeconds?: number
+  playtimeSeconds?: number,
+  role?: string,
+  isBanned?: boolean
 };
 
 export interface UserControls {

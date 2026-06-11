@@ -48,6 +48,14 @@ export class AuthenticationService {
         };
       }
 
+      // Check if user is banned
+      if ((user as any).is_banned === 1) {
+        return {
+          success: false,
+          error: 'This account has been banned'
+        };
+      }
+
       // Check password against hash
       let passwordValid = PasswordHasher.compare(request.password, user.password!);
 
@@ -80,7 +88,8 @@ export class AuthenticationService {
           profilePicture: user.profilePicture,
           joinDate: user.joinDate,
           // Map DB column playtime_seconds to model property playtimeSeconds
-          playtimeSeconds: typeof (user as any).playtime_seconds === 'number' ? (user as any).playtime_seconds : 0
+          playtimeSeconds: typeof (user as any).playtime_seconds === 'number' ? (user as any).playtime_seconds : 0,
+          role: (user as any).role || 'user'
         }
       };
     } catch (error: any) {
@@ -97,9 +106,9 @@ export class AuthenticationService {
    * @returns The user if found, undefined otherwise
    */
   private async findUserByUsername(username: string): Promise<User | undefined> {
-    // Include playtime_seconds so callers can see cumulative playtime
+    // Include playtime_seconds, role, and is_banned
     const stmt = this.unit.prepare<any, { username: string }>(
-      'SELECT id, username, password, profilePicture, profilePictureUrl, joinDate, playtime_seconds FROM "User" WHERE username = $username',
+      'SELECT id, username, password, profilePicture, profilePictureUrl, joinDate, playtime_seconds, role, is_banned FROM "User" WHERE username = $username',
       { username }
     );
     return await stmt.get();

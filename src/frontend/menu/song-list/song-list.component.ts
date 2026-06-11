@@ -51,6 +51,10 @@ export class SongListComponent implements OnInit, OnDestroy {
 
   currentUser = signal<User | null>(null);
 
+  canUpload = signal<boolean>(true);
+  uploadCooldownSeconds = signal<number>(0);
+  private cooldownIntervalId: number | null = null;
+
   private searchSubject = new Subject<string>();
   private searchSubscription?: Subscription;
 
@@ -70,10 +74,59 @@ export class SongListComponent implements OnInit, OnDestroy {
     setTimeout(() => {
       this.loadSongsFromDatabase();
     }, 0);
+
+    this.checkUploadStatus();
   }
 
   ngOnDestroy(): void {
     this.searchSubscription?.unsubscribe();
+    if (this.cooldownIntervalId) {
+      clearInterval(this.cooldownIntervalId);
+    }
+  }
+
+  private checkUploadStatus(): void {
+    if (!this.authService.isLoggedIn) {
+      this.canUpload.set(false);
+      return;
+    }
+    this.songService.getUploadStatus().subscribe({
+      next: response => {
+        if (response.success) {
+          this.canUpload.set(response.canUpload);
+          if (!response.canUpload && response.remainingSeconds) {
+            this.uploadCooldownSeconds.set(response.remainingSeconds);
+            this.startCooldownTimer();
+          }
+        }
+      },
+      error: err => console.warn('Upload status check failed:', err)
+    });
+  }
+
+  private startCooldownTimer(): void {
+    if (this.cooldownIntervalId) {
+      clearInterval(this.cooldownIntervalId);
+    }
+    this.cooldownIntervalId = window.setInterval(() => {
+      this.uploadCooldownSeconds.update(s => {
+        if (s <= 1) {
+          this.canUpload.set(true);
+          if (this.cooldownIntervalId) {
+            clearInterval(this.cooldownIntervalId);
+            this.cooldownIntervalId = null;
+          }
+          return 0;
+        }
+        return s - 1;
+      });
+    }, 1000);
+  }
+
+  formatCooldown(seconds: number): string {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   }
 
   loadSongsFromDatabase(): void {

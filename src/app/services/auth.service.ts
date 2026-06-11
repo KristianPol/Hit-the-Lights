@@ -21,6 +21,8 @@ export interface User {
   profilePictureUrl?: string;
   playtimeSeconds?: number;
   gamesPlayed?: number;
+  role?: string;
+  isBanned?: boolean;
 }
 
 export interface UpdateProfilePictureResponse {
@@ -70,6 +72,14 @@ export class AuthService {
    */
   public get isLoggedIn(): boolean {
     return this.loggedInSignal();
+  }
+
+  /**
+   * Check if current user is admin
+   */
+  public get isAdmin(): boolean {
+    const user = this.currentUserSignal();
+    return user?.id === 2 || user?.role === 'admin';
   }
 
   /**
@@ -255,6 +265,44 @@ export class AuthService {
       catchError(error => {
         return throwError(() => new Error(error.error?.error || 'Failed to fetch user'));
       })
+    );
+  }
+
+  // ─── Admin Endpoints ──────────────────────────────────────
+
+  getAllUsers(): Observable<{ success: boolean; users?: Array<{ id: number; username: string; joinDate: string; role: string; isBanned: boolean }>; error?: string }> {
+    return this.http.get<any>(`${this.apiUrl}/users`).pipe(
+      catchError(error => throwError(() => new Error(error.error?.error || 'Failed to fetch users')))
+    );
+  }
+
+  grantAdmin(userId: number): Observable<{ success: boolean; message?: string; error?: string }> {
+    return this.http.post<any>(`${this.apiUrl}/grant-admin`, { userId }).pipe(
+      catchError(error => throwError(() => new Error(error.error?.error || 'Failed to grant admin')))
+    );
+  }
+
+  revokeAdmin(userId: number): Observable<{ success: boolean; message?: string; error?: string }> {
+    return this.http.post<any>(`${this.apiUrl}/revoke-admin`, { userId }).pipe(
+      catchError(error => throwError(() => new Error(error.error?.error || 'Failed to revoke admin')))
+    );
+  }
+
+  banUser(userId: number): Observable<{ success: boolean; message?: string; error?: string }> {
+    return this.http.post<any>(`${this.apiUrl}/ban`, { userId }).pipe(
+      catchError(error => throwError(() => new Error(error.error?.error || 'Failed to ban user')))
+    );
+  }
+
+  unbanUser(userId: number): Observable<{ success: boolean; message?: string; error?: string }> {
+    return this.http.post<any>(`${this.apiUrl}/unban`, { userId }).pipe(
+      catchError(error => throwError(() => new Error(error.error?.error || 'Failed to unban user')))
+    );
+  }
+
+  resetPassword(currentPassword: string, newPassword: string): Observable<{ success: boolean; message?: string; error?: string }> {
+    return this.http.post<any>(`${this.apiUrl}/reset-password`, { currentPassword, newPassword }).pipe(
+      catchError(error => throwError(() => new Error(error.error?.error || 'Failed to reset password')))
     );
   }
 

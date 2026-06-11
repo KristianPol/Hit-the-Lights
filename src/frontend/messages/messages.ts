@@ -464,7 +464,11 @@ export class Messages implements OnInit, OnDestroy {
           this.chatError.set(response.error || 'Failed to send message');
         }
         this.sendingMessage.set(false);
-        setTimeout(() => this.messageInputRef?.nativeElement?.focus(), 50);
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            this.messageInputRef?.nativeElement?.focus();
+          });
+        });
       },
       error: err => {
         this.chatError.set(err.message || 'Failed to send message');

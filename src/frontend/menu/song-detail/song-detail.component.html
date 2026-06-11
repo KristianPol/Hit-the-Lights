@@ -55,7 +55,7 @@
                 {{ song()!.isPublic ? 'Make Private' : 'Make Public' }}
               </button>
             }
-            @if (isSongOwnedByViewer(song()!, currentUser()?.id)) {
+            @if (canDeleteSong(song()!, currentUser()?.id)) {
               <button class="delete-track-btn" type="button" (click)="requestDeleteSong()">
                 <i class="fas fa-trash"></i> Delete
               </button>

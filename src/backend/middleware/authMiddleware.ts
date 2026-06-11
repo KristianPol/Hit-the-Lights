@@ -6,6 +6,7 @@ declare global {
     interface Request {
       authenticatedUserId?: number;
       authenticatedUsername?: string;
+      authenticatedRole?: string;
     }
   }
 }
@@ -26,5 +27,17 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction):
 
   req.authenticatedUserId = payload.userId;
   req.authenticatedUsername = payload.username;
+  req.authenticatedRole = payload.role;
   next();
+}
+
+export function adminMiddleware(req: Request, res: Response, next: NextFunction): void {
+  // Founder (user id 2) is always admin
+  if (req.authenticatedUserId === 2) {
+    return next();
+  }
+  if (req.authenticatedRole === 'admin') {
+    return next();
+  }
+  res.status(403).json({ success: false, error: 'Admin access required' });
 }

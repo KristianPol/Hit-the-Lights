@@ -539,7 +539,8 @@ export class SongService {
 
   public async deleteSong(
     songId: number,
-    requesterId?: number
+    requesterId?: number,
+    isAdmin?: boolean
   ): Promise<{ success: boolean; error?: string; song?: SongRecord }> {
     try {
       const song = await this.getRawSongById(songId);
@@ -551,7 +552,7 @@ export class SongService {
         return { success: false, error: 'Authentication required to delete song' };
       }
 
-      if (song.ownerId == null || song.ownerId !== requesterId) {
+      if (!isAdmin && (song.ownerId == null || song.ownerId !== requesterId)) {
         return { success: false, error: 'Only the uploader can delete this song' };
       }
 

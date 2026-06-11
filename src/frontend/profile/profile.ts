@@ -80,6 +80,35 @@ export class ProfileComponent implements OnInit {
   get updateSuccess(): boolean { return this.updateSuccessSignal(); }
   set updateSuccess(v: boolean) { this.updateSuccessSignal.set(v); }
 
+  // Password reset state
+  private showPasswordResetSignal = signal<boolean>(false);
+  get showPasswordReset(): boolean { return this.showPasswordResetSignal(); }
+  set showPasswordReset(v: boolean) { this.showPasswordResetSignal.set(v); }
+
+  private currentPasswordSignal = signal<string>('');
+  get currentPassword(): string { return this.currentPasswordSignal(); }
+  set currentPassword(v: string) { this.currentPasswordSignal.set(v); }
+
+  private newPasswordSignal = signal<string>('');
+  get newPassword(): string { return this.newPasswordSignal(); }
+  set newPassword(v: string) { this.newPasswordSignal.set(v); }
+
+  private confirmPasswordSignal = signal<string>('');
+  get confirmPassword(): string { return this.confirmPasswordSignal(); }
+  set confirmPassword(v: string) { this.confirmPasswordSignal.set(v); }
+
+  private resettingPasswordSignal = signal<boolean>(false);
+  get resettingPassword(): boolean { return this.resettingPasswordSignal(); }
+  set resettingPassword(v: boolean) { this.resettingPasswordSignal.set(v); }
+
+  private resetErrorSignal = signal<string | null>(null);
+  get resetError(): string | null { return this.resetErrorSignal(); }
+  set resetError(v: string | null) { this.resetErrorSignal.set(v); }
+
+  private resetSuccessSignal = signal<boolean>(false);
+  get resetSuccess(): boolean { return this.resetSuccessSignal(); }
+  set resetSuccess(v: boolean) { this.resetSuccessSignal.set(v); }
+
   private imageErrorSignal = signal<boolean>(false);
   get imageError(): boolean { return this.imageErrorSignal(); }
   set imageError(v: boolean) { this.imageErrorSignal.set(v); }
@@ -88,9 +117,25 @@ export class ProfileComponent implements OnInit {
   get pinnedAchievements(): Achievement[] { return this.pinnedAchievementsSignal(); }
   set pinnedAchievements(v: Achievement[]) { this.pinnedAchievementsSignal.set(v); }
 
-  private activeTabSignal = signal<'about' | 'creations'>('about');
-  get activeTab(): 'about' | 'creations' { return this.activeTabSignal(); }
-  set activeTab(v: 'about' | 'creations') { this.activeTabSignal.set(v); }
+  private activeTabSignal = signal<'about' | 'creations' | 'admin'>('about');
+  get activeTab(): 'about' | 'creations' | 'admin' { return this.activeTabSignal(); }
+  set activeTab(v: 'about' | 'creations' | 'admin') { this.activeTabSignal.set(v); }
+
+  get isAdmin(): boolean {
+    return this.authService.isAdmin;
+  }
+
+  private adminUsersSignal = signal<Array<{ id: number; username: string; joinDate: string; role: string; isBanned: boolean }>>([]);
+  get adminUsers(): Array<{ id: number; username: string; joinDate: string; role: string; isBanned: boolean }> { return this.adminUsersSignal(); }
+  set adminUsers(v) { this.adminUsersSignal.set(v); }
+
+  private adminLoadingSignal = signal<boolean>(false);
+  get adminLoading(): boolean { return this.adminLoadingSignal(); }
+  set adminLoading(v: boolean) { this.adminLoadingSignal.set(v); }
+
+  private adminErrorSignal = signal<string | null>(null);
+  get adminError(): string | null { return this.adminErrorSignal(); }
+  set adminError(v: string | null) { this.adminErrorSignal.set(v); }
 
   private uploadedSongsSignal = signal<Song[]>([]);
   get uploadedSongs(): Song[] { return this.uploadedSongsSignal(); }
@@ -408,6 +453,62 @@ export class ProfileComponent implements OnInit {
     });
   }
 
+  // ─── Password Reset ───────────────────────────────────────
+
+  togglePasswordReset(): void {
+    this.showPasswordReset = !this.showPasswordReset;
+    this.resetError = null;
+    this.resetSuccess = false;
+    this.currentPassword = '';
+    this.newPassword = '';
+    this.confirmPassword = '';
+  }
+
+  resetPassword(): void {
+    if (!this.user) return;
+
+    this.resetError = null;
+    this.resetSuccess = false;
+
+    if (!this.currentPassword || !this.newPassword || !this.confirmPassword) {
+      this.resetError = 'All fields are required';
+      return;
+    }
+
+    if (this.newPassword !== this.confirmPassword) {
+      this.resetError = 'New passwords do not match';
+      return;
+    }
+
+    this.resettingPassword = true;
+
+    this.authService.resetPassword(this.currentPassword, this.newPassword).subscribe({
+      next: response => {
+        this.ngZone.run(() => {
+          this.resettingPassword = false;
+          if (response.success) {
+            this.resetSuccess = true;
+            this.currentPassword = '';
+            this.newPassword = '';
+            this.confirmPassword = '';
+            setTimeout(() => {
+              this.showPasswordReset = false;
+              this.resetSuccess = false;
+            }, 2000);
+          } else {
+            this.resetError = response.error || 'Failed to reset password';
+          }
+        });
+      },
+      error: err => {
+        this.ngZone.run(() => {
+          this.resettingPassword = false;
+          this.resetError = err.message || 'Failed to reset password';
+        });
+      }
+    });
+  }
+
   onImageError(): void {
     console.error('Failed to load profile picture image');
     this.imageError = true;
@@ -470,7 +571,7 @@ export class ProfileComponent implements OnInit {
     });
   }
 
-  setActiveTab(tab: 'about' | 'creations'): void {
+  setActiveTab(tab: 'about' | 'creations' | 'admin'): void {
     this.activeTab = tab;
   }
 
@@ -527,6 +628,75 @@ export class ProfileComponent implements OnInit {
       this.songCountLoaded = false;
       this.loadUploadedSongCount(this.user.id);
     }
+  }
+
+  // ─── Admin Panel ──────────────────────────────────────────
+
+  loadAdminUsers(): void {
+    this.adminLoading = true;
+    this.adminError = null;
+    this.authService.getAllUsers().subscribe({
+      next: response => {
+        this.ngZone.run(() => {
+          this.adminLoading = false;
+          if (response.success && response.users) {
+            this.adminUsers = response.users;
+          } else {
+            this.adminError = response.error || 'Failed to load users';
+          }
+        });
+      },
+      error: err => {
+        this.ngZone.run(() => {
+          this.adminLoading = false;
+          this.adminError = err.message || 'Failed to load users';
+        });
+      }
+    });
+  }
+
+  grantAdmin(userId: number): void {
+    this.authService.grantAdmin(userId).subscribe({
+      next: response => {
+        if (response.success) {
+          this.loadAdminUsers();
+        }
+      },
+      error: err => console.error('Failed to grant admin:', err)
+    });
+  }
+
+  revokeAdmin(userId: number): void {
+    this.authService.revokeAdmin(userId).subscribe({
+      next: response => {
+        if (response.success) {
+          this.loadAdminUsers();
+        }
+      },
+      error: err => console.error('Failed to revoke admin:', err)
+    });
+  }
+
+  banUser(userId: number): void {
+    this.authService.banUser(userId).subscribe({
+      next: response => {
+        if (response.success) {
+          this.loadAdminUsers();
+        }
+      },
+      error: err => console.error('Failed to ban user:', err)
+    });
+  }
+
+  unbanUser(userId: number): void {
+    this.authService.unbanUser(userId).subscribe({
+      next: response => {
+        if (response.success) {
+          this.loadAdminUsers();
+        }
+      },
+      error: err => console.error('Failed to unban user:', err)
+    });
   }
 
   getDifficultyName(level: number): string {

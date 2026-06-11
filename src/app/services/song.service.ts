@@ -240,6 +240,12 @@ export class SongService {
     );
   }
 
+  getUploadStatus(): Observable<{ success: boolean; canUpload: boolean; remainingSeconds?: number; error?: string }> {
+    return this.http.get<{ success: boolean; canUpload: boolean; remainingSeconds?: number; error?: string }>(`${this.apiUrl}/upload-status`).pipe(
+      catchError(error => throwError(() => new Error(error.error?.error || 'Failed to check upload status')))
+    );
+  }
+
   getAllSongs(options?: { search?: string; genre?: string; sort?: string; ownerId?: number }): Observable<GetSongsResponse> {
     const endpoint = `${this.apiUrl}/all`;
     let params = new HttpParams();

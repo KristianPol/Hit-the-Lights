@@ -44,6 +44,8 @@ export interface UserJSON {
   joinDate: string;
   profilePictureUrl?: string;
   playtimeSeconds?: number;
+  role?: string;
+  isBanned?: boolean;
   highscores?: HighscoreJSON[];
 }
 
@@ -63,7 +65,9 @@ export class HTLService {
       joinDate: user.joinDate,
       profilePictureUrl,
       // include cumulative playtime so front-end always receives the total
-      playtimeSeconds: typeof (user as any).playtimeSeconds === 'number' ? (user as any).playtimeSeconds : 0
+      playtimeSeconds: typeof (user as any).playtimeSeconds === 'number' ? (user as any).playtimeSeconds : 0,
+      role: user.role,
+      isBanned: user.isBanned
     };
   }
 
@@ -220,7 +224,9 @@ export class HTLService {
       id: json.id ?? 0,
       username: json.username.trim(),
       password: json.password,
-      joinDate: json.joinDate ?? new Date().toISOString()
+      joinDate: json.joinDate ?? new Date().toISOString(),
+      role: json.role,
+      isBanned: json.isBanned
     };
   }
 

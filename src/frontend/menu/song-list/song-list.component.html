@@ -2,7 +2,15 @@
   <div class="panel-header">
     <h2>Track Library</h2>
     <span class="track-count">{{ songs().length }} tracks</span>
-    <button class="add-track-btn" (click)="openAddTrackForm()">+ Add Track</button>
+    @if (currentUser()) {
+      @if (canUpload()) {
+        <button class="add-track-btn" (click)="openAddTrackForm()">+ Add Track</button>
+      } @else {
+        <button class="add-track-btn cooldown" disabled>
+          <i class="fas fa-clock"></i> {{ formatCooldown(uploadCooldownSeconds()) }}
+        </button>
+      }
+    }
   </div>
 
   <div class="filter-bar">

@@ -67,6 +67,15 @@
           >
             Creations
           </button>
+          @if (isAdmin) {
+            <button
+              class="tab-btn"
+              [class.active]="activeTab === 'admin'"
+              (click)="setActiveTab('admin'); loadAdminUsers()"
+            >
+              <i class="fas fa-shield-halved"></i> Admin
+            </button>
+          }
         </div>
 
         @if (activeTab === 'about') {
@@ -245,6 +254,64 @@
             }
           </div>
         }
+
+        @if (activeTab === 'admin') {
+          <div class="admin-tab">
+            <div class="admin-header">
+              <i class="fas fa-shield-halved"></i>
+              <span>Admin Panel</span>
+            </div>
+
+            @if (adminLoading) {
+              <div class="loading-state"><div class="spinner"></div><p>Loading users...</p></div>
+            }
+
+            @if (adminError && !adminLoading) {
+              <div class="error-state"><div class="error-icon"><i class="fas fa-exclamation-circle"></i></div><p>{{ adminError }}</p></div>
+            }
+
+            @if (!adminLoading && !adminError) {
+              <div class="admin-users-list">
+                @for (u of adminUsers; track u.id) {
+                  <div class="admin-user-card" [class.banned]="u.isBanned">
+                    <div class="admin-user-info">
+                      <span class="admin-user-name">{{ u.username }}</span>
+                      <span class="admin-user-id">ID: {{ u.id }}</span>
+                      @if (u.role === 'admin') {
+                        <span class="admin-badge"><i class="fas fa-shield-halved"></i> Admin</span>
+                      }
+                      @if (u.isBanned) {
+                        <span class="ban-badge"><i class="fas fa-ban"></i> Banned</span>
+                      }
+                    </div>
+                    <div class="admin-user-actions">
+                      @if (u.id !== 2) {
+                        @if (u.role !== 'admin') {
+                          <button class="btn-admin-action grant" (click)="grantAdmin(u.id)" title="Grant Admin">
+                            <i class="fas fa-shield-halved"></i> Make Admin
+                          </button>
+                        } @else {
+                          <button class="btn-admin-action revoke" (click)="revokeAdmin(u.id)" title="Revoke Admin">
+                            <i class="fas fa-user"></i> Revoke Admin
+                          </button>
+                        }
+                        @if (!u.isBanned) {
+                          <button class="btn-admin-action ban" (click)="banUser(u.id)" title="Ban">
+                            <i class="fas fa-ban"></i> Ban
+                          </button>
+                        } @else {
+                          <button class="btn-admin-action unban" (click)="unbanUser(u.id)" title="Unban">
+                            <i class="fas fa-check"></i> Unban
+                          </button>
+                        }
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        }
       </div>
     } @else {
       <!-- No User Data -->
@@ -308,6 +375,71 @@
            </button>
           <small class="file-hint">Max 5MB. JPEG, PNG, GIF, or WebP.</small>
         </div>
+
+        <hr class="modal-divider">
+
+        <!-- Reset Password -->
+        <div class="form-group">
+          <label>Password</label>
+          <button class="file-btn" (click)="togglePasswordReset()">
+            <i class="fas fa-key"></i> {{ showPasswordReset ? 'Cancel' : 'Reset Password' }}
+          </button>
+        </div>
+
+        @if (showPasswordReset) {
+          <div class="password-reset-form">
+            <div class="form-group">
+              <label>Current Password</label>
+              <input
+                type="password"
+                class="form-input"
+                [(ngModel)]="currentPassword"
+                placeholder="Enter current password"
+              >
+            </div>
+            <div class="form-group">
+              <label>New Password</label>
+              <input
+                type="password"
+                class="form-input"
+                [(ngModel)]="newPassword"
+                placeholder="Enter new password"
+              >
+            </div>
+            <div class="form-group">
+              <label>Confirm New Password</label>
+              <input
+                type="password"
+                class="form-input"
+                [(ngModel)]="confirmPassword"
+                placeholder="Confirm new password"
+              >
+            </div>
+            <button
+              class="btn-submit"
+              [disabled]="resettingPassword"
+              (click)="resetPassword()"
+            >
+              @if (resettingPassword) {
+                <span>Updating...</span>
+              } @else {
+                <span>Update Password</span>
+              }
+            </button>
+          </div>
+        }
+
+        @if (resetError) {
+          <div class="error-message">
+            {{ resetError }}
+          </div>
+        }
+
+        @if (resetSuccess) {
+          <div class="success-message">
+            Password updated successfully!
+          </div>
+        }
 
          <!-- Error Message -->
          @if (updateError) {
