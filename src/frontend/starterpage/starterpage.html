@@ -1,17 +1,38 @@
 <div class="starter-layout">
-  <div class="starter-container">
+  <!-- ambient background -->
+  <div class="ember-glow"></div>
+  <div class="ember-orb orb-1"></div>
+  <div class="ember-orb orb-2"></div>
+  <div class="ember-orb orb-3"></div>
 
+  <nav class="starter-navbar">
+    <a class="brand" routerLink="/">
+      <span class="brand-icon"><i class="fas fa-bolt"></i></span>
+      <span class="brand-text">Hit-<span class="highlight">The-Lights</span></span>
+    </a>
+  </nav>
+
+  <main class="starter-container">
     <!-- Hero Section -->
     <section class="hero-section">
-      <div class="hero-glow"></div>
       <div class="hero-particles">
-        @for (i of [1,2,3,4,5,6,7,8,9,10,11,12]; track i) {
+        @for (i of [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]; track i) {
           <span class="particle" [style.--i]="i"></span>
         }
       </div>
 
-      <h1 class="hero-title">Hit-<span class="highlight">The-Lights</span></h1>
-      <p class="hero-subtitle">Tap the beat. Hit the notes. Light up the score.</p>
+      <div class="hero-badge">
+        <i class="fas fa-fire"></i>
+        <span>Rhythm Game Reimagined</span>
+      </div>
+
+      <h1 class="hero-title">
+        Light up the
+        <span class="highlight">Beat</span>
+      </h1>
+      <p class="hero-subtitle">
+        Tap the notes. Feel the rhythm. Compete with friends and climb the leaderboard in a neon-fueled arcade experience.
+      </p>
 
       <div class="hero-divider">
         <span class="divider-bar"></span>
@@ -19,13 +40,34 @@
         <span class="divider-bar"></span>
       </div>
 
-      <p class="game-description">
-        Challenge yourself across songs and difficulties — can you keep up with the rhythm?
-      </p>
-
       <div class="cta-group">
-        <a class="register-btn btn-primary" routerLink="/register">Get Started</a>
-        <a class="login-btn btn-secondary" routerLink="/login">I Have an Account</a>
+        <a class="register-btn btn-primary" routerLink="/register">
+          <i class="fas fa-rocket"></i> Start Playing
+        </a>
+        <a class="login-btn btn-secondary" routerLink="/login">
+          <i class="fas fa-user"></i> I Have an Account
+        </a>
+      </div>
+
+    </section>
+
+    <!-- Stats row -->
+    <section class="stats-row">
+      <div class="mini-stat">
+        <span class="mini-stat-value">4</span>
+        <span class="mini-stat-label">Lanes</span>
+      </div>
+      <div class="mini-stat">
+        <span class="mini-stat-value">4</span>
+        <span class="mini-stat-label">Hit Tiers</span>
+      </div>
+      <div class="mini-stat">
+        <span class="mini-stat-value">∞</span>
+        <span class="mini-stat-label">Charts</span>
+      </div>
+      <div class="mini-stat">
+        <span class="mini-stat-value">100%</span>
+        <span class="mini-stat-label">Neon</span>
       </div>
     </section>
 
@@ -44,23 +86,37 @@
           <i class="feature-icon fas fa-music"></i>
         </div>
         <h3 class="feature-title">Rhythm Gameplay</h3>
-        <p class="feature-description">Tap in sync with the beat across a growing library of tracks.</p>
+        <p class="feature-description">Tap in sync with the beat across a growing library of community-made tracks.</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon-wrap">
           <i class="feature-icon fas fa-bolt"></i>
         </div>
         <h3 class="feature-title">Multiple Difficulties</h3>
-        <p class="feature-description">From easy grooves to expert-level challenges — pick your pace.</p>
+        <p class="feature-description">From easy grooves to expert-level challenges — pick the pace that fits you.</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon-wrap">
           <i class="feature-icon fas fa-trophy"></i>
         </div>
         <h3 class="feature-title">Track Your Score</h3>
-        <p class="feature-description">Climb the leaderboard and beat your personal best every run.</p>
+        <p class="feature-description">Climb the leaderboard, share score cards, and beat your personal best every run.</p>
       </div>
     </section>
 
-  </div>
+    <!-- Bottom CTA -->
+    <section class="bottom-cta">
+      <h2>Ready to feel the rhythm?</h2>
+      <p>Create an account and start playing in seconds.</p>
+      <a class="btn-primary" routerLink="/register">
+        <i class="fas fa-fire"></i> Get on the stage
+      </a>
+    </section>
+  </main>
+
+  <footer class="starter-footer">
+    <span>Hit-The-Lights</span>
+    <span class="footer-dot">•</span>
+    <span>Built with <i class="fas fa-heart"></i>, Neon,Cloudflare R2, onRender and some regrets</span>
+  </footer>
 </div>
