@@ -313,7 +313,7 @@ export class Unit {
         totalScore INTEGER NOT NULL DEFAULT 0,
         totalAccuracy REAL NOT NULL DEFAULT 0,
         runsCount INTEGER NOT NULL DEFAULT 0,
-        total_sp INTEGER NOT NULL DEFAULT 0,
+        total_sp REAL NOT NULL DEFAULT 0,
         role TEXT DEFAULT 'user',
         is_banned INTEGER DEFAULT 0,
         last_song_upload_at TIMESTAMP,
@@ -322,7 +322,7 @@ export class Unit {
     `);
 
     try {
-      await getSql().unsafe(`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS total_sp INTEGER NOT NULL DEFAULT 0`);
+      await getSql().unsafe(`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS total_sp REAL NOT NULL DEFAULT 0`);
     } catch (e: any) {
       // ignore
     }
@@ -419,7 +419,7 @@ export class Unit {
         score INTEGER NOT NULL,
         max_combo INTEGER NOT NULL,
         accuracy INTEGER NOT NULL,
-        sp INTEGER NOT NULL DEFAULT 0,
+        sp REAL NOT NULL DEFAULT 0,
         date TEXT NOT NULL,
         CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES "User"(id),
         CONSTRAINT fk_difficulty FOREIGN KEY (difficulty_id) REFERENCES Difficulty(id)
@@ -427,7 +427,15 @@ export class Unit {
     `);
 
     try {
-      await getSql().unsafe(`ALTER TABLE Highscore ADD COLUMN IF NOT EXISTS sp INTEGER NOT NULL DEFAULT 0`);
+      await getSql().unsafe(`ALTER TABLE Highscore ADD COLUMN IF NOT EXISTS sp REAL NOT NULL DEFAULT 0`);
+    } catch (e: any) {
+      // ignore
+    }
+
+    // Migrate existing integer SP columns to real so decimal values can be stored.
+    try {
+      await getSql().unsafe(`ALTER TABLE "User" ALTER COLUMN total_sp TYPE REAL USING total_sp::real`);
+      await getSql().unsafe(`ALTER TABLE Highscore ALTER COLUMN sp TYPE REAL USING sp::real`);
     } catch (e: any) {
       // ignore
     }

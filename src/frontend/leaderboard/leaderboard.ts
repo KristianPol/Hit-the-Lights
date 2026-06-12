@@ -55,7 +55,7 @@ export class LeaderboardPage implements OnInit {
     if (!Number.isFinite(value)) return '0';
     if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(2)}M`;
     if (value >= 1_000) return `${(value / 1_000).toFixed(1)}K`;
-    return value.toLocaleString();
+    return value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 1 });
   }
 
   isCurrentUser(entry: SpLeaderboardEntry): boolean {

@@ -244,11 +244,11 @@ export class Gameplay implements AfterViewInit, OnDestroy {
     if (earned === 0) {
       return 'No SP earned';
     }
-    return `+${earned.toLocaleString()} SP`;
+    return `+${this.formatSpDecimal(earned)} SP`;
   });
   readonly totalSpText = computed(() => {
     const total = this.totalSp();
-    return total !== null ? `${total.toLocaleString()} SP` : null;
+    return total !== null ? `${this.formatSpDecimal(total)} SP` : null;
   });
 
   // FIX: Added key state tracking to prevent held-key spamming
@@ -1708,6 +1708,10 @@ export class Gameplay implements AfterViewInit, OnDestroy {
 
       this.ctx.restore();
     }
+  }
+
+  private formatSpDecimal(value: number): string {
+    return value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 1 });
   }
 
   protected formatTime(ms: number): string {

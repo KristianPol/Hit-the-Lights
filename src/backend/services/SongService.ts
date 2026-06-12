@@ -1385,7 +1385,7 @@ export class SongService {
   public computeSp(difficulty: number, score: number): number {
     const weight = SP_DIFFICULTY_WEIGHTS[difficulty] ?? SP_DIFFICULTY_WEIGHTS[1];
     const ratio = score / 1_000_000;
-    return Math.floor(weight * Math.pow(ratio, 4));
+    return Math.round(weight * Math.pow(ratio, 4) * 10) / 10;
   }
 
   private async recalculateUserTotalSp(userId: number): Promise<number> {
@@ -1394,7 +1394,7 @@ export class SongService {
       { userId }
     );
     const rows = await rowsStmt.all();
-    const total = rows.reduce((sum, row) => sum + row.sp, 0);
+    const total = Math.round(rows.reduce((sum, row) => sum + row.sp, 0) * 10) / 10;
     await this.unit.prepare<unknown, { totalSp: number; userId: number }>(
       `UPDATE "User" SET total_sp = $totalSp WHERE id = $userId`,
       { totalSp: total, userId }
