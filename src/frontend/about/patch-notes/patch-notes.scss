@@ -1,0 +1,207 @@
+@use 'theme' as *;
+
+.patch-notes-page {
+  padding: 40px 24px 60px;
+  max-width: 1100px;
+  margin: 0 auto;
+  color: $text-primary;
+  position: relative;
+}
+
+.hero-section {
+  position: relative;
+  text-align: center;
+  padding: 60px 20px 40px;
+  margin-bottom: 32px;
+  overflow: hidden;
+  border-radius: 16px;
+}
+
+.hero-glow {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(255, 200, 50, 0.08) 0%, transparent 60%),
+    radial-gradient(ellipse at 20% 100%, rgba(255, 100, 50, 0.05) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 100%, rgba(50, 150, 255, 0.05) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+.hero-title {
+  font-size: 42px;
+  font-weight: 800;
+  margin: 0 0 12px;
+  letter-spacing: -0.5px;
+  position: relative;
+  z-index: 1;
+
+  .highlight {
+    background: linear-gradient(90deg, $yellow-primary, $yellow-bright, $yellow-primary);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: shimmer 3s linear infinite;
+  }
+}
+
+@keyframes shimmer {
+  to {
+    background-position: 200% center;
+  }
+}
+
+.hero-subtitle {
+  font-size: 16px;
+  color: $text-muted;
+  margin: 0 0 20px;
+  position: relative;
+  z-index: 1;
+}
+
+.hero-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  position: relative;
+  z-index: 1;
+
+  .divider-bar {
+    width: 60px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 200, 50, 0.4), transparent);
+  }
+
+  .divider-icon {
+    color: rgba(255, 200, 50, 0.5);
+    font-size: 14px;
+  }
+}
+
+.patch-notes-content {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 48px;
+}
+
+.version-card {
+  width: 100%;
+  max-width: 720px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 16px;
+  padding: 28px 32px;
+}
+
+.version-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.version-badge {
+  font-size: 18px;
+  font-weight: 800;
+  color: $yellow-primary;
+  background: rgba(255, 200, 50, 0.08);
+  border: 1px solid rgba(255, 200, 50, 0.12);
+  padding: 6px 14px;
+  border-radius: 20px;
+}
+
+.version-date {
+  font-size: 13px;
+  font-weight: 600;
+  color: $text-muted;
+}
+
+.change-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-size: 15px;
+    color: $text-secondary;
+    line-height: 1.5;
+
+    i {
+      width: 32px;
+      height: 32px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+      background: rgba(255, 200, 50, 0.08);
+      border: 1px solid rgba(255, 200, 50, 0.12);
+      color: $yellow-primary;
+      font-size: 14px;
+      flex: 0 0 32px;
+    }
+  }
+}
+
+.back-row {
+  text-align: center;
+  margin-top: 40px;
+}
+
+.back-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: $text-secondary;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 12px 24px;
+  border-radius: 10px;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 250ms ease;
+
+  i {
+    font-size: 13px;
+    transition: transform 250ms ease;
+  }
+
+  &:hover {
+    background: rgba(255, 200, 50, 0.08);
+    border-color: rgba(255, 200, 50, 0.2);
+    color: $yellow-primary;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(255, 200, 50, 0.08);
+
+    i {
+      transform: translateX(-3px);
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .hero-title {
+    font-size: 32px;
+  }
+
+  .hero-section {
+    padding: 40px 16px 32px;
+  }
+
+  .version-card {
+    padding: 22px 20px;
+  }
+
+  .change-list li {
+    align-items: flex-start;
+  }
+}

@@ -27,6 +27,7 @@ export class MenuSidebarComponent implements OnInit {
     { label: 'Leaderboard', icon: 'fas fa-trophy', route: '/leaderboard' },
     { label: 'Chart Maker', icon: 'fas fa-pen-ruler', route: '/chart-maker' },
     { label: 'About', icon: 'fas fa-circle-info', route: '/about', isSecluded: true },
+    { label: 'Patch Notes', icon: 'fas fa-clipboard-list', route: '/about/patch-notes', isSecluded: true },
     { label: 'Settings', icon: 'fas fa-gear', route: '/settings' },
     { label: 'Messages', icon: 'fas fa-envelope', route: '/messages' },
     { label: 'Analytics', icon: 'fas fa-chart-line', route: '/analytics' },

@@ -11,6 +11,7 @@ import {Messages} from '../frontend/messages/messages';
 import { SettingsPage } from '../frontend/settings/settings';
 import { AnalyticsPage } from '../frontend/analytics/analytics';
 import { AboutPage } from '../frontend/about/about';
+import { PatchNotesPage } from '../frontend/about/patch-notes/patch-notes';
 import { AchievementsComponent } from '../frontend/achievements/achievements';
 import { ChartMaker } from '../frontend/chart-maker/chart-maker';
 import { LeaderboardPage } from '../frontend/leaderboard/leaderboard';
@@ -32,6 +33,7 @@ export const routes: Routes = [
     {path: 'messages', component : Messages},
     {path: 'settings', component: SettingsPage},
     {path: 'analytics', component: AnalyticsPage},
+    {path: 'about/patch-notes', component: PatchNotesPage},
     {path: 'about', component: AboutPage},
     {path: 'starterPage', component: Starterpage},
     {path: 'gameplay', component: Gameplay},
