@@ -252,6 +252,18 @@ export interface PostCommentResponse {
   error?: string;
 }
 
+export interface UpdateCommentResponse {
+  success: boolean;
+  comment?: Comment;
+  error?: string;
+}
+
+export interface DeleteCommentResponse {
+  success: boolean;
+  message?: string;
+  error?: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -280,7 +292,7 @@ export class SongService {
     );
   }
 
-  getAllSongs(options?: { search?: string; genre?: string; sort?: string; ownerId?: number }): Observable<GetSongsResponse> {
+  getAllSongs(options?: { search?: string; genre?: string; sort?: string; ownerId?: number; viewerId?: number; visibility?: 'all' | 'public' | 'private' }): Observable<GetSongsResponse> {
     const endpoint = `${this.apiUrl}/all`;
     let params = new HttpParams();
     if (options?.search) {
@@ -294,6 +306,12 @@ export class SongService {
     }
     if (options?.ownerId != null) {
       params = params.set('ownerId', options.ownerId.toString());
+    }
+    if (options?.viewerId != null) {
+      params = params.set('viewerId', options.viewerId.toString());
+    }
+    if (options?.visibility) {
+      params = params.set('visibility', options.visibility);
     }
     console.log(`🌐 SongService: Fetching songs from ${endpoint}`);
     return this.http.get<GetSongsResponse>(endpoint, { params }).pipe(
@@ -332,9 +350,13 @@ export class SongService {
     );
   }
 
-  getSongById(id: number): Observable<{ success: boolean; song?: Song; error?: string }> {
+  getSongById(id: number, viewerId?: number): Observable<{ success: boolean; song?: Song; error?: string }> {
+    let params = new HttpParams();
+    if (viewerId != null) {
+      params = params.set('viewerId', viewerId.toString());
+    }
     return this.http
-      .get<{ success: boolean; song?: Song; error?: string }>(`${this.apiUrl}/${id}`)
+      .get<{ success: boolean; song?: Song; error?: string }>(`${this.apiUrl}/${id}`, { params })
       .pipe(
         catchError(error => {
           return throwError(
@@ -404,9 +426,13 @@ export class SongService {
       );
   }
 
-  getUploadedSongCount(ownerId: number): Observable<UploadedSongCountResponse> {
+  getUploadedSongCount(ownerId: number, viewerId?: number): Observable<UploadedSongCountResponse> {
+    let params = new HttpParams();
+    if (viewerId != null) {
+      params = params.set('viewerId', viewerId.toString());
+    }
     return this.http
-      .get<UploadedSongCountResponse>(`${this.apiUrl}/count/${ownerId}`)
+      .get<UploadedSongCountResponse>(`${this.apiUrl}/count/${ownerId}`, { params })
       .pipe(
         catchError(error => {
           return throwError(
@@ -416,9 +442,13 @@ export class SongService {
       );
   }
 
-  getSongDifficulties(songId: number): Observable<GetDifficultiesResponse> {
+  getSongDifficulties(songId: number, viewerId?: number): Observable<GetDifficultiesResponse> {
+    let params = new HttpParams();
+    if (viewerId != null) {
+      params = params.set('viewerId', viewerId.toString());
+    }
     return this.http
-      .get<GetDifficultiesResponse>(`${this.apiUrl}/${songId}/difficulties`)
+      .get<GetDifficultiesResponse>(`${this.apiUrl}/${songId}/difficulties`, { params })
       .pipe(
         catchError(error => {
           return throwError(
@@ -440,9 +470,13 @@ export class SongService {
       );
   }
 
-  getDifficultyLeaderboard(songId: number, difficultyId: number): Observable<GetLeaderboardResponse> {
+  getDifficultyLeaderboard(songId: number, difficultyId: number, viewerId?: number): Observable<GetLeaderboardResponse> {
+    let params = new HttpParams();
+    if (viewerId != null) {
+      params = params.set('viewerId', viewerId.toString());
+    }
     return this.http
-      .get<GetLeaderboardResponse>(`${this.apiUrl}/${songId}/difficulties/${difficultyId}/leaderboard`)
+      .get<GetLeaderboardResponse>(`${this.apiUrl}/${songId}/difficulties/${difficultyId}/leaderboard`, { params })
       .pipe(
         catchError(error => {
           return throwError(
@@ -468,9 +502,13 @@ export class SongService {
       );
   }
 
-  getDifficultyChart(songId: number, difficultyId: number): Observable<GetDifficultyChartResponse> {
+  getDifficultyChart(songId: number, difficultyId: number, viewerId?: number): Observable<GetDifficultyChartResponse> {
+    let params = new HttpParams();
+    if (viewerId != null) {
+      params = params.set('viewerId', viewerId.toString());
+    }
     return this.http
-      .get<GetDifficultyChartResponse>(`${this.apiUrl}/${songId}/difficulties/${difficultyId}/chart`)
+      .get<GetDifficultyChartResponse>(`${this.apiUrl}/${songId}/difficulties/${difficultyId}/chart`, { params })
       .pipe(
         catchError(error => {
           return throwError(
@@ -480,8 +518,12 @@ export class SongService {
       );
   }
 
-  getComments(songId: number): Observable<GetCommentsResponse> {
-    return this.http.get<GetCommentsResponse>(`${this.apiUrl}/${songId}/comments`).pipe(
+  getComments(songId: number, viewerId?: number): Observable<GetCommentsResponse> {
+    let params = new HttpParams();
+    if (viewerId != null) {
+      params = params.set('viewerId', viewerId.toString());
+    }
+    return this.http.get<GetCommentsResponse>(`${this.apiUrl}/${songId}/comments`, { params }).pipe(
       catchError(error => {
         return throwError(() => new Error(error.error?.error || 'Failed to fetch comments'));
       })
@@ -492,6 +534,22 @@ export class SongService {
     return this.http.post<PostCommentResponse>(`${this.apiUrl}/${songId}/comments`, request).pipe(
       catchError(error => {
         return throwError(() => new Error(error.error?.error || 'Failed to post comment'));
+      })
+    );
+  }
+
+  updateComment(songId: number, commentId: number, content: string): Observable<UpdateCommentResponse> {
+    return this.http.patch<UpdateCommentResponse>(`${this.apiUrl}/${songId}/comments/${commentId}`, { content }).pipe(
+      catchError(error => {
+        return throwError(() => new Error(error.error?.error || 'Failed to update comment'));
+      })
+    );
+  }
+
+  deleteComment(songId: number, commentId: number): Observable<DeleteCommentResponse> {
+    return this.http.delete<DeleteCommentResponse>(`${this.apiUrl}/${songId}/comments/${commentId}`).pipe(
+      catchError(error => {
+        return throwError(() => new Error(error.error?.error || 'Failed to delete comment'));
       })
     );
   }

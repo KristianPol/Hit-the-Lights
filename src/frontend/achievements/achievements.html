@@ -18,7 +18,7 @@
   <div class="achievement-list">
     <div *ngFor="let a of achievements" class="achievement-card">
       <div class="achievement-cover" [ngClass]="a.category.toLowerCase()">
-        <span>{{ a.category.charAt(0) }}</span>
+        <i class="fas" [ngClass]="categoryIcon(a.category)"></i>
       </div>
       <div class="achievement-info">
         <div class="title">{{ a.name }}</div>

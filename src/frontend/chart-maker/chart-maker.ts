@@ -150,7 +150,7 @@ export class ChartMaker implements AfterViewInit, OnDestroy {
   private loadOwnedSongs(): void {
     const userId = this.authService.currentUser?.id;
     if (!userId) return;
-    this.songService.getAllSongs().subscribe({
+    this.songService.getAllSongs({ viewerId: userId }).subscribe({
       next: res => {
         if (res.success) {
           this.ownedSongs.set(res.songs.filter(s => s.ownerId === userId));
@@ -171,7 +171,8 @@ export class ChartMaker implements AfterViewInit, OnDestroy {
     this.isAudioLoaded.set(true);
     this.audioFileName.set(`${song.name} - ${song.author}`);
 
-    this.songService.getDifficultyChart(song.id, difficultyId).subscribe({
+    const viewerId = this.authService.currentUser?.id ?? undefined;
+    this.songService.getDifficultyChart(song.id, difficultyId, viewerId).subscribe({
       next: res => {
         if (res.success && res.chart) {
           this.notes.set(res.chart.notes.map(n => ({ time: n.time, lane: n.lane })));

@@ -1,7 +1,7 @@
 @use 'theme' as *;
 
 :host {
-  font-family: var(--app-font-sans, 'Segoe UI'), sans-serif;
+  font-family: 'Oxanium', 'Rajdhani', 'Segoe UI', sans-serif;
 }
 
 .dashboard-layout {
@@ -14,5 +14,25 @@
   flex: 1;
   display: flex;
   overflow-y: auto;
-  background: linear-gradient(135deg, $black-primary 0%, #0f0f0f 100%);
+  position: relative;
+  background: $black-primary;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background:
+      radial-gradient(circle at 30% 30%, rgba(var(--color-accent-rgb), 0.04) 0%, transparent 45%),
+      radial-gradient(circle at 70% 70%, rgba(var(--color-accent-rgb), 0.025) 0%, transparent 45%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  > * {
+    position: relative;
+    z-index: 1;
+  }
 }

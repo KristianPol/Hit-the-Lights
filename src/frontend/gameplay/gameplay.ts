@@ -371,7 +371,7 @@ export class Gameplay implements AfterViewInit, OnDestroy {
       const songId = Number(songIdParam);
       if (!Number.isNaN(songId)) {
         try {
-          const response = await firstValueFrom(this.songService.getSongById(songId));
+          const response = await firstValueFrom(this.songService.getSongById(songId, viewerId));
           if (response.success && response.song) {
             return response.song;
           }
@@ -396,7 +396,8 @@ export class Gameplay implements AfterViewInit, OnDestroy {
         return;
       }
 
-      const response = await firstValueFrom(this.songService.getDifficultyChart(song.id, difficultyId));
+      const viewerId = this.authService.currentUser?.id ?? undefined;
+      const response = await firstValueFrom(this.songService.getDifficultyChart(song.id, difficultyId, viewerId));
 
       if (!response.success || !response.chart?.notes?.length) {
         console.warn('Difficulty chart is invalid or empty; using fallback chart.');

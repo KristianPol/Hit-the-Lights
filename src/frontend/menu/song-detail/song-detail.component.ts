@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -75,6 +75,86 @@ export class SongDetailComponent implements OnInit, OnDestroy {
     return isSongOwnedByViewer(song, viewerId);
   }
 
+  canEditComment(comment: Comment): boolean {
+    const user = this.currentUser();
+    return !!user && (user.id === comment.senderId || this.authService.isAdmin);
+  }
+
+  canDeleteComment(comment: Comment): boolean {
+    const user = this.currentUser();
+    return !!user && (user.id === comment.senderId || this.authService.isAdmin);
+  }
+
+  toggleCommentMenu(commentId: number, event?: MouseEvent): void {
+    event?.stopPropagation();
+    this.activeCommentMenuId.update(id => id === commentId ? null : commentId);
+  }
+
+  closeCommentMenu(): void {
+    this.activeCommentMenuId.set(null);
+  }
+
+  startEditComment(comment: Comment): void {
+    this.closeCommentMenu();
+    this.editingCommentId.set(comment.id);
+    this.editCommentDraft.set(comment.content);
+  }
+
+  cancelEditComment(): void {
+    this.editingCommentId.set(null);
+    this.editCommentDraft.set('');
+  }
+
+  submitEditComment(): void {
+    const song = this.song();
+    const commentId = this.editingCommentId();
+    const content = this.editCommentDraft().trim();
+    if (!song || !commentId || !content) return;
+
+    this.songService.updateComment(song.id, commentId, content).subscribe({
+      next: response => {
+        if (response.success && response.comment) {
+          this.comments.update(list => list.map(c => c.id === commentId ? response.comment! : c));
+          this.editingCommentId.set(null);
+          this.editCommentDraft.set('');
+        } else {
+          alert(`Failed to update comment: ${response.error}`);
+        }
+      },
+      error: err => alert(`Error updating comment: ${err.message}`)
+    });
+  }
+
+  requestDeleteComment(comment: Comment): void {
+    this.closeCommentMenu();
+    this.commentToDelete.set(comment);
+    this.showDeleteCommentConfirm.set(true);
+  }
+
+  confirmDeleteComment(): void {
+    const song = this.song();
+    const comment = this.commentToDelete();
+    if (!song || !comment) return;
+
+    this.songService.deleteComment(song.id, comment.id).subscribe({
+      next: response => {
+        if (response.success) {
+          this.comments.update(list => list.filter(c => c.id !== comment.id && c.parentCommentId !== comment.id));
+          this.showDeleteCommentConfirm.set(false);
+          this.commentToDelete.set(null);
+        } else {
+          alert(`Failed to delete comment: ${response.error}`);
+        }
+      },
+      error: err => alert(`Error deleting comment: ${err.message}`)
+    });
+  }
+
+  cancelDeleteComment(): void {
+    this.showDeleteCommentConfirm.set(false);
+    this.commentToDelete.set(null);
+  }
+
   song = signal<Song | null>(null);
   loading = signal<boolean>(true);
   error = signal<string | null>(null);
@@ -101,6 +181,12 @@ export class SongDetailComponent implements OnInit, OnDestroy {
   loadingComments = signal<boolean>(false);
 
   uploadDifficultyChoice = signal<DifficultyLevel | null>(null);
+
+  activeCommentMenuId = signal<number | null>(null);
+  editingCommentId = signal<number | null>(null);
+  editCommentDraft = signal<string>('');
+  commentToDelete = signal<Comment | null>(null);
+  showDeleteCommentConfirm = signal<boolean>(false);
 
   showDeleteConfirm = signal<boolean>(false);
 
@@ -131,6 +217,14 @@ export class SongDetailComponent implements OnInit, OnDestroy {
     this.currentUser.set(this.authService.currentUser);
   }
 
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    const target = event.target as HTMLElement | null;
+    if (!target || !target.closest('.comment-menu-wrap')) {
+      this.closeCommentMenu();
+    }
+  }
+
   ngOnInit(): void {
     this.authService.currentUser$.pipe(
       tap(user => this.currentUser.set(user))
@@ -157,7 +251,7 @@ export class SongDetailComponent implements OnInit, OnDestroy {
     this.error.set(null);
     this.song.set(null);
 
-    this.songService.getSongById(songId).subscribe({
+    this.songService.getSongById(songId, this.currentUser()?.id).subscribe({
       next: response => {
         if (response.success && response.song) {
           const normalized = normalizeSong(response.song);
@@ -183,7 +277,7 @@ export class SongDetailComponent implements OnInit, OnDestroy {
   }
 
   private loadDifficulties(songId: number): void {
-    this.songService.getSongDifficulties(songId).subscribe({
+    this.songService.getSongDifficulties(songId, this.currentUser()?.id).subscribe({
       next: response => {
         if (response.success && response.difficulties) {
           this.difficultyPickerState.update(state => ({
@@ -217,7 +311,7 @@ export class SongDetailComponent implements OnInit, OnDestroy {
       difficultyId,
       difficultyLabel
     });
-    this.songService.getDifficultyLeaderboard(song.id, difficultyId).subscribe({
+    this.songService.getDifficultyLeaderboard(song.id, difficultyId, this.currentUser()?.id).subscribe({
       next: response => {
         if (response.success) {
           this.leaderboardState.set({
@@ -251,7 +345,7 @@ export class SongDetailComponent implements OnInit, OnDestroy {
 
   private loadComments(songId: number): void {
     this.loadingComments.set(true);
-    this.songService.getComments(songId).subscribe({
+    this.songService.getComments(songId, this.currentUser()?.id).subscribe({
       next: response => {
         if (response.success && response.comments) {
           this.comments.set(response.comments);
@@ -396,7 +490,7 @@ export class SongDetailComponent implements OnInit, OnDestroy {
   openDifficultyPicker(): void {
     const song = this.song();
     if (!song) return;
-    this.songService.getSongDifficulties(song.id).subscribe({
+    this.songService.getSongDifficulties(song.id, this.currentUser()?.id).subscribe({
       next: response => {
         if (response.success && response.difficulties) {
           this.difficultyPickerState.set({

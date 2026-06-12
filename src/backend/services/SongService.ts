@@ -107,6 +107,22 @@ export interface AddCommentResponse {
   error?: string;
 }
 
+export interface UpdateCommentRequest {
+  content: string;
+}
+
+export interface UpdateCommentResponse {
+  success: boolean;
+  comment?: CommentResponse;
+  error?: string;
+}
+
+export interface DeleteCommentResponse {
+  success: boolean;
+  message?: string;
+  error?: string;
+}
+
 export interface ChartNoteInput {
   time: number;
   lane: number;
@@ -325,13 +341,19 @@ export class SongService {
     searchQuery?: string,
     genreFilter?: string,
     sortBy?: string,
-    ownerId?: number
+    ownerId?: number,
+    visibilityFilter?: 'all' | 'public' | 'private'
   ): Promise<SongResponse[]> {
     const conditions: string[] = [];
     const params: Record<string, unknown> = {};
 
     // Visibility filter
-    if (viewerId != null) {
+    const visibility = visibilityFilter ?? 'all';
+    if (visibility === 'private') {
+      conditions.push('s.isPublic = 0 AND s.ownerId = $viewerId');
+    } else if (visibility === 'public') {
+      conditions.push('s.isPublic = 1');
+    } else if (viewerId != null) {
       conditions.push('(s.isPublic = 1 OR s.ownerId = $viewerId)');
     } else {
       conditions.push('s.isPublic = 1');
@@ -1088,6 +1110,112 @@ export class SongService {
       };
     } catch (error: any) {
       return { success: false, error: error.message || 'Failed to add comment' };
+    }
+  }
+
+  /**
+   * Update a comment. Only the original sender or an admin can edit.
+   */
+  public async updateComment(
+    songId: number,
+    commentId: number,
+    requesterId: number,
+    isAdmin: boolean,
+    request: UpdateCommentRequest
+  ): Promise<UpdateCommentResponse> {
+    try {
+      if (!Number.isInteger(commentId) || commentId <= 0) {
+        return { success: false, error: 'Invalid comment ID' };
+      }
+      if (!request.content || typeof request.content !== 'string' || request.content.trim().length === 0) {
+        return { success: false, error: 'Comment content is required' };
+      }
+
+      const existingStmt = this.unit.prepare<{ id: number; sender_id: number; song_id: number }, { id: number }>(
+        'SELECT id, sender_id, song_id FROM Comment WHERE id = $id',
+        { id: commentId }
+      );
+      const existing = await existingStmt.get();
+      if (!existing) return { success: false, error: 'Comment not found' };
+      if (existing.song_id !== songId) return { success: false, error: 'Comment does not belong to this song' };
+      if (!isAdmin && existing.sender_id !== requesterId) {
+        return { success: false, error: 'Not authorized to edit this comment' };
+      }
+
+      const sanitizedContent = request.content.trim();
+      await this.unit.prepare<unknown, { id: number; content: string }>(
+        'UPDATE Comment SET content = $content WHERE id = $id',
+        { id: commentId, content: sanitizedContent }
+      ).run();
+
+      const fetchStmt = this.unit.prepare<CommentRecord, { id: number }>(
+        `SELECT c.id, c.song_id, c.sender_id, c.parent_comment_id, c.content, c.created_at, u.username
+         FROM Comment c
+         LEFT JOIN User u ON u.id = c.sender_id
+         WHERE c.id = $id`,
+        { id: commentId }
+      );
+
+      const row = await fetchStmt.get();
+      if (!row) return { success: false, error: 'Failed to fetch updated comment' };
+
+      return {
+        success: true,
+        comment: {
+          id: row.id,
+          songId: row.song_id,
+          senderId: row.sender_id,
+          senderUsername: row.username,
+          parentCommentId: row.parent_comment_id ?? null,
+          content: row.content,
+          createdAt: row.created_at
+        }
+      };
+    } catch (error: any) {
+      return { success: false, error: error.message || 'Failed to update comment' };
+    }
+  }
+
+  /**
+   * Delete a comment. Only the original sender or an admin can delete.
+   * Replies are removed along with the parent comment.
+   */
+  public async deleteComment(
+    songId: number,
+    commentId: number,
+    requesterId: number,
+    isAdmin: boolean
+  ): Promise<DeleteCommentResponse> {
+    try {
+      if (!Number.isInteger(commentId) || commentId <= 0) {
+        return { success: false, error: 'Invalid comment ID' };
+      }
+
+      const existingStmt = this.unit.prepare<{ id: number; sender_id: number; song_id: number }, { id: number }>(
+        'SELECT id, sender_id, song_id FROM Comment WHERE id = $id',
+        { id: commentId }
+      );
+      const existing = await existingStmt.get();
+      if (!existing) return { success: false, error: 'Comment not found' };
+      if (existing.song_id !== songId) return { success: false, error: 'Comment does not belong to this song' };
+      if (!isAdmin && existing.sender_id !== requesterId) {
+        return { success: false, error: 'Not authorized to delete this comment' };
+      }
+
+      // Remove replies first to avoid FK constraint violations.
+      await this.unit.prepare<unknown, { parentId: number }>(
+        'DELETE FROM Comment WHERE parent_comment_id = $parentId',
+        { parentId: commentId }
+      ).run();
+
+      await this.unit.prepare<unknown, { id: number }>(
+        'DELETE FROM Comment WHERE id = $id',
+        { id: commentId }
+      ).run();
+
+      return { success: true, message: 'Comment deleted' };
+    } catch (error: any) {
+      return { success: false, error: error.message || 'Failed to delete comment' };
     }
   }
 

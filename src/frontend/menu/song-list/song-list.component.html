@@ -1,7 +1,9 @@
 <div class="songs-panel">
   <div class="panel-header">
-    <h2>Track Library</h2>
-    <span class="track-count">{{ songs().length }} tracks</span>
+    <div class="panel-title-group">
+      <h2>Track Library</h2>
+      <span class="track-count">{{ songs().length }} tracks</span>
+    </div>
     @if (currentUser()) {
       @if (canUpload()) {
         <button class="add-track-btn" (click)="openAddTrackForm()">+ Add Track</button>
@@ -42,6 +44,13 @@
         <option value="">All Genres</option>
         @for (g of genres; track g) {
           <option [value]="g">{{ g }}</option>
+        }
+      </select>
+      <select [ngModel]="visibilityFilter()" (ngModelChange)="visibilityFilter.set($event); onVisibilityChange()" class="filter-select">
+        <option value="all">All Tracks</option>
+        <option value="public">Public</option>
+        @if (currentUser()) {
+          <option value="private">Private</option>
         }
       </select>
     </div>

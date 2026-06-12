@@ -200,8 +200,12 @@ songRouter.get('/all', async (req: Request, res: Response) => {
     const genre = typeof req.query['genre'] === 'string' ? req.query['genre'] : undefined;
     const sort = typeof req.query['sort'] === 'string' ? req.query['sort'] : undefined;
     const ownerId = parseOptionalNumber(req.query['ownerId']);
+    const visibilityRaw = req.query['visibility'];
+    const visibility = typeof visibilityRaw === 'string' && ['all', 'public', 'private'].includes(visibilityRaw)
+      ? visibilityRaw as 'all' | 'public' | 'private'
+      : 'all';
     const songService = new SongService(unit);
-    const songs = await songService.getAllSongs(viewerId, search, genre, sort, ownerId);
+    const songs = await songService.getAllSongs(viewerId, search, genre, sort, ownerId, visibility);
     console.log(`✅ Backend: Found ${songs.length} songs in database`);
     await unit.complete();
     res.status(200).json({ success: true, songs });
@@ -565,6 +569,45 @@ songRouter.post('/:songId/comments', authMiddleware, async (req: Request, res: R
     const svc = new SongService(unit);
     const result = await svc.addCommentToSong(songId, { senderId, content: sanitizedContent, parentCommentId: parentCommentId === undefined ? undefined : Number(parentCommentId) });
     if (result.success) { await unit.complete(true); res.status(201).json({ success: true, comment: result.comment }); } else { await unit.complete(false); res.status(result.error === 'Song not found' ? 404 : 400).json({ success: false, error: result.error }); }
+  } catch (error: any) {
+    await unit.complete(false);
+    res.status(500).json({ success: false, error: error.message || 'Internal server error' });
+  }
+});
+
+songRouter.patch('/:songId/comments/:commentId', authMiddleware, async (req: Request, res: Response) => {
+  const unit = new Unit(false);
+  try {
+    const songId = parseInt(req.params['songId'] as string, 10);
+    const commentId = parseInt(req.params['commentId'] as string, 10);
+    const requesterId = req.authenticatedUserId!;
+    const isAdmin = req.authenticatedRole === 'admin' || requesterId === 2;
+    const { content } = req.body;
+    if (isNaN(songId) || isNaN(commentId)) { await unit.complete(false); res.status(400).json({ success: false, error: 'Invalid song or comment ID' }); return; }
+    if (!content || typeof content !== 'string' || content.trim().length === 0) { await unit.complete(false); res.status(400).json({ success: false, error: 'content is required' }); return; }
+
+    const sanitizedContent = Sanitizer.sanitizeText(content);
+    const svc = new SongService(unit);
+    const result = await svc.updateComment(songId, commentId, requesterId, isAdmin, { content: sanitizedContent });
+    if (result.success) { await unit.complete(true); res.status(200).json({ success: true, comment: result.comment }); } else { await unit.complete(false); res.status(result.error === 'Comment not found' ? 404 : (result.error?.includes('authorized') ? 403 : 400)).json({ success: false, error: result.error }); }
+  } catch (error: any) {
+    await unit.complete(false);
+    res.status(500).json({ success: false, error: error.message || 'Internal server error' });
+  }
+});
+
+songRouter.delete('/:songId/comments/:commentId', authMiddleware, async (req: Request, res: Response) => {
+  const unit = new Unit(false);
+  try {
+    const songId = parseInt(req.params['songId'] as string, 10);
+    const commentId = parseInt(req.params['commentId'] as string, 10);
+    const requesterId = req.authenticatedUserId!;
+    const isAdmin = req.authenticatedRole === 'admin' || requesterId === 2;
+    if (isNaN(songId) || isNaN(commentId)) { await unit.complete(false); res.status(400).json({ success: false, error: 'Invalid song or comment ID' }); return; }
+
+    const svc = new SongService(unit);
+    const result = await svc.deleteComment(songId, commentId, requesterId, isAdmin);
+    if (result.success) { await unit.complete(true); res.status(200).json({ success: true, message: result.message }); } else { await unit.complete(false); res.status(result.error === 'Comment not found' ? 404 : (result.error?.includes('authorized') ? 403 : 400)).json({ success: false, error: result.error }); }
   } catch (error: any) {
     await unit.complete(false);
     res.status(500).json({ success: false, error: error.message || 'Internal server error' });

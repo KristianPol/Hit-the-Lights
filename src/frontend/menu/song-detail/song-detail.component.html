@@ -214,13 +214,48 @@
                             </div>
 
                             <div class="comment-body">
-                              <div class="comment-meta"><strong>{{ c.senderUsername || 'User' }}</strong> · <span class="comment-time">{{ c.createdAt }}</span></div>
-                              <div class="comment-content">{{ c.content }}</div>
-                              <div class="comment-actions">
-                                @if (currentUser()) {
-                                  <button class="reply-btn" (click)="openReply(c.id)">Reply</button>
-                                }
-                              </div>
+                              @if (editingCommentId() === c.id) {
+                                <div class="comment-edit-form">
+                                  <textarea
+                                    [ngModel]="editCommentDraft()"
+                                    (ngModelChange)="editCommentDraft.set($event)"
+                                    placeholder="Edit your comment..."
+                                    rows="2"></textarea>
+                                  <div class="comment-edit-actions">
+                                    <button class="btn-cancel" type="button" (click)="cancelEditComment()">Cancel</button>
+                                    <button class="btn-submit" type="button" (click)="submitEditComment()">Save</button>
+                                  </div>
+                                </div>
+                              } @else {
+                                <div class="comment-header">
+                                  <div class="comment-meta"><strong>{{ c.senderUsername || 'User' }}</strong> · <span class="comment-time">{{ c.createdAt }}</span></div>
+                                  @if (canEditComment(c) || canDeleteComment(c)) {
+                                    <div class="comment-menu-wrap" [class.open]="activeCommentMenuId() === c.id">
+                                      <button class="comment-menu-btn" type="button" (click)="toggleCommentMenu(c.id, $event)">
+                                        <i class="fas fa-ellipsis-vertical"></i>
+                                      </button>
+                                      <div class="comment-menu">
+                                        @if (canEditComment(c)) {
+                                          <button class="comment-menu-item" type="button" (click)="startEditComment(c)">
+                                            <i class="fas fa-pen"></i> Edit
+                                          </button>
+                                        }
+                                        @if (canDeleteComment(c)) {
+                                          <button class="comment-menu-item delete" type="button" (click)="requestDeleteComment(c)">
+                                            <i class="fas fa-trash"></i> Delete
+                                          </button>
+                                        }
+                                      </div>
+                                    </div>
+                                  }
+                                </div>
+                                <div class="comment-content">{{ c.content }}</div>
+                                <div class="comment-actions">
+                                  @if (currentUser()) {
+                                    <button class="reply-btn" (click)="openReply(c.id)">Reply</button>
+                                  }
+                                </div>
+                              }
                             </div>
                           </div>
 
@@ -236,13 +271,48 @@
                                   </div>
 
                                   <div class="comment-body">
-                                    <div class="comment-meta"><strong>{{ r.senderUsername || 'User' }}</strong> · <span class="comment-time">{{ r.createdAt }}</span></div>
-                                    <div class="comment-content">{{ r.content }}</div>
-                                    <div class="comment-actions">
-                                      @if (currentUser()) {
-                                        <button class="reply-btn" (click)="openReply(c.id)">Reply</button>
-                                      }
-                                    </div>
+                                    @if (editingCommentId() === r.id) {
+                                      <div class="comment-edit-form">
+                                        <textarea
+                                          [ngModel]="editCommentDraft()"
+                                          (ngModelChange)="editCommentDraft.set($event)"
+                                          placeholder="Edit your comment..."
+                                          rows="2"></textarea>
+                                        <div class="comment-edit-actions">
+                                          <button class="btn-cancel" type="button" (click)="cancelEditComment()">Cancel</button>
+                                          <button class="btn-submit" type="button" (click)="submitEditComment()">Save</button>
+                                        </div>
+                                      </div>
+                                    } @else {
+                                      <div class="comment-header">
+                                        <div class="comment-meta"><strong>{{ r.senderUsername || 'User' }}</strong> · <span class="comment-time">{{ r.createdAt }}</span></div>
+                                        @if (canEditComment(r) || canDeleteComment(r)) {
+                                          <div class="comment-menu-wrap" [class.open]="activeCommentMenuId() === r.id">
+                                            <button class="comment-menu-btn" type="button" (click)="toggleCommentMenu(r.id, $event)">
+                                              <i class="fas fa-ellipsis-vertical"></i>
+                                            </button>
+                                            <div class="comment-menu">
+                                              @if (canEditComment(r)) {
+                                                <button class="comment-menu-item" type="button" (click)="startEditComment(r)">
+                                                  <i class="fas fa-pen"></i> Edit
+                                                </button>
+                                              }
+                                              @if (canDeleteComment(r)) {
+                                                <button class="comment-menu-item delete" type="button" (click)="requestDeleteComment(r)">
+                                                  <i class="fas fa-trash"></i> Delete
+                                                </button>
+                                              }
+                                            </div>
+                                          </div>
+                                        }
+                                      </div>
+                                      <div class="comment-content">{{ r.content }}</div>
+                                      <div class="comment-actions">
+                                        @if (currentUser()) {
+                                          <button class="reply-btn" (click)="openReply(c.id)">Reply</button>
+                                        }
+                                      </div>
+                                    }
                                   </div>
                                 </div>
                               </div>
@@ -458,6 +528,26 @@
       <div class="modal-footer">
         <button class="btn-cancel" (click)="closeDeleteDifficultyConfirm()">Cancel</button>
         <button class="btn-danger" (click)="confirmDeleteDifficulty()">Delete Chart</button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Delete Comment Confirmation Modal -->
+@if (showDeleteCommentConfirm()) {
+  <div class="modal-overlay" (click)="cancelDeleteComment()">
+    <div class="modal delete-modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Delete Comment</h2>
+        <button class="modal-close" (click)="cancelDeleteComment()"><i class="fas fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to delete this comment?</p>
+        <p class="warning-text">This action cannot be undone. Replies to this comment will also be removed.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-cancel" (click)="cancelDeleteComment()">Cancel</button>
+        <button class="btn-danger" (click)="confirmDeleteComment()">Delete Comment</button>
       </div>
     </div>
   </div>

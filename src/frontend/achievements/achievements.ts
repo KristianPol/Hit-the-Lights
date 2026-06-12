@@ -1,4 +1,4 @@
-﻿import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { AchievementService } from '../../app/services/achievement.service';
@@ -46,6 +46,15 @@ export class AchievementsComponent implements OnInit {
   formatProgress(a: Achievement): string {
     if (typeof a.target !== 'number') return a.unlocked ? 'Unlocked' : 'Locked';
     return `${Math.min(a.progress ?? 0, a.target)}/${a.target}`;
+  }
+
+  categoryIcon(category: string): string {
+    switch (category) {
+      case 'Skill': return 'fa-star';
+      case 'Progression': return 'fa-trophy';
+      case 'Social': return 'fa-users';
+      default: return 'fa-medal';
+    }
   }
 }
 

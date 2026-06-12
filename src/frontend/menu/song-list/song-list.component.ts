@@ -46,6 +46,7 @@ export class SongListComponent implements OnInit, OnDestroy {
   searchQuery = signal<string>('');
   selectedGenre = signal<string>('');
   sortOption = signal<string>('newest');
+  visibilityFilter = signal<'all' | 'public' | 'private'>('all');
 
   showAddTrackForm = signal<boolean>(false);
   pendingSong = signal<AddSongFormData>({ visibility: 'public' });
@@ -133,10 +134,13 @@ export class SongListComponent implements OnInit, OnDestroy {
   loadSongsFromDatabase(): void {
     this.isLoading.set(true);
     this.loadingError.set(null);
+    const user = this.currentUser();
     const options = {
       search: this.searchQuery().trim() || undefined,
       genre: this.selectedGenre() || undefined,
-      sort: this.sortOption() || undefined
+      sort: this.sortOption() || undefined,
+      viewerId: user?.id,
+      visibility: this.visibilityFilter()
     };
 
     this.songService.getAllSongs(options).subscribe({
@@ -172,6 +176,10 @@ export class SongListComponent implements OnInit, OnDestroy {
   }
 
   onSortChange(): void {
+    this.loadSongsFromDatabase();
+  }
+
+  onVisibilityChange(): void {
     this.loadSongsFromDatabase();
   }
 

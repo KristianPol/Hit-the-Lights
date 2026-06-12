@@ -579,7 +579,8 @@ export class Messages implements OnInit, OnDestroy {
     const share = this.parseScoreShare(content);
     if (!share.songId || !share.difficultyId) return;
 
-    this.songService.getSongById(share.songId).subscribe({
+    const viewerId = this.authService.currentUser?.id ?? undefined;
+    this.songService.getSongById(share.songId, viewerId).subscribe({
       next: response => {
         if (response.success && response.song) {
           this.router.navigate(['/gameplay'], {
