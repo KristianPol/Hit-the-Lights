@@ -53,6 +53,7 @@
             class="form-input"
             formControlName="password"
             placeholder="Enter your password"
+            maxlength="128"
             [class.is-invalid]="submitted() && f['password'].errors"
           />
           <button
@@ -72,6 +73,9 @@
             }
             @if (f['password'].hasError('minlength')) {
               <span>Password must be at least 8 characters</span>
+            }
+            @if (f['password'].hasError('maxlength')) {
+              <span>Password must be at most 128 characters</span>
             }
             @if (f['password'].hasError('pattern')) {
               <span>Password must contain uppercase, lowercase, and a number</span>

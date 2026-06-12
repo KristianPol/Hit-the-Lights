@@ -21,7 +21,6 @@
             class="form-input"
             formControlName="username"
             placeholder="Enter your username"
-            maxlength="20"
             [class.is-invalid]="submitted() && f['username'].errors"
           />
         </div>
@@ -50,6 +49,7 @@
             class="form-input"
             formControlName="password"
             placeholder="Enter your password"
+            maxlength="128"
             [class.is-invalid]="submitted() && f['password'].errors"
           />
           <button

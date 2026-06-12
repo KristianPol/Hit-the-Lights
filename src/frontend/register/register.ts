@@ -34,6 +34,7 @@ export class Register extends Login {
     this.loginForm.get('password')?.setValidators([
       Validators.required,
       Validators.minLength(8),
+      Validators.maxLength(128),
       Validators.pattern('^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).+$')
     ]);
     this.loginForm.get('password')?.updateValueAndValidity();

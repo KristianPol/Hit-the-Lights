@@ -24,6 +24,24 @@ authRouter.post('/register', async (req: Request, res: Response) => {
       return;
     }
 
+    if (typeof username !== 'string' || username.length < 3 || username.length > 20) {
+      await unit.complete(false);
+      res.status(400).json({
+        success: false,
+        error: 'Username must be between 3 and 20 characters'
+      });
+      return;
+    }
+
+    if (typeof password !== 'string' || password.length < 8 || password.length > 128) {
+      await unit.complete(false);
+      res.status(400).json({
+        success: false,
+        error: 'Password must be between 8 and 128 characters'
+      });
+      return;
+    }
+
     const registrationService = new RegistrationService(unit);
     const result = await registrationService.register({ username, password });
     await unit.complete(true);
@@ -67,6 +85,15 @@ authRouter.post('/login', async (req: Request, res: Response) => {
       res.status(400).json({
         success: false,
         error: 'Username and password are required'
+      });
+      return;
+    }
+
+    if (typeof username !== 'string' || typeof password !== 'string') {
+      await unit.complete();
+      res.status(400).json({
+        success: false,
+        error: 'Invalid username or password'
       });
       return;
     }

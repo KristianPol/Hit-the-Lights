@@ -190,6 +190,16 @@ describe('HTLService', () => {
       expect(() => service.userFromJSON({ username: 'validuser', password: 'PasswordOnly' }))
         .toThrow('Password must contain at least one number');
     });
+
+    it('should reject long password', () => {
+      expect(() => service.userFromJSON({ username: 'validuser', password: 'Password1' + 'a'.repeat(128) }))
+        .toThrow('Password must be at most 128 characters long');
+    });
+
+    it('should reject non-string username', () => {
+      expect(() => service.userFromJSON({ username: 12345 as any, password: 'Password123' }))
+        .toThrow('Username must be at least 3 characters');
+    });
   });
 
   describe('songFromJSON', () => {

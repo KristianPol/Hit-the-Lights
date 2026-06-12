@@ -19,6 +19,13 @@ export class PasswordValidator {
       };
     }
 
+    if (password.length > 128) {
+      return {
+        valid: false,
+        error: 'Password must be at most 128 characters long'
+      };
+    }
+
     if (!/[A-Z]/.test(password)) {
       return {
         valid: false,

@@ -229,11 +229,15 @@ export class HTLService {
 
 
   public userFromJSON(json: Omit<UserJSON, 'id' | 'joinDate'> & { password: string; id?: number; joinDate?: string }): User {
-    if (!json.username || json.username.length < 3) {
+    if (typeof json.username !== 'string' || json.username.length < 3) {
       throw new Error('Username must be at least 3 characters');
     }
     if (json.username.length > 20) {
       throw new Error('Username must be at most 20 characters');
+    }
+
+    if (typeof json.password !== 'string') {
+      throw new Error('Password must be a string');
     }
 
     const passwordCheck = PasswordValidator.validate(json.password);

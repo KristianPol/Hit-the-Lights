@@ -25,14 +25,14 @@ export class AuthenticationService {
   public async login(request: LoginRequest): Promise<LoginResponse> {
     try {
       // Validate input
-      if (!request.username || request.username.length < 3) {
+      if (typeof request.username !== 'string' || request.username.length < 3) {
         return {
           success: false,
           error: 'Username must be at least 3 characters'
         };
       }
 
-      if (!request.password || request.password.length === 0) {
+      if (typeof request.password !== 'string' || request.password.length === 0) {
         return {
           success: false,
           error: 'Password is required'
