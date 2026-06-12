@@ -45,6 +45,7 @@ export interface GetUserResponse {
   discordUrl?: string | null;
   youtubeUrl?: string | null;
   twitchUrl?: string | null;
+  totalSp?: number;
 }
 
 export interface UpdateProfileRequest {
@@ -298,10 +299,11 @@ export class UserService {
         discordUrl?: string | null;
         youtubeUrl?: string | null;
         twitchUrl?: string | null;
+        total_sp?: number;
       },
       { userId: number }
     >(
-      `SELECT id, username, joinDate, role, profilePicture, profilePictureUrl, playtime_seconds, runs_count,
+      `SELECT id, username, joinDate, role, profilePicture, profilePictureUrl, playtime_seconds, runs_count, total_sp,
         bio, location, favoriteGenre, githubUrl, osuUrl, robloxUrl, discordUrl, youtubeUrl, twitchUrl
        FROM User WHERE id = $userId`,
       { userId }
@@ -332,7 +334,8 @@ export class UserService {
       robloxUrl: result.robloxUrl,
       discordUrl: result.discordUrl,
       youtubeUrl: result.youtubeUrl,
-      twitchUrl: result.twitchUrl
+      twitchUrl: result.twitchUrl,
+      totalSp: typeof result.total_sp === 'number' ? result.total_sp : 0
     };
   }
 

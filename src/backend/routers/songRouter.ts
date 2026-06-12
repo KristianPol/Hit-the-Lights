@@ -613,3 +613,15 @@ songRouter.delete('/:songId/comments/:commentId', authMiddleware, async (req: Re
     res.status(500).json({ success: false, error: error.message || 'Internal server error' });
   }
 });
+
+songRouter.get('/leaderboard/sp', async (req: Request, res: Response) => {
+  const unit = new Unit(true);
+  try {
+    const limit = Math.min(100, Math.max(1, parseInt(req.query['limit'] as string, 10) || 50));
+    const svc = new SongService(unit);
+    const entries = await svc.getSpLeaderboard(limit);
+    res.status(200).json({ success: true, entries });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message || 'Internal server error' });
+  }
+});

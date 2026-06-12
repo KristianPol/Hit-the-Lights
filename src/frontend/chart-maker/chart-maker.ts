@@ -2,12 +2,14 @@ import { AfterViewInit, Component, ElementRef, HostListener, OnDestroy, ViewChil
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { SongService, Song, SongDifficulty } from '../../app/services/song.service';
+import { NoteType, SongService, Song, SongDifficulty } from '../../app/services/song.service';
 import { AuthService } from '../../app/services/auth.service';
 
 interface EditorNote {
   time: number;
   lane: number;
+  type: NoteType;
+  durationMs?: number | null;
 }
 
 @Component({
@@ -64,6 +66,12 @@ export class ChartMaker implements AfterViewInit, OnDestroy {
   readonly ownedSongs = signal<Song[]>([]);
   readonly selectedSongId = signal<number | null>(null);
   readonly audioFileName = signal<string>('');
+  readonly selectedTool = signal<NoteType>(NoteType.Normal);
+  readonly noteTypeOptions = [
+    { value: NoteType.Normal, label: 'Basic', icon: 'fa-circle' },
+    { value: NoteType.Bomb, label: 'Bomb', icon: 'fa-bomb' },
+    { value: NoteType.Hold, label: 'Hold', icon: 'fa-grip-lines' }
+  ];
 
   // Modals
   readonly showFinishModal = signal(false);
@@ -95,7 +103,18 @@ export class ChartMaker implements AfterViewInit, OnDestroy {
   // Computed
   readonly formattedCurrentTime = computed(() => this.formatMs(this.currentTimeMs()));
   readonly formattedDuration = computed(() => this.formatMs(this.durationMs()));
-  readonly noteCountText = computed(() => `${this.notes().length} notes`);
+  readonly noteCountText = computed(() => {
+    const bombs = this.notes().filter(n => n.type === NoteType.Bomb).length;
+    const holds = this.notes().filter(n => n.type === NoteType.Hold).length;
+    let text = `${this.notes().length} notes`;
+    if (bombs > 0 || holds > 0) {
+      const parts: string[] = [];
+      if (bombs > 0) parts.push(`${bombs} bomb${bombs === 1 ? '' : 's'}`);
+      if (holds > 0) parts.push(`${holds} hold${holds === 1 ? '' : 's'}`);
+      text += ` (${parts.join(', ')})`;
+    }
+    return text;
+  });
 
   constructor() {
     this.loadOwnedSongs();
@@ -175,7 +194,12 @@ export class ChartMaker implements AfterViewInit, OnDestroy {
     this.songService.getDifficultyChart(song.id, difficultyId, viewerId).subscribe({
       next: res => {
         if (res.success && res.chart) {
-          this.notes.set(res.chart.notes.map(n => ({ time: n.time, lane: n.lane })));
+          this.notes.set(res.chart.notes.map(n => ({
+            time: n.time,
+            lane: n.lane,
+            type: this.normalizeNoteType(n.type),
+            durationMs: n.durationMs ?? null
+          })));
           this.editingDifficulty.set({
             id: difficultyId,
             difficulty: this.findDifficultyNumber(song.difficulties, difficultyId),
@@ -383,25 +407,83 @@ export class ChartMaker implements AfterViewInit, OnDestroy {
       const color = this.laneColors[note.lane];
       const isHovered = this.hoverLane === note.lane && Math.abs(this.hoverTime - note.time) <= 2;
 
-      // Glow
-      this.ctx.beginPath();
-      this.ctx.fillStyle = isHovered ? color + '70' : color + '40';
-      this.ctx.arc(x, y, noteRadius + (isHovered ? 6 : 4), 0, Math.PI * 2);
-      this.ctx.fill();
+      if (note.type === NoteType.Bomb) {
+        this.drawEditorBombNote(x, y, noteRadius, isHovered);
+      } else if (note.type === NoteType.Hold) {
+        this.drawEditorHoldNote(x, y, noteRadius, color, isHovered);
+      } else {
+        // Glow
+        this.ctx.beginPath();
+        this.ctx.fillStyle = isHovered ? color + '70' : color + '40';
+        this.ctx.arc(x, y, noteRadius + (isHovered ? 6 : 4), 0, Math.PI * 2);
+        this.ctx.fill();
 
-      // Note body
-      this.ctx.beginPath();
-      this.ctx.fillStyle = color;
-      this.ctx.arc(x, y, noteRadius, 0, Math.PI * 2);
-      this.ctx.fill();
+        // Note body
+        this.ctx.beginPath();
+        this.ctx.fillStyle = color;
+        this.ctx.arc(x, y, noteRadius, 0, Math.PI * 2);
+        this.ctx.fill();
 
-      // Border
-      this.ctx.beginPath();
-      this.ctx.strokeStyle = isHovered ? `rgba(${this.textPrimaryRgb}, 1)` : `rgba(${this.textPrimaryRgb}, 0.7)`;
-      this.ctx.lineWidth = isHovered ? 2 : 1.5;
-      this.ctx.arc(x, y, noteRadius, 0, Math.PI * 2);
-      this.ctx.stroke();
+        // Border
+        this.ctx.beginPath();
+        this.ctx.strokeStyle = isHovered ? `rgba(${this.textPrimaryRgb}, 1)` : `rgba(${this.textPrimaryRgb}, 0.7)`;
+        this.ctx.lineWidth = isHovered ? 2 : 1.5;
+        this.ctx.arc(x, y, noteRadius, 0, Math.PI * 2);
+        this.ctx.stroke();
+      }
     }
+  }
+
+  private drawEditorBombNote(x: number, y: number, radius: number, isHovered: boolean): void {
+    const ctx = this.ctx;
+    const size = radius * 1.1;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(Math.PI / 4);
+
+    ctx.beginPath();
+    ctx.moveTo(0, -size);
+    ctx.lineTo(size, 0);
+    ctx.lineTo(0, size);
+    ctx.lineTo(-size, 0);
+    ctx.closePath();
+
+    ctx.fillStyle = '#ff4757';
+    ctx.shadowColor = '#ff4757';
+    ctx.shadowBlur = isHovered ? 16 : 10;
+    ctx.fill();
+
+    ctx.strokeStyle = isHovered ? `rgba(${this.textPrimaryRgb}, 1)` : `rgba(${this.textPrimaryRgb}, 0.7)`;
+    ctx.lineWidth = isHovered ? 2.5 : 1.5;
+    ctx.stroke();
+    ctx.restore();
+
+    ctx.save();
+    ctx.font = `bold ${Math.max(8, radius * 0.8)}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#2c0b0e';
+    ctx.shadowBlur = 0;
+    ctx.fillText('!', x, y + 1);
+    ctx.restore();
+  }
+
+  private drawEditorHoldNote(x: number, y: number, radius: number, color: string, isHovered: boolean): void {
+    const ctx = this.ctx;
+    const width = radius * 1.6;
+    const height = radius * 0.7;
+
+    ctx.beginPath();
+    ctx.roundRect(x - width / 2, y - height / 2, width, height, 4);
+    ctx.fillStyle = color;
+    ctx.shadowColor = color;
+    ctx.shadowBlur = isHovered ? 14 : 8;
+    ctx.fill();
+
+    ctx.strokeStyle = isHovered ? `rgba(${this.textPrimaryRgb}, 1)` : `rgba(${this.textPrimaryRgb}, 0.7)`;
+    ctx.lineWidth = isHovered ? 2 : 1.5;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
   }
 
   private drawPlaybackHead(width: number, height: number): void {
@@ -589,6 +671,19 @@ export class ChartMaker implements AfterViewInit, OnDestroy {
     }
   }
 
+  private normalizeNoteType(type: unknown): NoteType {
+    if (type === NoteType.Bomb || type === NoteType.Hold || type === NoteType.Normal) {
+      return type;
+    }
+    if (Number.isInteger(type)) {
+      const num = Number(type);
+      if (num === NoteType.Bomb || num === NoteType.Hold || num === NoteType.Normal) {
+        return num as NoteType;
+      }
+    }
+    return NoteType.Normal;
+  }
+
   private keepPlaybackHeadVisible(): void {
     const rect = this.canvas.getBoundingClientRect();
     const headY = this.timeToY(this.currentTimeMs());
@@ -608,7 +703,12 @@ export class ChartMaker implements AfterViewInit, OnDestroy {
         return copy;
       });
     } else {
-      this.notes.update(notes => [...notes, { time, lane }].sort((a, b) => a.time - b.time || a.lane - b.lane));
+      const type = this.selectedTool();
+      const newNote: EditorNote = { time, lane, type };
+      if (type === NoteType.Hold) {
+        newNote.durationMs = 500; // default hold length until editor supports dragging
+      }
+      this.notes.update(notes => [...notes, newNote].sort((a, b) => a.time - b.time || a.lane - b.lane));
     }
   }
 
@@ -670,7 +770,12 @@ export class ChartMaker implements AfterViewInit, OnDestroy {
 
     const chart = {
       metadata,
-      notes: this.notes().map(n => ({ time: n.time, lane: n.lane }))
+      notes: this.notes().map(n => ({
+        time: n.time,
+        lane: n.lane,
+        type: n.type,
+        durationMs: n.durationMs ?? null
+      }))
     };
 
     const song: Song = {
@@ -707,7 +812,12 @@ export class ChartMaker implements AfterViewInit, OnDestroy {
         duration_ms: this.durationMs(),
         description: `Chart with ${this.notes().length} notes`
       },
-      notes: this.notes().map(n => ({ time: n.time, lane: n.lane }))
+      notes: this.notes().map(n => ({
+        time: n.time,
+        lane: n.lane,
+        type: n.type,
+        durationMs: n.durationMs ?? null
+      }))
     };
 
     const blob = new Blob([JSON.stringify(chart, null, 2)], { type: 'application/json' });
@@ -756,12 +866,23 @@ export class ChartMaker implements AfterViewInit, OnDestroy {
       return;
     }
 
+    const bombCount = this.notes().filter(n => n.type === NoteType.Bomb).length;
+    if (bombCount > this.notes().length * 0.1) {
+      this.assignError.set('Bomb notes cannot exceed 10% of the chart.');
+      return;
+    }
+
     this.isAssigning.set(true);
     this.assignError.set(null);
 
     const request = {
       difficulty: this.assignDifficulty(),
-      notes: this.notes().map(n => ({ time: n.time, lane: n.lane }))
+      notes: this.notes().map(n => ({
+        time: n.time,
+        lane: n.lane,
+        type: n.type,
+        durationMs: n.durationMs ?? null
+      }))
     };
 
     if (difficultyId) {

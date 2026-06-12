@@ -89,7 +89,8 @@ export class AuthenticationService {
           joinDate: user.joinDate,
           // Map DB column playtime_seconds to model property playtimeSeconds
           playtimeSeconds: typeof (user as any).playtime_seconds === 'number' ? (user as any).playtime_seconds : 0,
-          role: (user as any).role || 'user'
+          role: (user as any).role || 'user',
+          totalSp: typeof (user as any).total_sp === 'number' ? (user as any).total_sp : 0
         }
       };
     } catch (error: any) {
@@ -108,7 +109,7 @@ export class AuthenticationService {
   private async findUserByUsername(username: string): Promise<User | undefined> {
     // Include playtime_seconds, role, and is_banned
     const stmt = this.unit.prepare<any, { username: string }>(
-      'SELECT id, username, password, profilePicture, profilePictureUrl, joinDate, playtime_seconds, role, is_banned FROM "User" WHERE username = $username',
+      'SELECT id, username, password, profilePicture, profilePictureUrl, joinDate, playtime_seconds, role, is_banned, total_sp FROM "User" WHERE username = $username',
       { username }
     );
     return await stmt.get();

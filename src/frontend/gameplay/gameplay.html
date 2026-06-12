@@ -76,7 +76,7 @@
       <div class="results-card">
       <p class="eyebrow">Set Complete</p>
       <h2>{{ displayTitleText() }}</h2>
-      <p class="results-subtitle">{{ displayArtistText() }} • {{ displayBpmText() }}</p>
+      <p class="results-subtitle">{{ displayArtistText() }} • {{ difficultyName() }} • {{ displayBpmText() }}</p>
 
       <div class="results-hero">
         <div class="score-block">
@@ -89,6 +89,14 @@
           <span class="rank-value">{{ resultRank() }}</span>
         </div>
       </div>
+
+      @if (spEarned() !== null) {
+        <div class="results-sp-display" [class.no-sp]="spEarned() === 0">
+          <span class="sp-label"><i class="fas fa-bolt"></i> Shine Points Earned</span>
+          <span class="sp-value">{{ spEarnedText() }}</span>
+          <span class="sp-total">Total: {{ totalSpText() }}</span>
+        </div>
+      }
 
       <div class="results-grid">
         <div class="metric-card radiant-card">

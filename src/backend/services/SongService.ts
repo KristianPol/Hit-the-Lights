@@ -123,6 +123,26 @@ export interface DeleteCommentResponse {
   error?: string;
 }
 
+export enum NoteType {
+  Normal = 1,
+  Bomb = 2,
+  Hold = 3
+}
+
+// SP difficulty weights chosen so D1=10, D5=100, D10=1000 with smooth exponential growth.
+export const SP_DIFFICULTY_WEIGHTS: Record<number, number> = {
+  1: 10,
+  2: 19,
+  3: 33,
+  4: 58,
+  5: 100,
+  6: 167,
+  7: 271,
+  8: 430,
+  9: 664,
+  10: 1000
+};
+
 export interface ChartNoteInput {
   time: number;
   lane: number;
@@ -180,12 +200,16 @@ export interface SubmitHighscoreResponse {
   success: boolean;
   improved: boolean;
   entry?: LeaderboardEntryResponse;
+  sp?: number;
+  totalSp?: number;
   error?: string;
 }
 
 export interface DifficultyChartNoteResponse {
   time: number;
   lane: number;
+  type: number;
+  durationMs: number | null;
 }
 
 export interface DifficultyChartResponse {
@@ -463,6 +487,7 @@ export class SongService {
         return { success: false, error: 'A chart must include at least one note' };
       }
 
+      let bombCount = 0;
       for (const note of notes) {
         if (!Number.isFinite(note.time) || note.time < 0) {
           return { success: false, error: 'Each note must have a non-negative time' };
@@ -470,6 +495,17 @@ export class SongService {
         if (!Number.isInteger(note.lane) || note.lane < 0 || note.lane > 3) {
           return { success: false, error: 'Each note lane must be between 0 and 3' };
         }
+        const type = Number.isInteger(note.type) ? Number(note.type) : NoteType.Normal;
+        if (!Object.values(NoteType).includes(type)) {
+          return { success: false, error: `Invalid note type: ${note.type}` };
+        }
+        if (type === NoteType.Bomb) {
+          bombCount++;
+        }
+      }
+
+      if (bombCount > notes.length * 0.1) {
+        return { success: false, error: 'Bomb notes cannot exceed 10% of the chart' };
       }
 
       const song = await this.getRawSongById(songId);
@@ -503,6 +539,7 @@ export class SongService {
       }
 
       for (const note of notes) {
+        const type = Number.isInteger(note.type) ? Number(note.type) : NoteType.Normal;
         await this.unit.prepare(
           `INSERT INTO Note (difficulty_id, time_ms, lane, type, duration_ms)
            VALUES ($difficultyId, $timeMs, $lane, $type, $durationMs)`,
@@ -510,8 +547,8 @@ export class SongService {
             difficultyId,
             timeMs: Math.round(note.time),
             lane: note.lane,
-            type: Number.isInteger(note.type) ? note.type : 1,
-            durationMs: note.durationMs ?? null
+            type,
+            durationMs: type === NoteType.Bomb ? null : (note.durationMs ?? null)
           }
         ).run();
       }
@@ -840,6 +877,7 @@ export class SongService {
         return { success: false, error: 'A chart must include at least one note' };
       }
 
+      let bombCount = 0;
       for (const note of notes) {
         if (!Number.isFinite(note.time) || note.time < 0) {
           return { success: false, error: 'Each note must have a non-negative time' };
@@ -847,6 +885,17 @@ export class SongService {
         if (!Number.isInteger(note.lane) || note.lane < 0 || note.lane > 3) {
           return { success: false, error: 'Each note lane must be between 0 and 3' };
         }
+        const type = Number.isInteger(note.type) ? Number(note.type) : NoteType.Normal;
+        if (!Object.values(NoteType).includes(type)) {
+          return { success: false, error: `Invalid note type: ${note.type}` };
+        }
+        if (type === NoteType.Bomb) {
+          bombCount++;
+        }
+      }
+
+      if (bombCount > notes.length * 0.1) {
+        return { success: false, error: 'Bomb notes cannot exceed 10% of the chart' };
       }
 
       const song = await this.getRawSongById(songId);
@@ -874,6 +923,7 @@ export class SongService {
       ).run();
 
       for (const note of notes) {
+        const type = Number.isInteger(note.type) ? Number(note.type) : NoteType.Normal;
         await this.unit.prepare(
           `INSERT INTO Note (difficulty_id, time_ms, lane, type, duration_ms)
            VALUES ($difficultyId, $timeMs, $lane, $type, $durationMs)`,
@@ -881,8 +931,8 @@ export class SongService {
             difficultyId,
             timeMs: Math.round(note.time),
             lane: note.lane,
-            type: Number.isInteger(note.type) ? note.type : 1,
-            durationMs: note.durationMs ?? null
+            type,
+            durationMs: type === NoteType.Bomb ? null : (note.durationMs ?? null)
           }
         ).run();
       }
@@ -984,14 +1034,16 @@ export class SongService {
       return undefined;
     }
 
-    const stmt = this.unit.prepare<{ time_ms: number; lane: number }, { difficultyId: number }>(
-      'SELECT time_ms, lane FROM Note WHERE difficulty_id = $difficultyId ORDER BY time_ms ASC, lane ASC',
+    const stmt = this.unit.prepare<{ time_ms: number; lane: number; type: number; duration_ms: number | null }, { difficultyId: number }>(
+      'SELECT time_ms, lane, type, duration_ms FROM Note WHERE difficulty_id = $difficultyId ORDER BY time_ms ASC, lane ASC',
       { difficultyId }
     );
 
     const notes = (await stmt.all()).map(note => ({
       time: note.time_ms,
-      lane: note.lane
+      lane: note.lane,
+      type: note.type,
+      durationMs: note.duration_ms ?? null
     }));
 
     return {
@@ -1275,23 +1327,30 @@ export class SongService {
       );
       const existing = await existingStmt.get();
 
+      let spEarned = 0;
+      let totalSp = 0;
+
       if (!existing) {
+        spEarned = this.computeSp(difficulty.difficulty, candidate.score);
         await this.unit.prepare(
-          `INSERT INTO Highscore (user_id, difficulty_id, score, max_combo, accuracy, date)
-           VALUES ($userId, $difficultyId, $score, $maxCombo, $accuracy, $date)`,
+          `INSERT INTO Highscore (user_id, difficulty_id, score, max_combo, accuracy, sp, date)
+           VALUES ($userId, $difficultyId, $score, $maxCombo, $accuracy, $sp, $date)`,
           {
             userId: candidate.user_id,
             difficultyId: candidate.difficulty_id,
             score: candidate.score,
             maxCombo: candidate.max_combo,
             accuracy: candidate.accuracy,
+            sp: spEarned,
             date: candidate.date
           }
         ).run();
+        totalSp = await this.recalculateUserTotalSp(userId);
       } else if (this.isBetterHighscore(candidate, existing)) {
+        spEarned = this.computeSp(difficulty.difficulty, candidate.score);
         await this.unit.prepare(
           `UPDATE Highscore
-           SET score = $score, max_combo = $maxCombo, accuracy = $accuracy, date = $date
+           SET score = $score, max_combo = $maxCombo, accuracy = $accuracy, sp = $sp, date = $date
            WHERE user_id = $userId AND difficulty_id = $difficultyId`,
           {
             userId: candidate.user_id,
@@ -1299,22 +1358,62 @@ export class SongService {
             score: candidate.score,
             maxCombo: candidate.max_combo,
             accuracy: candidate.accuracy,
+            sp: spEarned,
             date: candidate.date
           }
         ).run();
+        totalSp = await this.recalculateUserTotalSp(userId);
       } else {
+        const totalRow = await this.unit.prepare<{ total_sp: number }, { userId: number }>(
+          'SELECT total_sp FROM "User" WHERE id = $userId',
+          { userId }
+        ).get();
         const current = await this.getDifficultyLeaderboard(songId, difficultyId, userId);
         const entry = current?.entries.find(row => row.userId === userId);
-        return { success: true, improved: false, entry };
+        return { success: true, improved: false, sp: 0, totalSp: totalRow?.total_sp ?? 0, entry };
       }
 
       const updatedLeaderboard = await this.getDifficultyLeaderboard(songId, difficultyId, userId);
       const entry = updatedLeaderboard?.entries.find(row => row.userId === userId);
 
-      return { success: true, improved: true, entry };
+      return { success: true, improved: true, sp: spEarned, totalSp, entry };
     } catch (error: any) {
       return { success: false, improved: false, error: error.message || 'Failed to submit highscore' };
     }
+  }
+
+  public computeSp(difficulty: number, score: number): number {
+    const weight = SP_DIFFICULTY_WEIGHTS[difficulty] ?? SP_DIFFICULTY_WEIGHTS[1];
+    const ratio = score / 1_000_000;
+    return Math.floor(weight * Math.pow(ratio, 4));
+  }
+
+  private async recalculateUserTotalSp(userId: number): Promise<number> {
+    const rowsStmt = this.unit.prepare<{ sp: number }, { userId: number }>(
+      'SELECT h.sp FROM Highscore h WHERE h.user_id = $userId',
+      { userId }
+    );
+    const rows = await rowsStmt.all();
+    const total = rows.reduce((sum, row) => sum + row.sp, 0);
+    await this.unit.prepare<unknown, { totalSp: number; userId: number }>(
+      `UPDATE "User" SET total_sp = $totalSp WHERE id = $userId`,
+      { totalSp: total, userId }
+    ).run();
+    return total;
+  }
+
+  public async getSpLeaderboard(limit = 50): Promise<{ position: number; userId: number; username: string; totalSp: number }[]> {
+    const stmt = this.unit.prepare<{ id: number; username: string; total_sp: number }, { limit: number }>(
+      `SELECT id, username, total_sp FROM "User" WHERE is_banned = 0 OR is_banned IS NULL ORDER BY total_sp DESC LIMIT $limit`,
+      { limit }
+    );
+    const rows = await stmt.all();
+    return rows.map((row, index) => ({
+      position: index + 1,
+      userId: row.id,
+      username: row.username,
+      totalSp: row.total_sp
+    }));
   }
 
   private async getRawSongById(songId: number): Promise<SongRecord | undefined> {

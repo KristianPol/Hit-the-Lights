@@ -32,6 +32,7 @@ export interface User {
   discordUrl?: string | null;
   youtubeUrl?: string | null;
   twitchUrl?: string | null;
+  totalSp?: number;
 }
 
 export interface UpdateProfileRequest {

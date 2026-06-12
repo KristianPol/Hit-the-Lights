@@ -16,7 +16,8 @@ export type User = {
   robloxUrl?: string | null,
   discordUrl?: string | null,
   youtubeUrl?: string | null,
-  twitchUrl?: string | null
+  twitchUrl?: string | null,
+  totalSp?: number
 };
 
 export interface UserControls {

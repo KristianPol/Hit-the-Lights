@@ -2,7 +2,7 @@ import { AfterViewInit, Component, ElementRef, HostListener, OnDestroy, ViewChil
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
-import { Song, SongDifficulty, SongService, difficultyNumberToName } from '../../app/services/song.service';
+import { NoteType, Song, SongDifficulty, SongService, difficultyNumberToName } from '../../app/services/song.service';
 import { AuthService } from '../../app/services/auth.service';
 import { GameSettingsService, PARTICLE_INTENSITY_OPTIONS, formatBindingLabel, formatBindingList, normalizeBindingKey } from '../../app/services/game-settings.service';
 import { FriendshipService, FriendshipResult } from '../../app/services/friendship.service';
@@ -21,6 +21,8 @@ interface HitFeedback {
 interface ChartNote {
   time: number;
   lane: number;
+  type: NoteType;
+  durationMs?: number | null;
   judged?: boolean;
   missed?: boolean; // Track if note was missed vs just judged
 }
@@ -112,6 +114,7 @@ export class Gameplay implements AfterViewInit, OnDestroy {
   private readonly onResize = () => this.handleResize();
   private readonly onAudioEnded = () => this.finishGame();
   private activeFlashes: Map<number, number> = new Map();
+  private redFlashAlpha = 0;
   private lastFrameTime = 0;
   private currentFps = 0;
   private readonly difficultyIdFromState: number | null = (() => {
@@ -149,8 +152,12 @@ export class Gameplay implements AfterViewInit, OnDestroy {
   readonly loadingFriends = signal(false);
 
   readonly stats = signal<GameStats>(this.createInitialStats());
+  readonly spEarned = signal<number | null>(null);
+  readonly totalSp = signal<number | null>(null);
+  readonly highscoreImproved = signal<boolean | null>(null);
   private readonly maxSongScore = 1_000_000;
   private scoreUnits = 0;
+  private scorePenalty = 0;
 
   readonly displayTitleText = computed(() => this.currentSong()?.name || this.chartMetadata().title || 'Prototype Chart');
   readonly displayArtistText = computed(() => this.currentSong()?.author || this.chartMetadata().artist || 'Hit the Lights');
@@ -228,6 +235,20 @@ export class Gameplay implements AfterViewInit, OnDestroy {
   readonly difficultyName = computed(() => {
     const diff = this.resolvedDifficulty();
     return diff ? difficultyNumberToName(diff.difficulty) : 'Unknown';
+  });
+  readonly spEarnedText = computed(() => {
+    const earned = this.spEarned();
+    if (earned === null) {
+      return null;
+    }
+    if (earned === 0) {
+      return 'No SP earned';
+    }
+    return `+${earned.toLocaleString()} SP`;
+  });
+  readonly totalSpText = computed(() => {
+    const total = this.totalSp();
+    return total !== null ? `${total.toLocaleString()} SP` : null;
   });
 
   // FIX: Added key state tracking to prevent held-key spamming
@@ -331,7 +352,7 @@ export class Gameplay implements AfterViewInit, OnDestroy {
   private async initializeGame(): Promise<void> {
     const state = window.history.state;
     const testChart = state?.chartTest as boolean | undefined;
-    const testChartData = state?.chart as { metadata: ChartMetadata; notes: { time: number; lane: number }[] } | undefined;
+    const testChartData = state?.chart as { metadata: ChartMetadata; notes: { time: number; lane: number; type?: NoteType | number; durationMs?: number | null }[] } | undefined;
     const stateSong = state?.song as Song | undefined;
     this.challengeFromUserId = state?.challengeFrom ?? null;
     this.isChallengeMode.set(this.challengeFromUserId !== null);
@@ -340,7 +361,7 @@ export class Gameplay implements AfterViewInit, OnDestroy {
       this.currentSong.set(stateSong ?? null);
       this.chartMetadata.set(testChartData.metadata ?? {});
       this.chartNotes = testChartData.notes
-        .map(note => ({ ...note, judged: false, missed: false }))
+        .map(note => ({ ...note, type: this.normalizeNoteType(note.type), judged: false, missed: false }))
         .sort((a, b) => a.time - b.time);
       this.notes = this.cloneNotes(this.chartNotes);
       this.resolvedDifficulty.set({ id: 0, difficulty: 1, noteCount: this.chartNotes.length });
@@ -409,7 +430,7 @@ export class Gameplay implements AfterViewInit, OnDestroy {
 
       this.chartMetadata.set(response.chart.metadata ?? {});
       this.chartNotes = response.chart.notes
-        .map(note => ({ ...note, judged: false, missed: false }))
+        .map(note => ({ ...note, type: this.normalizeNoteType(note.type), judged: false, missed: false }))
         .sort((a, b) => a.time - b.time);
       this.notes = this.cloneNotes(this.chartNotes);
     } catch (error) {
@@ -435,6 +456,7 @@ export class Gameplay implements AfterViewInit, OnDestroy {
       notes.push({
         time: 1500 + index * 375,
         lane: index % this.laneCount,
+        type: NoteType.Normal,
         judged: false,
         missed: false
       });
@@ -584,9 +606,12 @@ export class Gameplay implements AfterViewInit, OnDestroy {
 
       const timeSinceNote = audioTime - note.time;
 
-      // If the note has passed the hit window and wasn't judged, mark it as missed
+      // Bombs that pass by unhit are simply ignored.
       if (timeSinceNote > this.hitWindow) {
         note.judged = true;
+        if (note.type === NoteType.Bomb) {
+          continue;
+        }
         note.missed = true;
         this.stats.update(stats => ({
           ...stats,
@@ -632,6 +657,10 @@ export class Gameplay implements AfterViewInit, OnDestroy {
     // (late notes will still be auto-missed once they pass the hit window)
     if (timingDelta > this.okayWindow) {
       nextNote.judged = true;
+      if (nextNote.type === NoteType.Bomb) {
+        // Bombs that are avoided are simply ignored.
+        return;
+      }
       nextNote.missed = true;
       this.stats.update(stats => ({
         ...stats,
@@ -640,6 +669,17 @@ export class Gameplay implements AfterViewInit, OnDestroy {
       }));
       this.updateAccuracy();
       this.spawnHitFeedback(lane, 'Shattered', '#ff9ea8');
+      return;
+    }
+
+    if (nextNote.type === NoteType.Bomb) {
+      nextNote.judged = true;
+      this.applyBombPenalty();
+      this.stats.update(stats => ({ ...stats, combo: 0 }));
+      this.updateScaledScore();
+      this.spawnHitFeedback(lane, 'BOMB!', '#ff4757');
+      this.spawnBombDebris(lane);
+      this.triggerRedFlash();
       return;
     }
 
@@ -693,6 +733,13 @@ export class Gameplay implements AfterViewInit, OnDestroy {
     this.updateAccuracy();
   }
 
+  private applyBombPenalty(): void {
+    const totalNotes = this.chartNotes.length;
+    if (totalNotes <= 0) return;
+    const radiantHitValue = this.maxSongScore / totalNotes;
+    this.scorePenalty += Math.round(2 * radiantHitValue);
+  }
+
   private findNextUnjudgedNoteInLane(lane: number): ChartNote | null {
     const audioTime = this.getAudioTimeMs();
     for (const note of this.notes) {
@@ -707,9 +754,11 @@ export class Gameplay implements AfterViewInit, OnDestroy {
       // Skip notes that are too far in the past (way beyond the hit window)
       const timeSinceNote = audioTime - note.time;
       if (timeSinceNote > this.hitWindow + 50) {
-        // Auto-mark this old note as missed so we don't keep returning it
+        // Auto-mark this old note as judged so we don't keep returning it
         note.judged = true;
-        note.missed = true;
+        if (note.type !== NoteType.Bomb) {
+          note.missed = true;
+        }
         continue;
       }
 
@@ -760,7 +809,8 @@ export class Gameplay implements AfterViewInit, OnDestroy {
     }
 
     const maxUnits = totalNotes * 3;
-    const score = Math.round((this.scoreUnits / maxUnits) * this.maxSongScore);
+    const baseScore = Math.round((this.scoreUnits / maxUnits) * this.maxSongScore);
+    const score = Math.max(0, baseScore - this.scorePenalty);
     this.stats.update(current => ({ ...current, score }));
   }
 
@@ -778,6 +828,15 @@ export class Gameplay implements AfterViewInit, OnDestroy {
 
     this.ctx.clearRect(0, 0, width, height);
     this.drawBackground(width, height);
+
+    if (this.redFlashAlpha > 0) {
+      this.ctx.save();
+      this.ctx.fillStyle = `rgba(255, 71, 87, ${this.redFlashAlpha})`;
+      this.ctx.fillRect(0, 0, width, height);
+      this.ctx.restore();
+      this.redFlashAlpha = Math.max(0, this.redFlashAlpha - 0.05);
+    }
+
     this.drawLaneGuides(height);
     this.drawHitZone(width, height);
     const geometry = this.getLaneGeometry(width);
@@ -931,9 +990,51 @@ export class Gameplay implements AfterViewInit, OnDestroy {
       const xCenter = this.getLaneCenterX(note.lane, geometry);
       const color = this.laneColors[note.lane] ?? '#ffffff';
 
-      // Glowing falling bulb
-      this.drawLightbulb(xCenter, yCenter, noteRadius, color, true);
+      if (note.type === NoteType.Bomb) {
+        this.drawBombNote(xCenter, yCenter, noteRadius);
+      } else {
+        // Glowing falling bulb
+        this.drawLightbulb(xCenter, yCenter, noteRadius, color, true);
+      }
     }
+  }
+
+  private drawBombNote(x: number, y: number, radius: number): void {
+    const ctx = this.ctx;
+    const size = radius * 1.3;
+
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(Math.PI / 4);
+
+    ctx.beginPath();
+    ctx.moveTo(0, -size);
+    ctx.lineTo(size, 0);
+    ctx.lineTo(0, size);
+    ctx.lineTo(-size, 0);
+    ctx.closePath();
+
+    ctx.fillStyle = '#ff4757';
+    ctx.shadowColor = '#ff4757';
+    ctx.shadowBlur = 16;
+    ctx.fill();
+
+    ctx.strokeStyle = '#2c0b0e';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    ctx.restore();
+
+    // Skull/X symbol
+    ctx.save();
+    ctx.font = `bold ${Math.max(10, radius)}px Oxanium, Rajdhani, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#2c0b0e';
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+    ctx.fillText('!', x, y + 1);
+    ctx.restore();
   }
 
   private drawLaneLabels(height: number): void {
@@ -995,10 +1096,27 @@ export class Gameplay implements AfterViewInit, OnDestroy {
     return notes.map(note => ({ ...note, judged: false, missed: false }));
   }
 
+  private normalizeNoteType(type: unknown): NoteType {
+    if (type === NoteType.Bomb || type === NoteType.Hold || type === NoteType.Normal) {
+      return type;
+    }
+    if (Number.isInteger(type)) {
+      const num = Number(type);
+      if (num === NoteType.Bomb || num === NoteType.Hold || num === NoteType.Normal) {
+        return num as NoteType;
+      }
+    }
+    return NoteType.Normal;
+  }
+
   private resetGameState(): void {
     this.stopPlaytimeTracking();
     this.stats.set(this.createInitialStats());
+    this.spEarned.set(null);
+    this.totalSp.set(null);
+    this.highscoreImproved.set(null);
     this.scoreUnits = 0;
+    this.scorePenalty = 0;
     this.keyStates = [false, false, false, false]; // Reset key states
     this.notes = this.cloneNotes(this.chartNotes);
     this.hitFeedbacks = [];
@@ -1026,13 +1144,15 @@ export class Gameplay implements AfterViewInit, OnDestroy {
 
     this.currentSongTimeMs.set(this.totalSongDurationMs());
 
-    // Count any remaining unjudged notes as misses
+    // Count any remaining unjudged notes as misses (bombs are ignored)
     let remainingMisses = 0;
     for (const note of this.notes) {
       if (!note.judged) {
         note.judged = true;
-        note.missed = true;
-        remainingMisses++;
+        if (note.type !== NoteType.Bomb) {
+          note.missed = true;
+          remainingMisses++;
+        }
       }
     }
 
@@ -1108,9 +1228,13 @@ export class Gameplay implements AfterViewInit, OnDestroy {
       date: new Date().toISOString()
     }).subscribe({
       next: response => {
+        console.log('[Gameplay] submitDifficultyHighscore response:', response);
         if (!response.success) {
           console.warn('Failed to submit leaderboard score:', response.error);
         } else {
+          this.spEarned.set(response.sp ?? 0);
+          this.totalSp.set(response.totalSp ?? null);
+          this.highscoreImproved.set(response.improved ?? null);
           // Check leaderboard position achievements
           this.achievementService.checkLeaderboardAchievements(songId, difficultyId);
         }
@@ -1418,6 +1542,36 @@ export class Gameplay implements AfterViewInit, OnDestroy {
       this.ctx.shadowBlur = 30;
       this.drawLightbulb(laneCenterX, hitZoneY, this.hitAreaRadius * 1.1, color, true);
       this.ctx.restore();
+    }
+  }
+
+  private triggerRedFlash(): void {
+    this.redFlashAlpha = 0.35;
+  }
+
+  private spawnBombDebris(lane: number): void {
+    const geometry = this.getLaneGeometry(this.canvas.width);
+    const hitZoneY = this.getHitZoneY(this.canvas.height);
+    const x = this.getLaneCenterX(lane, geometry);
+    const y = hitZoneY;
+    const count = 10;
+
+    for (let i = 0; i < count; i++) {
+      const s = 4 + Math.random() * 5;
+      const points = [0, -s, s * 0.8, s * 0.6, -s * 0.6, s * 0.4];
+      this.shatterShards.push({
+        x,
+        y,
+        vx: (Math.random() - 0.5) * 3,
+        vy: 3 + Math.random() * 5,
+        angle: Math.random() * Math.PI * 2,
+        angularVelocity: (Math.random() - 0.5) * 0.2,
+        life: 1,
+        maxLife: 0.6 + Math.random() * 0.4,
+        color: '#4a4a4a',
+        size: s,
+        points
+      });
     }
   }
 

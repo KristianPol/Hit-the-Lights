@@ -67,6 +67,12 @@
           <span class="rank-badge" [style.--rank-color]="playerRank().color">
             <i class="fas {{ playerRank().icon }}"></i> {{ playerRank().name }}
           </span>
+
+          <div class="sp-display">
+            <span class="sp-label"><i class="fas fa-bolt"></i> Shine Points</span>
+            <span class="sp-value">{{ formatSp(user.totalSp) }}</span>
+          </div>
+
           <p class="profile-bio">{{ user.bio || 'Rhythm game player • chasing high scores ⚡' }}</p>
 
           @if (user.location || user.favoriteGenre) {
@@ -132,6 +138,11 @@
           <div class="about-tab">
             <div class="stats-section">
               <div class="stats-grid">
+                <div class="stat-box featured">
+                  <div class="stat-icon"><i class="fas fa-bolt"></i></div>
+                  <span class="stat-value">{{ formatSp(user.totalSp) }}</span>
+                  <span class="stat-label">Shine Points</span>
+                </div>
                 <div class="stat-box">
                   <div class="stat-icon"><i class="fas fa-music"></i></div>
                   <span class="stat-value">{{ uploadedSongCount }}</span>

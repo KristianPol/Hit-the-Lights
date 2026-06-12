@@ -24,6 +24,7 @@ export class MenuSidebarComponent implements OnInit {
   menuItems: MenuItem[] = [
     { label: 'Dashboard', icon: 'fas fa-house', route: '/menu' },
     { label: 'Profile', icon: 'fas fa-user', route: '/profile' },
+    { label: 'Leaderboard', icon: 'fas fa-trophy', route: '/leaderboard' },
     { label: 'Chart Maker', icon: 'fas fa-pen-ruler', route: '/chart-maker' },
     { label: 'About', icon: 'fas fa-circle-info', route: '/about', isSecluded: true },
     { label: 'Settings', icon: 'fas fa-gear', route: '/settings' },

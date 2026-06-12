@@ -56,6 +56,7 @@ export interface UserJSON {
   discordUrl?: string | null;
   youtubeUrl?: string | null;
   twitchUrl?: string | null;
+  totalSp?: number;
 }
 
 export class HTLService {
@@ -85,7 +86,8 @@ export class HTLService {
       robloxUrl: (user as any).robloxUrl ?? null,
       discordUrl: (user as any).discordUrl ?? null,
       youtubeUrl: (user as any).youtubeUrl ?? null,
-      twitchUrl: (user as any).twitchUrl ?? null
+      twitchUrl: (user as any).twitchUrl ?? null,
+      totalSp: typeof (user as any).totalSp === 'number' ? (user as any).totalSp : (typeof (user as any).total_sp === 'number' ? (user as any).total_sp : 0)
     };
   }
 

@@ -65,10 +65,16 @@ export function difficultyNameToNumber(name: DifficultyLevel): number {
   return DIFFICULTY_MAP[name];
 }
 
+export enum NoteType {
+  Normal = 1,
+  Bomb = 2,
+  Hold = 3
+}
+
 export interface ChartNote {
   time: number;
   lane: number;
-  type?: number;
+  type?: NoteType | number;
   durationMs?: number | null;
 }
 
@@ -200,12 +206,16 @@ export interface SubmitLeaderboardResponse {
   success: boolean;
   improved: boolean;
   entry?: LeaderboardEntry;
+  sp?: number;
+  totalSp?: number;
   error?: string;
 }
 
 export interface DifficultyChartNote {
   time: number;
   lane: number;
+  type: NoteType | number;
+  durationMs: number | null;
 }
 
 export interface DifficultyChart {
@@ -500,6 +510,15 @@ export class SongService {
           );
         })
       );
+  }
+
+  getSpLeaderboard(limit = 50): Observable<{ success: boolean; entries: { position: number; userId: number; username: string; totalSp: number }[]; error?: string }> {
+    const params = new HttpParams().set('limit', limit.toString());
+    return this.http.get<{ success: boolean; entries: { position: number; userId: number; username: string; totalSp: number }[]; error?: string }>(`${this.apiUrl}/leaderboard/sp`, { params }).pipe(
+      catchError(error => {
+        return throwError(() => new Error(error.error?.error || 'Failed to fetch SP leaderboard'));
+      })
+    );
   }
 
   getDifficultyChart(songId: number, difficultyId: number, viewerId?: number): Observable<GetDifficultyChartResponse> {

@@ -43,6 +43,18 @@
     </div>
 
     <div class="header-group actions">
+      <div class="tool-selector">
+        @for (tool of noteTypeOptions; track tool.value) {
+          <button
+            type="button"
+            class="tool-btn"
+            [class.active]="selectedTool() === tool.value"
+            (click)="selectedTool.set(tool.value)">
+            <i class="fas {{ tool.icon }}"></i>
+            <span>{{ tool.label }}</span>
+          </button>
+        }
+      </div>
       <span class="zoom-label">{{ (zoom() * 100).toFixed(0) }}%</span>
       <button class="action-btn" (click)="playtest()" [disabled]="notes().length === 0 || !isAudioLoaded()">
         <i class="fas fa-gamepad"></i> Playtest

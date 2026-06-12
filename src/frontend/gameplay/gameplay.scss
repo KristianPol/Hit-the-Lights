@@ -4,6 +4,7 @@
   display: block;
   width: 100%;
   min-height: 100vh;
+  font-family: 'Oxanium', 'Rajdhani', 'Segoe UI', sans-serif;
 }
 
 .gameplay-page {
@@ -269,6 +270,58 @@
   font-size: 1.4rem;
   font-weight: 800;
   color: $yellow-primary;
+}
+
+.results-sp-display {
+  margin-top: 14px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+  background: rgba(var(--color-accent-rgb), 0.08);
+  border: 1px solid rgba(var(--color-accent-rgb), 0.25);
+  border-radius: 16px;
+  box-shadow: 0 0 20px rgba(var(--color-accent-rgb), 0.1);
+
+  &.no-sp {
+    border-color: rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.03);
+    box-shadow: none;
+
+    .sp-value {
+      color: $text-secondary;
+      text-shadow: none;
+    }
+  }
+
+  .sp-label {
+    font-size: 0.68rem;
+    color: $text-secondary;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+
+    i {
+      color: $yellow-primary;
+    }
+  }
+
+  .sp-value {
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: $yellow-primary;
+    text-shadow: 0 0 15px $yellow-glow;
+    line-height: 1;
+  }
+
+  .sp-total {
+    font-size: 0.78rem;
+    color: rgba(255, 255, 255, 0.7);
+  }
 }
 
 .results-grid {

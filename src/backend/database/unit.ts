@@ -313,12 +313,19 @@ export class Unit {
         totalScore INTEGER NOT NULL DEFAULT 0,
         totalAccuracy REAL NOT NULL DEFAULT 0,
         runsCount INTEGER NOT NULL DEFAULT 0,
+        total_sp INTEGER NOT NULL DEFAULT 0,
         role TEXT DEFAULT 'user',
         is_banned INTEGER DEFAULT 0,
         last_song_upload_at TIMESTAMP,
         CONSTRAINT uq_username UNIQUE (username)
       )
     `);
+
+    try {
+      await getSql().unsafe(`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS total_sp INTEGER NOT NULL DEFAULT 0`);
+    } catch (e: any) {
+      // ignore
+    }
 
     // Ensure profilePictureUrl exists on older User tables
     try {
@@ -412,11 +419,18 @@ export class Unit {
         score INTEGER NOT NULL,
         max_combo INTEGER NOT NULL,
         accuracy INTEGER NOT NULL,
+        sp INTEGER NOT NULL DEFAULT 0,
         date TEXT NOT NULL,
         CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES "User"(id),
         CONSTRAINT fk_difficulty FOREIGN KEY (difficulty_id) REFERENCES Difficulty(id)
       )
     `);
+
+    try {
+      await getSql().unsafe(`ALTER TABLE Highscore ADD COLUMN IF NOT EXISTS sp INTEGER NOT NULL DEFAULT 0`);
+    } catch (e: any) {
+      // ignore
+    }
 
     await getSql().unsafe(`
       CREATE UNIQUE INDEX IF NOT EXISTS uq_highscore_user_difficulty ON Highscore(user_id, difficulty_id)

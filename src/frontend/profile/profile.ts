@@ -413,6 +413,13 @@ export class ProfileComponent implements OnInit {
     }
   }
 
+  formatSp(value: number | undefined): string {
+    if (value === undefined || value === null || !Number.isFinite(value)) return '0';
+    if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(2)}M`;
+    if (value >= 1_000) return `${(value / 1_000).toFixed(1)}K`;
+    return value.toLocaleString();
+  }
+
   async copyProfileLink(): Promise<void> {
     if (!this.user) return;
     const url = `${window.location.origin}/profile/${this.user.id}`;

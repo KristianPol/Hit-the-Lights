@@ -13,6 +13,7 @@ import { AnalyticsPage } from '../frontend/analytics/analytics';
 import { AboutPage } from '../frontend/about/about';
 import { AchievementsComponent } from '../frontend/achievements/achievements';
 import { ChartMaker } from '../frontend/chart-maker/chart-maker';
+import { LeaderboardPage } from '../frontend/leaderboard/leaderboard';
 
 export const routes: Routes = [
     {path: 'login', component: Login},
@@ -36,5 +37,6 @@ export const routes: Routes = [
     {path: 'gameplay', component: Gameplay},
     {path: 'gameplay/:songId', component: Gameplay},
     {path: 'chart-maker', component: ChartMaker},
+    {path: 'leaderboard', component: LeaderboardPage},
     {path: '', pathMatch: 'full', redirectTo: 'starterPage'}
 ];
