@@ -4,10 +4,17 @@ import { AuthService } from './auth.service';
 import { ThemeService } from './theme.service';
 import { firstValueFrom } from 'rxjs';
 
+export type ParticleIntensity = 'off' | 'low' | 'medium' | 'high';
+
 export interface GameSettings {
   laneBindings: [string, string, string, string];
   noteSpeed: number;
   theme: string;
+  masterVolume: number;
+  showKeyLabels: boolean;
+  fullscreen: boolean;
+  particleIntensity: ParticleIntensity;
+  fpsCounter: boolean;
 }
 
 export interface UpdateBindingResult {
@@ -15,11 +22,23 @@ export interface UpdateBindingResult {
   error?: string;
 }
 
+export const PARTICLE_INTENSITY_OPTIONS: { value: ParticleIntensity; label: string; multiplier: number }[] = [
+  { value: 'off', label: 'Off', multiplier: 0 },
+  { value: 'low', label: 'Low', multiplier: 0.4 },
+  { value: 'medium', label: 'Medium', multiplier: 0.75 },
+  { value: 'high', label: 'High', multiplier: 1 }
+];
+
 const STORAGE_KEY_PREFIX = 'hit-the-lights.game-settings';
 const DEFAULT_SETTINGS: GameSettings = {
   laneBindings: ['d', 'f', 'j', 'k'],
   noteSpeed: 1,
-  theme: 'black-yellow'
+  theme: 'black-yellow',
+  masterVolume: 1,
+  showKeyLabels: true,
+  fullscreen: false,
+  particleIntensity: 'high',
+  fpsCounter: false
 };
 const LANE_COUNT = 4;
 const MIN_NOTE_SPEED = 0.5;
@@ -98,6 +117,11 @@ export class GameSettingsService {
   readonly laneBindings = computed(() => this.settingsSignal().laneBindings);
   readonly noteSpeed = computed(() => this.settingsSignal().noteSpeed);
   readonly theme = computed(() => this.settingsSignal().theme);
+  readonly masterVolume = computed(() => this.settingsSignal().masterVolume);
+  readonly showKeyLabels = computed(() => this.settingsSignal().showKeyLabels);
+  readonly fullscreen = computed(() => this.settingsSignal().fullscreen);
+  readonly particleIntensity = computed(() => this.settingsSignal().particleIntensity);
+  readonly fpsCounter = computed(() => this.settingsSignal().fpsCounter);
   private readonly http = inject(HttpClient);
   private readonly auth = inject(AuthService);
   private readonly themeService = inject(ThemeService);
@@ -154,6 +178,31 @@ export class GameSettingsService {
     this.saveSettings({ ...current, theme });
   }
 
+  updateMasterVolume(volume: number): void {
+    const current = this.settingsSignal();
+    this.saveSettings({ ...current, masterVolume: this.clampVolume(volume) });
+  }
+
+  updateShowKeyLabels(show: boolean): void {
+    const current = this.settingsSignal();
+    this.saveSettings({ ...current, showKeyLabels: show });
+  }
+
+  updateFullscreen(fullscreen: boolean): void {
+    const current = this.settingsSignal();
+    this.saveSettings({ ...current, fullscreen });
+  }
+
+  updateParticleIntensity(intensity: ParticleIntensity): void {
+    const current = this.settingsSignal();
+    this.saveSettings({ ...current, particleIntensity: intensity });
+  }
+
+  updateFpsCounter(show: boolean): void {
+    const current = this.settingsSignal();
+    this.saveSettings({ ...current, fpsCounter: show });
+  }
+
   resetDefaults(): void {
     this.saveSettings(this.cloneSettings(DEFAULT_SETTINGS));
   }
@@ -204,10 +253,20 @@ export class GameSettingsService {
     const theme = typeof settings?.theme === 'string' && settings.theme.trim()
       ? settings.theme.trim()
       : fallback.theme;
+    const masterVolume = this.clampVolume(settings?.masterVolume ?? fallback.masterVolume);
+    const showKeyLabels = typeof settings?.showKeyLabels === 'boolean' ? settings.showKeyLabels : fallback.showKeyLabels;
+    const fullscreen = typeof settings?.fullscreen === 'boolean' ? settings.fullscreen : fallback.fullscreen;
+    const particleIntensity = this.validParticleIntensity(settings?.particleIntensity) ?? fallback.particleIntensity;
+    const fpsCounter = typeof settings?.fpsCounter === 'boolean' ? settings.fpsCounter : fallback.fpsCounter;
     return {
       laneBindings: safeBindings,
       noteSpeed,
-      theme
+      theme,
+      masterVolume,
+      showKeyLabels,
+      fullscreen,
+      particleIntensity,
+      fpsCounter
     };
   }
 
@@ -220,11 +279,31 @@ export class GameSettingsService {
     return Math.min(MAX_NOTE_SPEED, Math.max(MIN_NOTE_SPEED, Number(numeric.toFixed(2))));
   }
 
+  private clampVolume(value: number): number {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) {
+      return DEFAULT_SETTINGS.masterVolume;
+    }
+    return Math.min(1, Math.max(0, Number(numeric.toFixed(2))));
+  }
+
+  private validParticleIntensity(value: unknown): ParticleIntensity | null {
+    if (value === 'off' || value === 'low' || value === 'medium' || value === 'high') {
+      return value;
+    }
+    return null;
+  }
+
   private cloneSettings(settings: GameSettings): GameSettings {
     return {
       laneBindings: [...settings.laneBindings] as [string, string, string, string],
       noteSpeed: settings.noteSpeed,
-      theme: settings.theme
+      theme: settings.theme,
+      masterVolume: settings.masterVolume,
+      showKeyLabels: settings.showKeyLabels,
+      fullscreen: settings.fullscreen,
+      particleIntensity: settings.particleIntensity,
+      fpsCounter: settings.fpsCounter
     };
   }
 

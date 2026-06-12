@@ -4,7 +4,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { Song, SongDifficulty, SongService, difficultyNumberToName } from '../../app/services/song.service';
 import { AuthService } from '../../app/services/auth.service';
-import { GameSettingsService, formatBindingLabel, formatBindingList, normalizeBindingKey } from '../../app/services/game-settings.service';
+import { GameSettingsService, PARTICLE_INTENSITY_OPTIONS, formatBindingLabel, formatBindingList, normalizeBindingKey } from '../../app/services/game-settings.service';
 import { FriendshipService, FriendshipResult } from '../../app/services/friendship.service';
 import { MessageService } from '../../app/services/message.service';
 import { AchievementService } from '../../app/services/achievement.service';
@@ -112,6 +112,8 @@ export class Gameplay implements AfterViewInit, OnDestroy {
   private readonly onResize = () => this.handleResize();
   private readonly onAudioEnded = () => this.finishGame();
   private activeFlashes: Map<number, number> = new Map();
+  private lastFrameTime = 0;
+  private currentFps = 0;
   private readonly difficultyIdFromState: number | null = (() => {
     const value = Number(window.history.state?.difficultyId);
     return Number.isFinite(value) && value > 0 ? value : null;
@@ -503,7 +505,12 @@ export class Gameplay implements AfterViewInit, OnDestroy {
     this.gameFinished.set(false);
     this.loadingError.set(null);
     this.audio.currentTime = 0;
+    this.audio.volume = this.gameSettingsService.masterVolume();
     this.virtualAudioStartMs = null;
+
+    if (this.gameSettingsService.fullscreen()) {
+      this.requestGameplayFullscreen();
+    }
 
     // Report play count once per session for real songs
     const song = this.currentSong();
@@ -524,6 +531,14 @@ export class Gameplay implements AfterViewInit, OnDestroy {
 
     this.gameLoop();
     this.startPlaytimeTracking();
+  }
+
+  private requestGameplayFullscreen(): void {
+    if (typeof document === 'undefined') return;
+    const element = document.documentElement;
+    if (!document.fullscreenElement && element.requestFullscreen) {
+      element.requestFullscreen().catch(() => {});
+    }
   }
 
   private gameLoop = (): void => {
@@ -754,6 +769,10 @@ export class Gameplay implements AfterViewInit, OnDestroy {
       return;
     }
 
+    if (this.audio) {
+      this.audio.volume = this.gameSettingsService.masterVolume();
+    }
+
     const width = this.canvas.width;
     const height = this.canvas.height;
 
@@ -768,6 +787,33 @@ export class Gameplay implements AfterViewInit, OnDestroy {
     this.updateAndDrawShatters();
     this.updateAndDrawHitFeedbacks(geometry);
     this.drawLaneLabels(height);
+
+    if (this.gameSettingsService.fpsCounter()) {
+      this.updateFps();
+      this.drawFpsCounter();
+    }
+  }
+
+  private updateFps(): void {
+    const now = performance.now();
+    if (this.lastFrameTime > 0) {
+      const frameTime = now - this.lastFrameTime;
+      this.currentFps = frameTime > 0 ? Math.round(1000 / frameTime) : 0;
+    }
+    this.lastFrameTime = now;
+  }
+
+  private drawFpsCounter(): void {
+    if (!this.ctx) return;
+    this.ctx.save();
+    this.ctx.font = 'bold 14px Oxanium, Rajdhani, sans-serif';
+    this.ctx.fillStyle = `rgba(${this.textPrimaryRgb}, 0.9)`;
+    this.ctx.textAlign = 'left';
+    this.ctx.textBaseline = 'top';
+    this.ctx.shadowColor = `rgba(${this.textPrimaryRgb}, 0.5)`;
+    this.ctx.shadowBlur = 6;
+    this.ctx.fillText(`FPS ${this.currentFps}`, 12, 12);
+    this.ctx.restore();
   }
 
   private drawBackground(width: number, height: number): void {
@@ -891,6 +937,9 @@ export class Gameplay implements AfterViewInit, OnDestroy {
   }
 
   private drawLaneLabels(height: number): void {
+    if (!this.gameSettingsService.showKeyLabels()) {
+      return;
+    }
     /*const geometry = this.getLaneGeometry();
     const hitZoneY = this.getHitZoneY(height);
 
@@ -1373,7 +1422,13 @@ export class Gameplay implements AfterViewInit, OnDestroy {
   }
 
   private spawnShatter(x: number, y: number, color: string): void {
-    const shardCount = 16 + Math.floor(Math.random() * 8); // 16-24 shards
+    const intensity = this.gameSettingsService.particleIntensity();
+    if (intensity === 'off') {
+      return;
+    }
+    const multiplier = PARTICLE_INTENSITY_OPTIONS.find(o => o.value === intensity)?.multiplier ?? 1;
+    const baseCount = 16 + Math.floor(Math.random() * 8); // 16-24 shards
+    const shardCount = Math.max(1, Math.round(baseCount * multiplier));
 
     for (let i = 0; i < shardCount; i++) {
       const angle = (Math.PI * 2 * i) / shardCount + (Math.random() - 0.5) * 0.8;

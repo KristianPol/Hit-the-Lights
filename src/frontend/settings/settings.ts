@@ -2,7 +2,7 @@ import { Component, HostListener, computed, inject, signal } from '@angular/core
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { GameSettingsService, formatBindingLabel, formatBindingList } from '../../app/services/game-settings.service';
+import { GameSettingsService, PARTICLE_INTENSITY_OPTIONS, type ParticleIntensity, formatBindingLabel, formatBindingList } from '../../app/services/game-settings.service';
 import { ThemeService, THEMES, type Theme } from '../../app/services/theme.service';
 
 @Component({
@@ -24,9 +24,21 @@ export class SettingsPage {
   readonly themes = signal<Theme[]>(THEMES);
   readonly selectedThemeId = computed(() => this.themeService.currentThemeId());
 
+  readonly particleIntensityOptions = PARTICLE_INTENSITY_OPTIONS;
+  readonly masterVolume = computed(() => this.gameSettingsService.masterVolume());
+  readonly volumePercent = computed(() => Math.round(this.gameSettingsService.masterVolume() * 100));
+  readonly showKeyLabels = computed(() => this.gameSettingsService.showKeyLabels());
+  readonly fullscreen = computed(() => this.gameSettingsService.fullscreen());
+  readonly particleIntensity = computed(() => this.gameSettingsService.particleIntensity());
+  readonly fpsCounter = computed(() => this.gameSettingsService.fpsCounter());
+
   private noteSpeedDraftSignal = signal<number>(this.noteSpeed());
   get noteSpeedDraft(): number { return this.noteSpeedDraftSignal(); }
   set noteSpeedDraft(v: number) { this.noteSpeedDraftSignal.set(v); }
+
+  private masterVolumeDraftSignal = signal<number>(this.masterVolume());
+  get masterVolumeDraft(): number { return this.masterVolumeDraftSignal(); }
+  set masterVolumeDraft(v: number) { this.masterVolumeDraftSignal.set(v); }
 
   private capturingLaneSignal = signal<number | null>(null);
   get capturingLane(): number | null { return this.capturingLaneSignal(); }
@@ -65,13 +77,60 @@ export class SettingsPage {
     this.statusMessage.set(`Theme changed to ${this.themes().find(t => t.id === themeId)?.label ?? themeId}.`);
   }
 
+  onMasterVolumeChange(value: string | number): void {
+    const numericValue = typeof value === 'number' ? value : Number(value);
+    this.gameSettingsService.updateMasterVolume(numericValue);
+    this.masterVolumeDraft = this.masterVolume();
+    this.errorMessage.set(null);
+    this.statusMessage.set(`Master volume set to ${Math.round(this.masterVolume() * 100)}%.`);
+  }
+
+  toggleShowKeyLabels(): void {
+    this.gameSettingsService.updateShowKeyLabels(!this.showKeyLabels());
+    this.errorMessage.set(null);
+    this.statusMessage.set(this.showKeyLabels() ? 'Key labels shown.' : 'Key labels hidden.');
+  }
+
+  toggleFullscreen(): void {
+    const next = !this.fullscreen();
+    this.gameSettingsService.updateFullscreen(next);
+    this.applyFullscreen(next);
+    this.errorMessage.set(null);
+    this.statusMessage.set(next ? 'Fullscreen enabled for gameplay.' : 'Fullscreen disabled.');
+  }
+
+  private applyFullscreen(enabled: boolean): void {
+    if (typeof document === 'undefined') return;
+    const isFullscreen = !!document.fullscreenElement;
+    if (enabled && !isFullscreen) {
+      document.documentElement.requestFullscreen?.().catch(() => {});
+    } else if (!enabled && isFullscreen) {
+      document.exitFullscreen?.().catch(() => {});
+    }
+  }
+
+  onParticleIntensityChange(value: ParticleIntensity): void {
+    this.gameSettingsService.updateParticleIntensity(value);
+    this.errorMessage.set(null);
+    const label = PARTICLE_INTENSITY_OPTIONS.find(o => o.value === value)?.label ?? value;
+    this.statusMessage.set(`Particle effects set to ${label}.`);
+  }
+
+  toggleFpsCounter(): void {
+    this.gameSettingsService.updateFpsCounter(!this.fpsCounter());
+    this.errorMessage.set(null);
+    this.statusMessage.set(this.fpsCounter() ? 'FPS counter enabled.' : 'FPS counter disabled.');
+  }
+
   resetDefaults(): void {
     this.gameSettingsService.resetDefaults();
     this.themeService.applyTheme('black-yellow');
     this.noteSpeedDraft = this.noteSpeed();
+    this.masterVolumeDraft = this.masterVolume();
+    this.applyFullscreen(false);
     this.capturingLane = null;
     this.errorMessage.set(null);
-    this.statusMessage.set('Controls, speed, and theme reset to default values.');
+    this.statusMessage.set('All settings reset to default values.');
   }
 
   @HostListener('window:keydown', ['$event'])

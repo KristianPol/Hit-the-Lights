@@ -98,6 +98,79 @@
       </div>
     </div>
 
+    <!-- Master Volume -->
+    <div class="section-card">
+      <div class="section-header">
+        <i class="fas fa-volume-high"></i>
+        <span>Master Volume</span>
+      </div>
+      <p class="section-hint">Controls music and sound effect loudness during gameplay.</p>
+      <div class="speed-control">
+        <input
+          type="range"
+          min="0"
+          max="1"
+          step="0.01"
+          [ngModel]="masterVolume()"
+          (ngModelChange)="onMasterVolumeChange($event)"
+        />
+        <span class="speed-value">{{ volumePercent() }}%</span>
+      </div>
+    </div>
+
+    <!-- Show Key Labels -->
+    <div class="section-card">
+      <div class="section-header">
+        <i class="fas fa-keyboard"></i>
+        <span>Key Labels</span>
+      </div>
+      <p class="section-hint">Show or hide the lane key hints under each note column.</p>
+      <button type="button" class="toggle-btn" [class.active]="showKeyLabels()" (click)="toggleShowKeyLabels()">
+        <span class="toggle-knob"></span>
+        <span class="toggle-label">{{ showKeyLabels() ? 'Shown' : 'Hidden' }}</span>
+      </button>
+    </div>
+
+    <!-- Fullscreen -->
+    <div class="section-card">
+      <div class="section-header">
+        <i class="fas fa-expand"></i>
+        <span>Fullscreen</span>
+      </div>
+      <p class="section-hint">Start gameplay in fullscreen mode.</p>
+      <button type="button" class="toggle-btn" [class.active]="fullscreen()" (click)="toggleFullscreen()">
+        <span class="toggle-knob"></span>
+        <span class="toggle-label">{{ fullscreen() ? 'Enabled' : 'Disabled' }}</span>
+      </button>
+    </div>
+
+    <!-- Particle Intensity -->
+    <div class="section-card">
+      <div class="section-header">
+        <i class="fas fa-burst"></i>
+        <span>Particle Effects</span>
+      </div>
+      <p class="section-hint">Adjust how much shatter and hit flash appears during play.</p>
+      <select [ngModel]="particleIntensity()" (ngModelChange)="onParticleIntensityChange($event)" class="neon-select">
+        @for (option of particleIntensityOptions; track option.value) {
+          <option [value]="option.value">{{ option.label }}</option>
+        }
+      </select>
+    </div>
+
+    <!-- FPS Counter -->
+    <div class="section-card">
+      <div class="section-header">
+        <i class="fas fa-stopwatch"></i>
+        <span>FPS Counter</span>
+      </div>
+      <p class="section-hint">Show a small frames-per-second overlay during gameplay.</p>
+      <button type="button" class="toggle-btn" [class.active]="fpsCounter()" (click)="toggleFpsCounter()">
+        <span class="toggle-knob"></span>
+        <span class="toggle-label">{{ fpsCounter() ? 'Enabled' : 'Disabled' }}</span>
+      </button>
+    </div>
+
     <div class="actions">
       <button type="button" class="btn btn-secondary" (click)="resetDefaults()">Reset to Default</button>
       <button type="button" class="btn btn-primary" (click)="goBack()">Save and Return</button>

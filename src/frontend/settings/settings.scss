@@ -445,6 +445,97 @@
   50% { opacity: 0.8; transform: scale(1.05); }
 }
 
+.toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.4rem 0.5rem 0.4rem 0.4rem;
+  background: rgba(var(--color-text-primary-rgb), 0.05);
+  border: 1px solid rgba(var(--color-text-primary-rgb), 0.12);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+
+  .toggle-knob {
+    width: 36px;
+    height: 20px;
+    border-radius: 999px;
+    background: rgba(var(--color-text-primary-rgb), 0.15);
+    position: relative;
+    transition: all 0.25s ease;
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: $text-muted;
+      transition: all 0.25s ease;
+    }
+  }
+
+  .toggle-label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: $text-secondary;
+    min-width: 70px;
+    text-align: left;
+  }
+
+  &:hover {
+    border-color: rgba(var(--color-accent-rgb), 0.25);
+  }
+
+  &.active {
+    border-color: rgba(var(--color-accent-rgb), 0.4);
+    background: rgba(var(--color-accent-rgb), 0.08);
+
+    .toggle-knob {
+      background: rgba(var(--color-accent-rgb), 0.35);
+
+      &::after {
+        left: calc(100% - 18px);
+        background: $yellow-primary;
+        box-shadow: 0 0 8px $yellow-primary;
+      }
+    }
+
+    .toggle-label {
+      color: $yellow-primary;
+    }
+  }
+}
+
+.neon-select {
+  width: 100%;
+  max-width: 220px;
+  padding: 0.55rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid rgba(var(--color-accent-rgb), 0.3);
+  background: rgba(var(--color-text-primary-rgb), 0.05);
+  color: $text-primary;
+  font-size: 0.85rem;
+  font-weight: 700;
+  font-family: inherit;
+  outline: none;
+  cursor: pointer;
+  transition: all 0.25s ease;
+
+  &:focus {
+    border-color: rgba(var(--color-accent-rgb), 0.55);
+    background: rgba(var(--color-text-primary-rgb), 0.08);
+    box-shadow: 0 0 0 3px rgba(var(--color-accent-rgb), 0.08), 0 0 12px rgba(var(--color-accent-rgb), 0.1);
+  }
+
+  option {
+    background: $black-primary;
+    color: $text-primary;
+  }
+}
+
 @media (max-width: 768px) {
   .settings-container {
     padding: 0.5rem;
