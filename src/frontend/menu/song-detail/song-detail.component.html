@@ -186,7 +186,8 @@
                       [ngModel]="commentDraft()"
                       (ngModelChange)="commentDraft.set($event)"
                       placeholder="Add a public comment..."
-                      rows="3"></textarea>
+                      rows="3"
+                      maxlength="1000"></textarea>
                     <div class="comment-form-actions">
                       @if (replyingTo()) {
                         <button class="btn-cancel" type="button" (click)="cancelReply()">Cancel Reply</button>
@@ -220,7 +221,8 @@
                                     [ngModel]="editCommentDraft()"
                                     (ngModelChange)="editCommentDraft.set($event)"
                                     placeholder="Edit your comment..."
-                                    rows="2"></textarea>
+                                    rows="2"
+                                    maxlength="1000"></textarea>
                                   <div class="comment-edit-actions">
                                     <button class="btn-cancel" type="button" (click)="cancelEditComment()">Cancel</button>
                                     <button class="btn-submit" type="button" (click)="submitEditComment()">Save</button>

@@ -11,6 +11,7 @@ export const songRouter = Router();
 const UPLOADS_ROOT = path.resolve(process.cwd(), 'uploads');
 const AUDIO_DIR = path.join(UPLOADS_ROOT, 'audio');
 const COVER_DIR = path.join(UPLOADS_ROOT, 'covers');
+const MAX_COMMENT_LENGTH = 1000;
 
 fs.mkdirSync(AUDIO_DIR, { recursive: true });
 fs.mkdirSync(COVER_DIR, { recursive: true });
@@ -566,6 +567,12 @@ songRouter.post('/:songId/comments', authMiddleware, async (req: Request, res: R
     if (!content || typeof content !== 'string' || content.trim().length === 0) { await unit.complete(false); res.status(400).json({ success: false, error: 'content is required' }); return; }
 
     const sanitizedContent = Sanitizer.sanitizeText(content);
+    if (sanitizedContent.length > MAX_COMMENT_LENGTH) {
+      await unit.complete(false);
+      res.status(400).json({ success: false, error: `Comment must be at most ${MAX_COMMENT_LENGTH} characters` });
+      return;
+    }
+
     const svc = new SongService(unit);
     const result = await svc.addCommentToSong(songId, { senderId, content: sanitizedContent, parentCommentId: parentCommentId === undefined ? undefined : Number(parentCommentId) });
     if (result.success) { await unit.complete(true); res.status(201).json({ success: true, comment: result.comment }); } else { await unit.complete(false); res.status(result.error === 'Song not found' ? 404 : 400).json({ success: false, error: result.error }); }
@@ -587,6 +594,12 @@ songRouter.patch('/:songId/comments/:commentId', authMiddleware, async (req: Req
     if (!content || typeof content !== 'string' || content.trim().length === 0) { await unit.complete(false); res.status(400).json({ success: false, error: 'content is required' }); return; }
 
     const sanitizedContent = Sanitizer.sanitizeText(content);
+    if (sanitizedContent.length > MAX_COMMENT_LENGTH) {
+      await unit.complete(false);
+      res.status(400).json({ success: false, error: `Comment must be at most ${MAX_COMMENT_LENGTH} characters` });
+      return;
+    }
+
     const svc = new SongService(unit);
     const result = await svc.updateComment(songId, commentId, requesterId, isAdmin, { content: sanitizedContent });
     if (result.success) { await unit.complete(true); res.status(200).json({ success: true, comment: result.comment }); } else { await unit.complete(false); res.status(result.error === 'Comment not found' ? 404 : (result.error?.includes('authorized') ? 403 : 400)).json({ success: false, error: result.error }); }
