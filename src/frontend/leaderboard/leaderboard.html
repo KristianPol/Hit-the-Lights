@@ -1,0 +1,64 @@
+<div class="leaderboard-container">
+  <div class="leaderboard-header">
+    <button class="back-btn" (click)="goBack()">
+      <i class="fas fa-arrow-left"></i> Back
+    </button>
+    <h1><i class="fas fa-trophy"></i> Global Leaderboard</h1>
+    <div class="header-spacer"></div>
+  </div>
+
+  @if (isLoading()) {
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <p>Loading rankings...</p>
+    </div>
+  }
+
+  @if (error() && !isLoading()) {
+    <div class="error-state">
+      <i class="fas fa-exclamation-circle"></i>
+      <p>{{ error() }}</p>
+    </div>
+  }
+
+  @if (!isLoading() && !error()) {
+    <div class="leaderboard-card">
+      <div class="leaderboard-list">
+        @for (entry of entries(); track entry.userId) {
+          <div
+            class="leaderboard-row"
+            [class.current-user]="isCurrentUser(entry)"
+            [class.top-three]="entry.position <= 3"
+            (click)="goToProfile(entry.userId)">
+            <div class="rank">
+              @if (entry.position === 1) {
+                <i class="fas fa-crown rank-icon gold"></i>
+              } @else if (entry.position === 2) {
+                <i class="fas fa-crown rank-icon silver"></i>
+              } @else if (entry.position === 3) {
+                <i class="fas fa-crown rank-icon bronze"></i>
+              } @else {
+                <span class="rank-number">#{{ entry.position }}</span>
+              }
+            </div>
+            <div class="user">
+              <span class="username">{{ entry.username }}</span>
+              @if (isCurrentUser(entry)) {
+                <span class="you-badge">You</span>
+              }
+            </div>
+            <div class="sp">
+              <i class="fas fa-bolt"></i>
+              <span>{{ formatSp(entry.totalSp) }}</span>
+            </div>
+          </div>
+        } @empty {
+          <div class="empty-state">
+            <i class="fas fa-chart-simple"></i>
+            <p>No rankings yet. Be the first to score!</p>
+          </div>
+        }
+      </div>
+    </div>
+  }
+</div>
