@@ -98,6 +98,8 @@ export class Gameplay implements AfterViewInit, OnDestroy {
   private shatterShards: ShatterShard[] = [];
   private hitFeedbacks: HitFeedback[] = [];
   private readonly shardGravity = 0.15;
+  private readonly hitSoundAudio = new Audio();
+  private readonly missSoundAudio = new Audio();
   private canvas!: HTMLCanvasElement;
   private ctx!: CanvasRenderingContext2D;
   protected readonly currentSongTimeMs = signal(0);
@@ -647,6 +649,7 @@ export class Gameplay implements AfterViewInit, OnDestroy {
         }));
         this.updateAccuracy();
         this.spawnHitFeedback(note.lane, 'Shattered', '#ff9ea8');
+        this.playMissSound();
       }
     }
   }
@@ -696,6 +699,7 @@ export class Gameplay implements AfterViewInit, OnDestroy {
       }));
       this.updateAccuracy();
       this.spawnHitFeedback(lane, 'Shattered', '#ff9ea8');
+      this.playMissSound();
       return;
     }
 
@@ -707,6 +711,7 @@ export class Gameplay implements AfterViewInit, OnDestroy {
       this.spawnHitFeedback(lane, 'BOMB!', '#ff4757');
       this.spawnBombDebris(lane);
       this.triggerRedFlash();
+      this.playMissSound();
       return;
     }
 
@@ -744,6 +749,7 @@ export class Gameplay implements AfterViewInit, OnDestroy {
     }
 
     this.spawnHitFeedback(lane, feedbackText, feedbackColour);
+    this.playHitSound();
 
     this.scoreUnits += points;
 
@@ -1697,6 +1703,24 @@ export class Gameplay implements AfterViewInit, OnDestroy {
       maxLife: 0.75,
       vy: -1.8,
     });
+  }
+
+  private playHitSound(): void {
+    const url = this.gameSettingsService.hitSoundUrl();
+    if (!url) return;
+    this.hitSoundAudio.src = url;
+    this.hitSoundAudio.volume = this.gameSettingsService.masterVolume();
+    this.hitSoundAudio.currentTime = 0;
+    this.hitSoundAudio.play().catch(() => {});
+  }
+
+  private playMissSound(): void {
+    const url = this.gameSettingsService.missSoundUrl();
+    if (!url) return;
+    this.missSoundAudio.src = url;
+    this.missSoundAudio.volume = this.gameSettingsService.masterVolume();
+    this.missSoundAudio.currentTime = 0;
+    this.missSoundAudio.play().catch(() => {});
   }
 
   private updateAndDrawHitFeedbacks(

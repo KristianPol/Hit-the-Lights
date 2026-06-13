@@ -118,6 +118,60 @@
       </div>
     </div>
 
+    <!-- Custom Hit Sound -->
+    <div class="section-card">
+      <div class="section-header">
+        <i class="fas fa-music"></i>
+        <span>Custom Hit Sound</span>
+      </div>
+      <p class="section-hint">Upload a short sound to play when you hit a note. Max 0.5s / 150 KB. Leave empty to use no sound.</p>
+      <div class="sound-control">
+        <input
+          type="file"
+          accept="audio/*"
+          #hitSoundInput
+          (change)="onHitSoundChange($event)"
+          class="file-input"
+        />
+        @if (hitSoundName()) {
+          <span class="file-name">{{ hitSoundName() }}</span>
+          <button type="button" class="btn btn-secondary" (click)="clearHitSound(); hitSoundInput.value = ''">Clear</button>
+        }
+        @if (hitSoundUrl()) {
+          <button type="button" class="btn btn-secondary" (click)="playHitSoundPreview()">
+            <i class="fas fa-play"></i> Preview
+          </button>
+        }
+      </div>
+    </div>
+
+    <!-- Custom Miss Sound -->
+    <div class="section-card">
+      <div class="section-header">
+        <i class="fas fa-music"></i>
+        <span>Custom Miss Sound</span>
+      </div>
+      <p class="section-hint">Upload a short sound to play when you miss a note or hit a bomb. Max 0.5s / 150 KB. Leave empty to use no sound.</p>
+      <div class="sound-control">
+        <input
+          type="file"
+          accept="audio/*"
+          #missSoundInput
+          (change)="onMissSoundChange($event)"
+          class="file-input"
+        />
+        @if (missSoundName()) {
+          <span class="file-name">{{ missSoundName() }}</span>
+          <button type="button" class="btn btn-secondary" (click)="clearMissSound(); missSoundInput.value = ''">Clear</button>
+        }
+        @if (missSoundUrl()) {
+          <button type="button" class="btn btn-secondary" (click)="playMissSoundPreview()">
+            <i class="fas fa-play"></i> Preview
+          </button>
+        }
+      </div>
+    </div>
+
     <!-- Show Key Labels -->
     <div class="section-card">
       <div class="section-header">

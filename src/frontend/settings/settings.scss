@@ -255,6 +255,43 @@
   text-shadow: 0 0 8px $yellow-glow;
 }
 
+.sound-control {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  background: rgba(var(--color-text-primary-rgb), 0.04);
+  padding: 0.55rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid rgba(var(--color-text-primary-rgb), 0.08);
+
+  .file-input {
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 0.85rem;
+    cursor: pointer;
+
+    &::file-selector-button {
+      background: rgba(var(--color-accent-rgb), 0.12);
+      border: 1px solid rgba(var(--color-accent-rgb), 0.35);
+      color: $yellow-primary;
+      border-radius: 8px;
+      padding: 0.4rem 0.75rem;
+      margin-right: 0.75rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: rgba(var(--color-accent-rgb), 0.2);
+      }
+    }
+  }
+
+  .file-name {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.7);
+  }
+}
+
 .theme-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));

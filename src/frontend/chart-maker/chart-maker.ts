@@ -62,8 +62,9 @@ export class ChartMaker implements AfterViewInit, OnDestroy {
   readonly isPlaying = signal(false);
   readonly zoom = signal(0.15);
   readonly scrollY = signal(0);
+  readonly showBeatLines = signal(true);
   readonly isAudioLoaded = signal(false);
-  readonly ownedSongs = signal<Song[]>([]);
+  readonly ownedSongs = signal<Song[]> ([]);
   readonly selectedSongId = signal<number | null>(null);
   readonly audioFileName = signal<string>('');
   readonly selectedTool = signal<NoteType>(NoteType.Normal);
@@ -184,11 +185,11 @@ export class ChartMaker implements AfterViewInit, OnDestroy {
     this.title.set(song.name);
     this.artist.set(song.author);
     this.bpm.set(song.bpm);
-    this.durationMs.set(this.parseDuration(song.length));
     this.audio.src = song.songUrl;
     this.audio.load();
     this.isAudioLoaded.set(true);
     this.audioFileName.set(`${song.name} - ${song.author}`);
+    this.updateDurationFromAudio(this.parseDuration(song.length));
 
     const viewerId = this.authService.currentUser?.id ?? undefined;
     this.songService.getDifficultyChart(song.id, difficultyId, viewerId).subscribe({
@@ -234,11 +235,11 @@ export class ChartMaker implements AfterViewInit, OnDestroy {
       this.title.set(song.name);
       this.artist.set(song.author);
       this.bpm.set(song.bpm);
-      this.durationMs.set(this.parseDuration(song.length));
       this.audio.src = song.songUrl;
       this.audio.load();
       this.isAudioLoaded.set(true);
       this.audioFileName.set(`${song.name} - ${song.author}`);
+      this.updateDurationFromAudio(this.parseDuration(song.length));
     }
   }
 
@@ -256,13 +257,24 @@ export class ChartMaker implements AfterViewInit, OnDestroy {
     this.isAudioLoaded.set(true);
     this.audioFileName.set(file.name);
     this.selectedSongId.set(null);
-
-    this.audio.onloadedmetadata = () => {
-      this.durationMs.set(Math.round(this.audio.duration * 1000));
-    };
+    this.updateDurationFromAudio(60000);
   }
 
   // ─── Canvas ───────────────────────────────────────────────
+
+  private updateDurationFromAudio(fallbackMs: number): void {
+    const applyDuration = () => {
+      const durationMs = this.audio.duration ? Math.round(this.audio.duration * 1000) : fallbackMs;
+      this.durationMs.set(Math.max(durationMs, fallbackMs));
+    };
+
+    if (this.audio.readyState >= 1 && Number.isFinite(this.audio.duration)) {
+      applyDuration();
+    } else {
+      this.audio.onloadedmetadata = applyDuration;
+      this.audio.oncanplaythrough = applyDuration;
+    }
+  }
 
   private setupCanvas(): void {
     this.canvas = this.canvasRef.nativeElement;
@@ -312,6 +324,9 @@ export class ChartMaker implements AfterViewInit, OnDestroy {
 
     this.ctx.clearRect(0, 0, width, height);
     this.drawGrid(width, height);
+    if (this.showBeatLines()) {
+      this.drawBeatLines(width, height);
+    }
     this.drawLanes(width, height);
     this.drawNotes(width, height);
     this.drawPlaybackHead(width, height);
@@ -371,6 +386,39 @@ export class ChartMaker implements AfterViewInit, OnDestroy {
         this.ctx.textBaseline = 'bottom';
         this.ctx.fillText(`${ms}ms`, 6, y - 2);
       }
+    }
+  }
+
+  private drawBeatLines(width: number, height: number): void {
+    const bpm = this.bpm();
+    if (!bpm || bpm <= 0) return;
+
+    const beatIntervalMs = 60000 / bpm;
+    const startMs = Math.max(0, this.yToTime(0));
+    const endMs = this.yToTime(height);
+
+    const firstBeat = Math.floor(startMs / beatIntervalMs);
+    const lastBeat = Math.ceil(endMs / beatIntervalMs);
+
+    this.ctx.strokeStyle = this.accentColor;
+    this.ctx.lineWidth = 2;
+    this.ctx.setLineDash([]);
+
+    for (let beat = firstBeat; beat <= lastBeat; beat++) {
+      const timeMs = beat * beatIntervalMs;
+      const y = this.timeToY(timeMs);
+      if (y < -2 || y > height + 2) continue;
+
+      this.ctx.beginPath();
+      this.ctx.moveTo(0, y);
+      this.ctx.lineTo(width, y);
+      this.ctx.stroke();
+
+      this.ctx.fillStyle = this.accentColor;
+      this.ctx.font = 'bold 11px sans-serif';
+      this.ctx.textAlign = 'right';
+      this.ctx.textBaseline = 'bottom';
+      this.ctx.fillText(`B ${beat + 1}`, width - 6, y - 2);
     }
   }
 
@@ -604,6 +652,10 @@ export class ChartMaker implements AfterViewInit, OnDestroy {
   onCanvasMouseLeave(): void {
     this.isDragging = false;
     this.hoverLane = null;
+  }
+
+  toggleBeatLines(): void {
+    this.showBeatLines.update(show => !show);
   }
 
   @HostListener('window:keydown', ['$event'])

@@ -31,6 +31,10 @@ export class SettingsPage {
   readonly fullscreen = computed(() => this.gameSettingsService.fullscreen());
   readonly particleIntensity = computed(() => this.gameSettingsService.particleIntensity());
   readonly fpsCounter = computed(() => this.gameSettingsService.fpsCounter());
+  readonly hitSoundUrl = computed(() => this.gameSettingsService.hitSoundUrl());
+  readonly missSoundUrl = computed(() => this.gameSettingsService.missSoundUrl());
+  readonly hitSoundName = computed(() => this.hitSoundUrl() ? 'Custom hit sound' : null);
+  readonly missSoundName = computed(() => this.missSoundUrl() ? 'Custom miss sound' : null);
 
   private noteSpeedDraftSignal = signal<number>(this.noteSpeed());
   get noteSpeedDraft(): number { return this.noteSpeedDraftSignal(); }
@@ -120,6 +124,88 @@ export class SettingsPage {
     this.gameSettingsService.updateFpsCounter(!this.fpsCounter());
     this.errorMessage.set(null);
     this.statusMessage.set(this.fpsCounter() ? 'FPS counter enabled.' : 'FPS counter disabled.');
+  }
+
+  onHitSoundChange(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    this.readAudioFile(file, url => {
+      this.gameSettingsService.updateHitSound(url);
+      this.statusMessage.set('Custom hit sound saved.');
+      this.errorMessage.set(null);
+    });
+  }
+
+  onMissSoundChange(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    this.readAudioFile(file, url => {
+      this.gameSettingsService.updateMissSound(url);
+      this.statusMessage.set('Custom miss sound saved.');
+      this.errorMessage.set(null);
+    });
+  }
+
+  private readAudioFile(file: File, callback: (url: string) => void): void {
+    const maxSizeBytes = 150 * 1024; // 150 KB
+    const maxDurationSeconds = 0.5;
+
+    if (file.size > maxSizeBytes) {
+      this.errorMessage.set(`Audio file is too large. Maximum size is ${maxSizeBytes / 1024} KB.`);
+      this.statusMessage.set('');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const url = reader.result as string;
+      const audio = new Audio(url);
+      audio.addEventListener('loadedmetadata', () => {
+        if (audio.duration > maxDurationSeconds) {
+          this.errorMessage.set(`Audio is too long. Maximum duration is ${maxDurationSeconds} seconds.`);
+          this.statusMessage.set('');
+          return;
+        }
+        callback(url);
+      });
+      audio.addEventListener('error', () => {
+        this.errorMessage.set('Failed to load audio metadata. Please try another file.');
+        this.statusMessage.set('');
+      });
+    };
+    reader.onerror = () => {
+      this.errorMessage.set('Failed to read the audio file.');
+    };
+    reader.readAsDataURL(file);
+  }
+
+  playHitSoundPreview(): void {
+    this.playSoundPreview(this.hitSoundUrl());
+  }
+
+  playMissSoundPreview(): void {
+    this.playSoundPreview(this.missSoundUrl());
+  }
+
+  private playSoundPreview(url: string | null): void {
+    if (!url) return;
+    const audio = new Audio(url);
+    audio.volume = this.masterVolume();
+    audio.play().catch(() => {});
+  }
+
+  clearHitSound(): void {
+    this.gameSettingsService.updateHitSound(null);
+    this.statusMessage.set('Custom hit sound removed.');
+    this.errorMessage.set(null);
+  }
+
+  clearMissSound(): void {
+    this.gameSettingsService.updateMissSound(null);
+    this.statusMessage.set('Custom miss sound removed.');
+    this.errorMessage.set(null);
   }
 
   resetDefaults(): void {

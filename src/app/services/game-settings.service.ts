@@ -15,6 +15,8 @@ export interface GameSettings {
   fullscreen: boolean;
   particleIntensity: ParticleIntensity;
   fpsCounter: boolean;
+  hitSoundUrl: string | null;
+  missSoundUrl: string | null;
 }
 
 export interface UpdateBindingResult {
@@ -38,7 +40,9 @@ const DEFAULT_SETTINGS: GameSettings = {
   showKeyLabels: true,
   fullscreen: false,
   particleIntensity: 'high',
-  fpsCounter: false
+  fpsCounter: false,
+  hitSoundUrl: null,
+  missSoundUrl: null
 };
 const LANE_COUNT = 4;
 const MIN_NOTE_SPEED = 0.5;
@@ -122,6 +126,8 @@ export class GameSettingsService {
   readonly fullscreen = computed(() => this.settingsSignal().fullscreen);
   readonly particleIntensity = computed(() => this.settingsSignal().particleIntensity);
   readonly fpsCounter = computed(() => this.settingsSignal().fpsCounter);
+  readonly hitSoundUrl = computed(() => this.settingsSignal().hitSoundUrl);
+  readonly missSoundUrl = computed(() => this.settingsSignal().missSoundUrl);
   private readonly http = inject(HttpClient);
   private readonly auth = inject(AuthService);
   private readonly themeService = inject(ThemeService);
@@ -203,6 +209,16 @@ export class GameSettingsService {
     this.saveSettings({ ...current, fpsCounter: show });
   }
 
+  updateHitSound(url: string | null): void {
+    const current = this.settingsSignal();
+    this.saveSettings({ ...current, hitSoundUrl: url });
+  }
+
+  updateMissSound(url: string | null): void {
+    const current = this.settingsSignal();
+    this.saveSettings({ ...current, missSoundUrl: url });
+  }
+
   resetDefaults(): void {
     this.saveSettings(this.cloneSettings(DEFAULT_SETTINGS));
   }
@@ -258,6 +274,8 @@ export class GameSettingsService {
     const fullscreen = typeof settings?.fullscreen === 'boolean' ? settings.fullscreen : fallback.fullscreen;
     const particleIntensity = this.validParticleIntensity(settings?.particleIntensity) ?? fallback.particleIntensity;
     const fpsCounter = typeof settings?.fpsCounter === 'boolean' ? settings.fpsCounter : fallback.fpsCounter;
+    const hitSoundUrl = typeof settings?.hitSoundUrl === 'string' ? settings.hitSoundUrl : fallback.hitSoundUrl;
+    const missSoundUrl = typeof settings?.missSoundUrl === 'string' ? settings.missSoundUrl : fallback.missSoundUrl;
     return {
       laneBindings: safeBindings,
       noteSpeed,
@@ -266,7 +284,9 @@ export class GameSettingsService {
       showKeyLabels,
       fullscreen,
       particleIntensity,
-      fpsCounter
+      fpsCounter,
+      hitSoundUrl,
+      missSoundUrl
     };
   }
 
@@ -303,7 +323,9 @@ export class GameSettingsService {
       showKeyLabels: settings.showKeyLabels,
       fullscreen: settings.fullscreen,
       particleIntensity: settings.particleIntensity,
-      fpsCounter: settings.fpsCounter
+      fpsCounter: settings.fpsCounter,
+      hitSoundUrl: settings.hitSoundUrl,
+      missSoundUrl: settings.missSoundUrl
     };
   }
 

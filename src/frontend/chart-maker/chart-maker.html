@@ -56,6 +56,9 @@
         }
       </div>
       <span class="zoom-label">{{ (zoom() * 100).toFixed(0) }}%</span>
+      <button class="action-btn" (click)="toggleBeatLines()" [class.active]="showBeatLines()" title="Toggle beat lines">
+        <i class="fas fa-music"></i> Beats
+      </button>
       <button class="action-btn" (click)="playtest()" [disabled]="notes().length === 0 || !isAudioLoaded()">
         <i class="fas fa-gamepad"></i> Playtest
       </button>
