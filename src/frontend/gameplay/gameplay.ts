@@ -1,4 +1,4 @@
-import { AfterViewInit, Component, ElementRef, HostListener, OnDestroy, ViewChild, computed, inject, signal } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, HostListener, OnDestroy, ViewChild, computed, effect, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
@@ -87,6 +87,8 @@ export class Gameplay implements AfterViewInit, OnDestroy {
   }
 
   @ViewChild('gameCanvas') canvasRef!: ElementRef<HTMLCanvasElement>;
+  @ViewChild('scoreCard') scoreCardRef!: ElementRef<HTMLDivElement>;
+  @ViewChild('comboCard') comboCardRef!: ElementRef<HTMLDivElement>;
 
   private readonly gameSettingsService = inject(GameSettingsService);
   private readonly defaultSongUrl = '/assets/music/SpearOfJustice.mp3';
@@ -152,6 +154,8 @@ export class Gameplay implements AfterViewInit, OnDestroy {
   readonly loadingFriends = signal(false);
 
   readonly stats = signal<GameStats>(this.createInitialStats());
+  private previousScore = 0;
+  private previousCombo = 0;
   readonly spEarned = signal<number | null>(null);
   readonly totalSp = signal<number | null>(null);
   readonly highscoreImproved = signal<boolean | null>(null);
@@ -281,7 +285,21 @@ export class Gameplay implements AfterViewInit, OnDestroy {
     private friendshipService: FriendshipService,
     private messageService: MessageService,
     private achievementService: AchievementService
-  ) {}
+  ) {
+    effect(() => {
+      const currentStats = this.stats();
+      if (currentStats.score > this.previousScore) {
+        this.triggerScoreFlash('up');
+      } else if (currentStats.score < this.previousScore) {
+        this.triggerScoreFlash('down');
+      }
+      if (currentStats.combo === 0 && this.previousCombo > 0) {
+        this.triggerComboFlash();
+      }
+      this.previousScore = currentStats.score;
+      this.previousCombo = currentStats.combo;
+    });
+  }
 
   async ngAfterViewInit(): Promise<void> {
     this.setupCanvas();
@@ -1121,6 +1139,8 @@ export class Gameplay implements AfterViewInit, OnDestroy {
   private resetGameState(): void {
     this.stopPlaytimeTracking();
     this.stats.set(this.createInitialStats());
+    this.previousScore = 0;
+    this.previousCombo = 0;
     this.spEarned.set(null);
     this.totalSp.set(null);
     this.highscoreImproved.set(null);
@@ -1717,6 +1737,29 @@ export class Gameplay implements AfterViewInit, OnDestroy {
 
       this.ctx.restore();
     }
+  }
+
+  private triggerScoreFlash(direction: 'up' | 'down'): void {
+    const el = this.scoreCardRef?.nativeElement;
+    if (!el) {
+      return;
+    }
+    const className = `flash-${direction}`;
+    el.classList.remove('flash-up', 'flash-down');
+    void el.offsetWidth; // force reflow so re-adding the class replays the animation
+    el.classList.add(className);
+    window.setTimeout(() => el.classList.remove(className), 300);
+  }
+
+  private triggerComboFlash(): void {
+    const el = this.comboCardRef?.nativeElement;
+    if (!el) {
+      return;
+    }
+    el.classList.remove('flash-down');
+    void el.offsetWidth;
+    el.classList.add('flash-down');
+    window.setTimeout(() => el.classList.remove('flash-down'), 300);
   }
 
   private formatSpDecimal(value: number): string {

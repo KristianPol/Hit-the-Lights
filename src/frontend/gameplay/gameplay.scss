@@ -134,6 +134,50 @@
   &.miss-card .value {
     color: #ff9ea8;
   }
+
+  &.flash-up {
+    animation: scoreFlashUp 0.3s ease;
+  }
+
+  &.flash-down {
+    animation: scoreFlashDown 0.3s ease;
+  }
+}
+
+@keyframes scoreFlashUp {
+  0% {
+    border-color: rgba(255, 255, 255, 0.08);
+    background: rgba(0, 0, 0, 0.56);
+    box-shadow: none;
+  }
+  30% {
+    border-color: rgba(0, 255, 136, 0.9);
+    background: rgba(0, 255, 136, 0.12);
+    box-shadow: 0 0 20px rgba(0, 255, 136, 0.35);
+  }
+  100% {
+    border-color: rgba(255, 255, 255, 0.08);
+    background: rgba(0, 0, 0, 0.56);
+    box-shadow: none;
+  }
+}
+
+@keyframes scoreFlashDown {
+  0% {
+    border-color: rgba(255, 255, 255, 0.08);
+    background: rgba(0, 0, 0, 0.56);
+    box-shadow: none;
+  }
+  30% {
+    border-color: rgba(255, 71, 87, 0.9);
+    background: rgba(255, 71, 87, 0.12);
+    box-shadow: 0 0 20px rgba(255, 71, 87, 0.35);
+  }
+  100% {
+    border-color: rgba(255, 255, 255, 0.08);
+    background: rgba(0, 0, 0, 0.56);
+    box-shadow: none;
+  }
 }
 
 .status-badge {

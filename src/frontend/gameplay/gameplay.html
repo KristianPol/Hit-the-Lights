@@ -13,11 +13,11 @@
         <h1>{{ displayTitleText() }}</h1>
         <p class="subtitle">{{ displayArtistText() }} • {{ displayBpmText() }}</p>
       </div>
-      <div class="stat-card">
+      <div class="stat-card" #scoreCard>
         <span class="label">Score</span>
         <span class="value">{{ stats().score }}</span>
       </div>
-      <div class="stat-card">
+      <div class="stat-card" #comboCard>
         <span class="label">Combo</span>
         <span class="value">{{ stats().combo }}</span>
       </div>
