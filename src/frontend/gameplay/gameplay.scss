@@ -70,14 +70,14 @@
   max-width: 1280px;
   margin: 0 auto;
   display: grid;
-  grid-template-columns: 220px minmax(620px, 760px) 220px;
+  grid-template-columns: 220px minmax(400px, 460px) 220px;
   justify-content: center;
   align-items: center;
 }
 
 .gameplay-card {
   width: auto;
-  height: 40rem;
+  height: 45rem;
   aspect-ratio: auto;
   border-radius: 0;
   overflow: hidden;
@@ -696,7 +696,7 @@
 
 @media (max-width: 1300px) {
   .gameplay-layout {
-    grid-template-columns: 170px minmax(560px, 1fr) 170px;
+    grid-template-columns: 170px minmax(380px, 440px) 170px;
   }
 }
 
@@ -704,6 +704,12 @@
   .gameplay-layout {
     grid-template-columns: 1fr;
     gap: 1rem;
+  }
+
+  .gameplay-card {
+    height: 45rem;
+    max-width: 460px;
+    margin: 0 auto;
   }
 
   .stats-column {

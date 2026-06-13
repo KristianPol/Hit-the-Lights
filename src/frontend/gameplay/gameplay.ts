@@ -256,8 +256,17 @@ export class Gameplay implements AfterViewInit, OnDestroy {
 
   // readonly canvasWidth = 1280;
   // readonly canvasHeight = 800;
-  readonly noteSize = 80;
-  readonly hitAreaRadius = 40;
+  private get noteSize(): number {
+    if (!this.canvas) {
+      return 80;
+    }
+    const geometry = this.getLaneGeometry(this.canvas.width);
+    return Math.max(48, Math.min(80, geometry.laneWidth * 0.62));
+  }
+
+  private get hitAreaRadius(): number {
+    return this.noteSize / 2;
+  }
   readonly hitWindow = 130;
   readonly okayWindow = 80;
   readonly perfectWindow = 40;
