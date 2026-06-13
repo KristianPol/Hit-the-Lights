@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, signal, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, effect, signal, ViewChild, ElementRef } from '@angular/core';
 import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
@@ -14,7 +14,8 @@ import {
   ConversationPreview
 } from '../../app/services/message.service';
 import { SongService } from '../../app/services/song.service';
-import { Subscription, interval } from 'rxjs';
+import { NotificationService } from '../../app/services/notification.service';
+import { Subscription } from 'rxjs';
 
 type TabType = 'conversations' | 'friends' | 'requests';
 
@@ -52,12 +53,14 @@ export class Messages implements OnInit, OnDestroy {
   chatError = signal('');
   loadingChat = signal(false);
 
-  unreadCount = signal(0);
   requestMessageContent = signal('');
   showRequestForm = signal(false);
   requestTarget = signal<SearchUserResult | null>(null);
 
-  private refreshSubscription: Subscription | null = null;
+  get unreadCount() {
+    return this.notificationService.unreadCount;
+  }
+
   private authSubscription: Subscription | null = null;
 
   @ViewChild('messagesScroll') messagesScrollRef!: ElementRef<HTMLDivElement>;
@@ -104,8 +107,16 @@ export class Messages implements OnInit, OnDestroy {
     private friendshipService: FriendshipService,
     private messageService: MessageService,
     private songService: SongService,
+    private notificationService: NotificationService,
     private router: Router
-  ) {}
+  ) {
+    effect(() => {
+      const event = this.notificationService.newMessage();
+      if (event) {
+        this.refreshData();
+      }
+    });
+  }
 
   ngOnInit(): void {
     // subscribe to auth changes so the view updates when user logs in/out
@@ -121,10 +132,8 @@ export class Messages implements OnInit, OnDestroy {
 
     this.loadAllData();
 
-    // Auto-refresh conversations and chat every 3 seconds
-    this.refreshSubscription = interval(3000).subscribe(() => {
-      this.refreshData();
-    });
+    // Tell the notification service to poll quickly while the user is on the messages page
+    this.notificationService.setActive(true);
 
     // Check if we should open a specific chat from navigation state
     const openChatWith = window.history.state?.openChatWith as number | undefined;
@@ -161,8 +170,9 @@ export class Messages implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    this.refreshSubscription?.unsubscribe();
     this.authSubscription?.unsubscribe();
+    // Slow down global polling when the user leaves the messages page
+    this.notificationService.setActive(false);
   }
 
   private loadAllData(): void {
@@ -170,7 +180,6 @@ export class Messages implements OnInit, OnDestroy {
     this.loadPendingRequests();
     this.loadSentRequests();
     this.loadConversations();
-    this.loadUnreadCount();
   }
 
   private refreshData(): void {
@@ -193,9 +202,6 @@ export class Messages implements OnInit, OnDestroy {
         }
       }
     });
-
-    // Refresh unread count
-    this.loadUnreadCount();
 
     // Refresh chat if open
     const otherId = this.selectedOtherUserId;
@@ -266,17 +272,6 @@ export class Messages implements OnInit, OnDestroy {
       },
       error: () => {
         this.loadingConversations.set(false);
-      }
-    });
-  }
-
-  loadUnreadCount(): void {
-    if (!this.currentUser) return;
-    this.messageService.getUnreadCount(this.currentUser.id).subscribe({
-      next: response => {
-        if (response.success) {
-          this.unreadCount.set(response.count);
-        }
       }
     });
   }

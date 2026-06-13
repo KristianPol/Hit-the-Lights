@@ -12,6 +12,13 @@ export interface Toast {
   senderId?: number;
 }
 
+export interface NewMessageEvent {
+  senderId: number;
+  senderName: string;
+  preview: string;
+  conversation: ConversationPreview;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -19,10 +26,17 @@ export class NotificationService {
   private readonly toastsSignal = signal<Toast[]>([]);
   readonly toasts = this.toastsSignal.asReadonly();
 
+  private readonly unreadCountSignal = signal<number>(0);
+  readonly unreadCount = this.unreadCountSignal.asReadonly();
+
+  private readonly newMessageSignal = signal<NewMessageEvent | null>(null);
+  readonly newMessage = this.newMessageSignal.asReadonly();
+
   private toastIdCounter = 0;
   private messagePollSubscription: Subscription | null = null;
   private lastConversations: Map<number, number> = new Map(); // conversation otherUserId -> last message id
   private lastUnreadCount = 0;
+  private active = false;
 
   constructor(
     private authService: AuthService,
@@ -45,14 +59,27 @@ export class NotificationService {
     this.toastsSignal.update(current => current.filter(t => t.id !== id));
   }
 
+  setActive(isActive: boolean): void {
+    this.active = isActive;
+    this.restartMessagePolling();
+  }
+
+  private restartMessagePolling(): void {
+    this.messagePollSubscription?.unsubscribe();
+    this.messagePollSubscription = null;
+    this.startMessagePolling();
+  }
+
   private startMessagePolling(): void {
-    // Poll every 8 seconds for new messages when logged in
-    this.messagePollSubscription = interval(8000).subscribe(() => {
+    // Poll faster when the user is actively on the messages page, slower otherwise
+    const pollIntervalMs = this.active ? 3000 : 8000;
+
+    this.messagePollSubscription = interval(pollIntervalMs).subscribe(() => {
       this.checkForNewMessages();
     });
 
     // Initial check after a short delay to let auth state settle
-    setTimeout(() => this.checkForNewMessages(), 2000);
+    setTimeout(() => this.checkForNewMessages(), 1000);
   }
 
   private checkForNewMessages(): void {
@@ -60,6 +87,7 @@ export class NotificationService {
     if (!user) {
       this.lastConversations.clear();
       this.lastUnreadCount = 0;
+      this.unreadCountSignal.set(0);
       return;
     }
 
@@ -71,8 +99,10 @@ export class NotificationService {
 
         const conversations = response.conversations;
 
-        // Check for new unread messages
+        // Update public unread-count signal
         const totalUnread = conversations.reduce((sum, c) => sum + c.unreadCount, 0);
+        this.unreadCountSignal.set(totalUnread);
+
         const hadUnreadBefore = this.lastUnreadCount;
         this.lastUnreadCount = totalUnread;
 
@@ -86,6 +116,12 @@ export class NotificationService {
               if (prevLastMsgId !== undefined && currentLastMsgId > prevLastMsgId) {
                 // New message in this conversation
                 const preview = conv.lastMessage.content.slice(0, 60);
+                this.newMessageSignal.set({
+                  senderId: conv.otherUserId,
+                  senderName: conv.otherUsername,
+                  preview,
+                  conversation: conv
+                });
                 this.showToast(
                   conv.otherUsername,
                   preview,

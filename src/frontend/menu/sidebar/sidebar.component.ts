@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import { filter, tap } from 'rxjs/operators';
 import { AuthService, User } from '../../../app/services/auth.service';
-import { MessageService } from '../../../app/services/message.service';
+import { NotificationService } from '../../../app/services/notification.service';
 
 interface MenuItem {
   label: string;
@@ -36,12 +36,15 @@ export class MenuSidebarComponent implements OnInit {
 
   activeItem = signal<string>('Dashboard');
   currentUser = signal<User | null>(null);
-  unreadMessageCount = signal<number>(0);
   menuImageError = signal<boolean>(false);
+
+  get unreadMessageCount() {
+    return this.notificationService.unreadCount;
+  }
 
   constructor(
     private authService: AuthService,
-    private messageService: MessageService,
+    private notificationService: NotificationService,
     private router: Router
   ) {
     this.currentUser.set(this.authService.currentUser);
@@ -52,16 +55,8 @@ export class MenuSidebarComponent implements OnInit {
       tap(user => {
         this.currentUser.set(user);
         this.menuImageError.set(false);
-        this.loadUnreadCount();
       })
     ).subscribe();
-
-    this.router.events.pipe(
-      filter(event => event instanceof NavigationEnd),
-      tap(() => this.loadUnreadCount())
-    ).subscribe();
-
-    this.loadUnreadCount();
   }
 
   setActive(item: string): void {
@@ -83,18 +78,6 @@ export class MenuSidebarComponent implements OnInit {
 
   onMenuImageError(): void {
     this.menuImageError.set(true);
-  }
-
-  private loadUnreadCount(): void {
-    const user = this.currentUser();
-    if (!user) return;
-    this.messageService.getUnreadCount(user.id).subscribe({
-      next: response => {
-        if (response.success) {
-          this.unreadMessageCount.set(response.count);
-        }
-      }
-    });
   }
 
   private logout(): void {
