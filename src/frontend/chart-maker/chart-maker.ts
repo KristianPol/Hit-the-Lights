@@ -82,6 +82,14 @@ export class ChartMaker implements AfterViewInit, OnDestroy {
   readonly assignError = signal<string | null>(null);
   readonly assignSuccess = signal(false);
 
+  // Load chart modal
+  readonly showLoadChartModal = signal(false);
+  readonly loadChartTab = signal<'file' | 'song'>('file');
+  readonly loadChartError = signal<string | null>(null);
+  readonly selectedLoadSongId = signal<number | null>(null);
+  readonly selectedLoadDifficultyId = signal<number | null>(null);
+  readonly loadDifficulties = signal<SongDifficulty[]>([]);
+
   // Audio
   audio = new Audio();
   private audioObjectUrl: string | null = null;
@@ -97,9 +105,16 @@ export class ChartMaker implements AfterViewInit, OnDestroy {
   private dragStartY = 0;
   private dragStartScrollY = 0;
 
+  // Hold resizing
+  private isResizingHold = false;
+  private resizingHoldNote: EditorNote | null = null;
+  private resizeStartTime = 0;
+  private resizeStartDuration = 0;
+
   // Hover
   private hoverLane: number | null = null;
   private hoverTime = 0;
+  readonly hoverResize = signal(false);
 
   // Computed
   readonly formattedCurrentTime = computed(() => this.formatMs(this.currentTimeMs()));
@@ -458,7 +473,10 @@ export class ChartMaker implements AfterViewInit, OnDestroy {
       if (note.type === NoteType.Bomb) {
         this.drawEditorBombNote(x, y, noteRadius, isHovered);
       } else if (note.type === NoteType.Hold) {
-        this.drawEditorHoldNote(x, y, noteRadius, color, isHovered);
+        const endY = this.timeToY(note.time + (note.durationMs ?? 500));
+        const tailTime = note.time + (note.durationMs ?? 500);
+        const isTailHovered = this.hoverLane === note.lane && Math.abs(this.hoverTime - tailTime) <= 15 / this.zoom();
+        this.drawEditorHoldNote(x, y, endY, noteRadius, color, isHovered, isTailHovered);
       } else {
         // Glow
         this.ctx.beginPath();
@@ -516,21 +534,46 @@ export class ChartMaker implements AfterViewInit, OnDestroy {
     ctx.restore();
   }
 
-  private drawEditorHoldNote(x: number, y: number, radius: number, color: string, isHovered: boolean): void {
+  private drawEditorHoldNote(x: number, y: number, endY: number, radius: number, color: string, isHovered: boolean, isTailHovered: boolean): void {
     const ctx = this.ctx;
     const width = radius * 1.6;
-    const height = radius * 0.7;
+    const bodyHeight = Math.max(2, endY - y);
 
+    // Hold body
     ctx.beginPath();
-    ctx.roundRect(x - width / 2, y - height / 2, width, height, 4);
-    ctx.fillStyle = color;
+    ctx.roundRect(x - width / 2, y, width, bodyHeight, 4);
+    ctx.fillStyle = color + '40';
     ctx.shadowColor = color;
-    ctx.shadowBlur = isHovered ? 14 : 8;
+    ctx.shadowBlur = isHovered || isTailHovered ? 14 : 8;
     ctx.fill();
 
-    ctx.strokeStyle = isHovered ? `rgba(${this.textPrimaryRgb}, 1)` : `rgba(${this.textPrimaryRgb}, 0.7)`;
-    ctx.lineWidth = isHovered ? 2 : 1.5;
+    // Head
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+
+    // Tail handle (larger, with drag grip lines)
+    const tailRadius = Math.max(radius * 0.9, 10);
+    ctx.beginPath();
+    ctx.arc(x, endY, tailRadius, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(x, endY, tailRadius, 0, Math.PI * 2);
+    ctx.strokeStyle = isTailHovered ? `rgba(${this.textPrimaryRgb}, 1)` : `rgba(${this.textPrimaryRgb}, 0.7)`;
+    ctx.lineWidth = isTailHovered ? 2.5 : 1.5;
     ctx.stroke();
+
+    // Grip indicator
+    ctx.beginPath();
+    ctx.strokeStyle = `rgba(${this.textPrimaryRgb}, 0.9)`;
+    ctx.lineWidth = 1.5;
+    ctx.moveTo(x - tailRadius * 0.5, endY);
+    ctx.lineTo(x + tailRadius * 0.5, endY);
+    ctx.stroke();
+
     ctx.shadowBlur = 0;
   }
 
@@ -585,10 +628,47 @@ export class ChartMaker implements AfterViewInit, OnDestroy {
     return lane;
   }
 
+  private findHoldNoteAt(lane: number, time: number): EditorNote | null {
+    return this.notes().find(n =>
+      n.type === NoteType.Hold &&
+      n.lane === lane &&
+      Math.abs(n.time - time) <= 2
+    ) ?? null;
+  }
+
+  private findHoldTailAt(lane: number, time: number): EditorNote | null {
+    const tailToleranceMs = 15 / this.zoom(); // ~15px tolerance
+    return this.notes().find(n => {
+      if (n.type !== NoteType.Hold || n.lane !== lane || !n.durationMs) return false;
+      const tailTime = n.time + n.durationMs;
+      return Math.abs(tailTime - time) <= tailToleranceMs;
+    }) ?? null;
+  }
+
   // ─── Interaction ──────────────────────────────────────────
 
   onCanvasMouseDown(event: MouseEvent): void {
     if (event.button !== 0 && event.button !== 1) return;
+
+    const rect = this.canvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    const width = rect.width;
+    const lane = this.xToLane(x, width);
+    const time = Math.round(Math.max(0, Math.min(this.yToTime(y), this.durationMs())));
+
+    if (lane !== null) {
+      const tailHold = this.findHoldTailAt(lane, time);
+      if (tailHold) {
+        this.isResizingHold = true;
+        this.resizingHoldNote = tailHold;
+        this.resizeStartTime = time;
+        this.resizeStartDuration = tailHold.durationMs ?? 500;
+        document.body.style.cursor = 'ns-resize';
+        return;
+      }
+    }
+
     this.isDragging = true;
     this.dragStartY = event.clientY;
     this.dragStartScrollY = this.scrollY();
@@ -604,6 +684,7 @@ export class ChartMaker implements AfterViewInit, OnDestroy {
     const lane = this.xToLane(x, width);
     this.hoverLane = lane;
     this.hoverTime = time;
+    this.hoverResize.set(lane !== null && this.findHoldTailAt(lane, time) !== null);
 
     // Snap cursor to nearest note if close
     if (lane !== null) {
@@ -620,6 +701,13 @@ export class ChartMaker implements AfterViewInit, OnDestroy {
   }
 
   onCanvasMouseUp(event: MouseEvent): void {
+    if (this.isResizingHold) {
+      this.isResizingHold = false;
+      this.resizingHoldNote = null;
+      document.body.style.cursor = '';
+      return;
+    }
+
     if (!this.isDragging) return;
     const wasDragging = Math.abs(event.clientY - this.dragStartY) > 3;
     this.isDragging = false;
@@ -651,7 +739,52 @@ export class ChartMaker implements AfterViewInit, OnDestroy {
 
   onCanvasMouseLeave(): void {
     this.isDragging = false;
+    // Keep hold resize active so dragging outside the canvas doesn't drop it.
     this.hoverLane = null;
+    this.hoverResize.set(false);
+  }
+
+  @HostListener('window:mousemove', ['$event'])
+  onWindowMouseMove(event: MouseEvent): void {
+    if (!this.isResizingHold || !this.resizingHoldNote) return;
+
+    const rect = this.canvas.getBoundingClientRect();
+    const y = event.clientY - rect.top;
+    const height = rect.height;
+
+    // Auto-scroll when dragging near the canvas edges.
+    const edgeMargin = 40;
+    const maxScrollSpeed = 25;
+    const currentScrollY = this.scrollY();
+    let newScrollY = currentScrollY;
+    if (y < edgeMargin) {
+      const speed = Math.min(maxScrollSpeed, (edgeMargin - y) / 2);
+      newScrollY = Math.max(0, currentScrollY - speed);
+    } else if (y > height - edgeMargin) {
+      const speed = Math.min(maxScrollSpeed, (y - (height - edgeMargin)) / 2);
+      const maxScroll = Math.max(0, this.durationMs() * this.zoom() - height);
+      newScrollY = Math.min(maxScroll, currentScrollY + speed);
+    }
+    if (newScrollY !== currentScrollY) {
+      this.scrollY.set(newScrollY);
+    }
+
+    const time = Math.round(Math.max(0, Math.min(this.yToTime(y), this.durationMs())));
+    const note = this.resizingHoldNote;
+    const newEndTime = Math.max(note.time + 100, Math.min(time, this.durationMs()));
+    const newDuration = Math.round(newEndTime - note.time);
+    this.notes.update(notes => notes.map(n =>
+      n === note ? { ...n, durationMs: newDuration } : n
+    ));
+  }
+
+  @HostListener('window:mouseup')
+  onWindowMouseUp(): void {
+    if (this.isResizingHold) {
+      this.isResizingHold = false;
+      this.resizingHoldNote = null;
+      document.body.style.cursor = '';
+    }
   }
 
   toggleBeatLines(): void {
@@ -758,7 +891,7 @@ export class ChartMaker implements AfterViewInit, OnDestroy {
       const type = this.selectedTool();
       const newNote: EditorNote = { time, lane, type };
       if (type === NoteType.Hold) {
-        newNote.durationMs = 500; // default hold length until editor supports dragging
+        newNote.durationMs = 1000; // default hold length
       }
       this.notes.update(notes => [...notes, newNote].sort((a, b) => a.time - b.time || a.lane - b.lane));
     }
@@ -774,6 +907,133 @@ export class ChartMaker implements AfterViewInit, OnDestroy {
 
   goToMenu(): void {
     this.router.navigate(['/menu']);
+  }
+
+  // ─── Load Chart ───────────────────────────────────────────
+
+  openLoadChartModal(): void {
+    this.showLoadChartModal.set(true);
+    this.loadChartError.set(null);
+    this.loadChartTab.set('file');
+    this.selectedLoadSongId.set(null);
+    this.selectedLoadDifficultyId.set(null);
+    this.loadDifficulties.set([]);
+  }
+
+  closeLoadChartModal(): void {
+    this.showLoadChartModal.set(false);
+  }
+
+  setLoadChartTab(tab: 'file' | 'song'): void {
+    this.loadChartTab.set(tab);
+    this.loadChartError.set(null);
+  }
+
+  onLoadChartFileSelected(event: Event): void {
+    this.loadChartError.set(null);
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const json = JSON.parse(reader.result as string);
+        this.loadChartJson(json);
+        this.closeLoadChartModal();
+      } catch (err) {
+        this.loadChartError.set('Invalid JSON file.');
+      }
+    };
+    reader.onerror = () => this.loadChartError.set('Failed to read file.');
+    reader.readAsText(file);
+  }
+
+  private loadChartJson(json: any): void {
+    if (!json || typeof json !== 'object') {
+      this.loadChartError.set('Invalid chart file.');
+      return;
+    }
+
+    const metadata = json.metadata || {};
+    const notes = Array.isArray(json.notes) ? json.notes : [];
+
+    if (notes.length > 0 && !notes.every((n: any) => Number.isFinite(n.time) && Number.isFinite(n.lane))) {
+      this.loadChartError.set('Chart notes are missing required fields.');
+      return;
+    }
+
+    this.title.set(String(metadata.title || this.title() || 'Untitled'));
+    this.artist.set(String(metadata.artist || this.artist() || 'Unknown'));
+    this.bpm.set(Number(metadata.bpm) || this.bpm() || 120);
+    this.durationMs.set(Number(metadata.duration_ms) || Number(metadata.durationMs) || this.durationMs() || 60000);
+
+    this.notes.set(notes.map((n: any) => ({
+      time: Number(n.time),
+      lane: Number(n.lane),
+      type: this.normalizeNoteType(n.type),
+      durationMs: n.durationMs ?? n.duration_ms ?? null
+    })));
+
+    this.scrollY.set(0);
+    this.currentTimeMs.set(0);
+  }
+
+  onLoadSongChange(songIdStr: string): void {
+    const id = Number(songIdStr);
+    if (!id || isNaN(id)) {
+      this.selectedLoadSongId.set(null);
+      this.selectedLoadDifficultyId.set(null);
+      this.loadDifficulties.set([]);
+      return;
+    }
+    this.selectedLoadSongId.set(id);
+    this.selectedLoadDifficultyId.set(null);
+
+    const song = this.ownedSongs().find(s => s.id === id);
+    if (song?.difficulties && song.difficulties.length > 0) {
+      this.loadDifficulties.set(song.difficulties);
+    } else {
+      const viewerId = this.authService.currentUser?.id ?? undefined;
+      this.songService.getSongDifficulties(id, viewerId).subscribe({
+        next: res => {
+          if (res.success && res.difficulties) {
+            this.loadDifficulties.set(res.difficulties);
+          } else {
+            this.loadDifficulties.set([]);
+            this.loadChartError.set(res.error || 'Failed to load difficulties.');
+          }
+        },
+        error: err => {
+          this.loadDifficulties.set([]);
+          this.loadChartError.set(err.message || 'Failed to load difficulties.');
+        }
+      });
+    }
+  }
+
+  onLoadDifficultyChange(diffIdStr: string): void {
+    const id = Number(diffIdStr);
+    this.selectedLoadDifficultyId.set(!id || isNaN(id) ? null : id);
+  }
+
+  loadSelectedChart(): void {
+    const songId = this.selectedLoadSongId();
+    const difficultyId = this.selectedLoadDifficultyId();
+    if (!songId || !difficultyId) {
+      this.loadChartError.set('Please select a song and difficulty.');
+      return;
+    }
+
+    const song = this.ownedSongs().find(s => s.id === songId);
+    if (!song) {
+      this.loadChartError.set('Song not found.');
+      return;
+    }
+
+    this.loadChartForEditing(song, difficultyId);
+    this.editingDifficultyId.set(difficultyId);
+    this.closeLoadChartModal();
   }
 
   // ─── Audio Controls ───────────────────────────────────────

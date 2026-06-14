@@ -27,6 +27,18 @@ interface ChartNote {
   missed?: boolean; // Track if note was missed vs just judged
 }
 
+interface ActiveHold {
+  note: ChartNote;
+  lane: number;
+  pressPoints: number;
+  pressGrade: 'perfect' | 'good' | 'glimmer' | 'miss';
+  nextTickTime: number;
+  tickCount: number;
+  ticksAwarded: number;
+  released: boolean;
+  missed: boolean;
+}
+
 interface ChartMetadata {
   title?: string;
   artist?: string;
@@ -100,6 +112,7 @@ export class Gameplay implements AfterViewInit, OnDestroy {
   private readonly shardGravity = 0.15;
   private readonly hitSoundAudio = new Audio();
   private readonly missSoundAudio = new Audio();
+  private activeHolds: ActiveHold[] = [];
   private canvas!: HTMLCanvasElement;
   private ctx!: CanvasRenderingContext2D;
   protected readonly currentSongTimeMs = signal(0);
@@ -361,6 +374,9 @@ export class Gameplay implements AfterViewInit, OnDestroy {
     const lane = this.keyToLane(event.key);
     if (lane !== null) {
       this.keyStates[lane] = false;
+      if (this.gameRunning()) {
+        this.finalizeHoldRelease(lane, this.getAudioTimeMs());
+      }
     }
   }
 
@@ -605,6 +621,9 @@ export class Gameplay implements AfterViewInit, OnDestroy {
     // Check for notes that have passed the hit zone without being judged
     this.updateMissedNotes(audioTime);
 
+    // Update active holds (ticks, early releases, auto-completion)
+    this.updateActiveHolds(audioTime);
+
     // If all notes are judged and we've passed the last note, finish the game
     // (this handles the no-audio fallback mode)
     if (this.allNotesJudged() && this.chartNotes.length > 0) {
@@ -638,7 +657,7 @@ export class Gameplay implements AfterViewInit, OnDestroy {
       // Bombs that pass by unhit are simply ignored.
       if (timeSinceNote > this.hitWindow) {
         note.judged = true;
-        if (note.type === NoteType.Bomb) {
+        if (note.type === NoteType.Bomb || note.type === NoteType.Hold) {
           continue;
         }
         note.missed = true;
@@ -691,6 +710,10 @@ export class Gameplay implements AfterViewInit, OnDestroy {
         // Bombs that are avoided are simply ignored.
         return;
       }
+      if (nextNote.type === NoteType.Hold) {
+        this.finalizeHoldAsMiss(nextNote);
+        return;
+      }
       nextNote.missed = true;
       this.stats.update(stats => ({
         ...stats,
@@ -712,6 +735,11 @@ export class Gameplay implements AfterViewInit, OnDestroy {
       this.spawnBombDebris(lane);
       this.triggerRedFlash();
       this.playMissSound();
+      return;
+    }
+
+    if (nextNote.type === NoteType.Hold) {
+      this.startHold(nextNote, lane, timingDelta, timeSinceNote);
       return;
     }
 
@@ -764,6 +792,162 @@ export class Gameplay implements AfterViewInit, OnDestroy {
       };
     });
     this.updateAccuracy();
+  }
+
+  private startHold(note: ChartNote, lane: number, timingDelta: number, timeSinceNote: number): void {
+    note.judged = true;
+    note.missed = false;
+
+    const pressResult = this.judgeTiming(timingDelta);
+    const endTime = note.time + (note.durationMs ?? 500);
+
+    this.activeHolds.push({
+      note,
+      lane,
+      pressPoints: pressResult.points,
+      pressGrade: pressResult.grade,
+      nextTickTime: note.time,
+      tickCount: 0,
+      ticksAwarded: 0,
+      released: false,
+      missed: false
+    });
+
+    this.triggerBulbFlash(lane);
+
+    const geometry = this.getLaneGeometry(this.canvas.width);
+    const hitZoneY = this.getHitZoneY(this.canvas.height);
+    const laneCenterX = this.getLaneCenterX(lane, geometry);
+    const color = this.laneColors[lane];
+    this.spawnShatter(laneCenterX, hitZoneY, color);
+    this.spawnHitFeedback(lane, pressResult.label, pressResult.color);
+    this.playHitSound();
+
+    this.stats.update(stats => {
+      const combo = stats.combo + 1;
+      return {
+        ...stats,
+        combo,
+        maxCombo: Math.max(stats.maxCombo, combo)
+      };
+    });
+  }
+
+  private judgeTiming(timingDelta: number): { points: number; grade: 'perfect' | 'good' | 'glimmer' | 'miss'; label: string; color: string } {
+    if (timingDelta <= this.perfectWindow) {
+      return { points: 3, grade: 'perfect', label: 'Radiant', color: this.accentColor };
+    }
+    if (timingDelta <= this.shinningWindow) {
+      return { points: 2, grade: 'good', label: 'Shinning', color: '#78dcff' };
+    }
+    if (timingDelta <= this.okayWindow) {
+      return { points: 1, grade: 'glimmer', label: 'Glimmer', color: '#d2c7ff' };
+    }
+    return { points: 0, grade: 'miss', label: 'Shattered', color: '#ff9ea8' };
+  }
+
+  private finalizeHoldRelease(lane: number, audioTime: number): void {
+    const holdIndex = this.activeHolds.findIndex(h => h.lane === lane && !h.released && !h.missed);
+    if (holdIndex === -1) return;
+
+    const hold = this.activeHolds[holdIndex];
+    hold.released = true;
+
+    const endTime = hold.note.time + (hold.note.durationMs ?? 500);
+    const releaseDelta = Math.abs(audioTime - endTime);
+    const releaseResult = this.judgeTiming(releaseDelta);
+
+    this.finalizeHoldScoring(hold, releaseResult);
+  }
+
+  private finalizeHoldAsMiss(note: ChartNote): void {
+    note.judged = true;
+    note.missed = true;
+    this.stats.update(stats => ({
+      ...stats,
+      miss: stats.miss + 1,
+      combo: 0
+    }));
+    this.updateAccuracy();
+    this.spawnHitFeedback(note.lane, 'Shattered', '#ff9ea8');
+    this.playMissSound();
+  }
+
+  private finalizeHoldScoring(hold: ActiveHold, releaseResult: { points: number; grade: 'perfect' | 'good' | 'glimmer' | 'miss'; label: string; color: string }): void {
+    const worsePoints = Math.min(hold.pressPoints, releaseResult.points);
+    const worseGrade = this.worseGrade(hold.pressGrade, releaseResult.grade);
+
+    this.scoreUnits += worsePoints;
+
+    this.stats.update(stats => {
+      const combo = worseGrade === 'miss' ? 0 : stats.combo + 1;
+      const updates: Partial<GameStats> = { combo };
+      if (worseGrade === 'perfect') updates.perfect = stats.perfect + 1;
+      else if (worseGrade === 'good') updates.good = stats.good + 1;
+      else if (worseGrade === 'glimmer') updates.glimmer = stats.glimmer + 1;
+      else updates.miss = stats.miss + 1;
+      return { ...stats, ...updates, maxCombo: Math.max(stats.maxCombo, combo) };
+    });
+
+    this.updateScaledScore();
+    this.updateAccuracy();
+
+    const feedbackText = worseGrade === 'miss' ? 'Shattered' : releaseResult.label;
+    const feedbackColor = worseGrade === 'miss' ? '#ff9ea8' : releaseResult.color;
+    this.spawnHitFeedback(hold.lane, feedbackText, feedbackColor);
+
+    if (worseGrade === 'miss') {
+      this.playMissSound();
+    } else {
+      this.playHitSound();
+    }
+  }
+
+  private worseGrade(
+    a: 'perfect' | 'good' | 'glimmer' | 'miss',
+    b: 'perfect' | 'good' | 'glimmer' | 'miss'
+  ): 'perfect' | 'good' | 'glimmer' | 'miss' {
+    const order = { miss: 0, glimmer: 1, good: 2, perfect: 3 };
+    return order[a] < order[b] ? a : b;
+  }
+
+  private updateActiveHolds(audioTime: number): void {
+    for (let i = this.activeHolds.length - 1; i >= 0; i--) {
+      const hold = this.activeHolds[i];
+      if (hold.released || hold.missed) continue;
+
+      const endTime = hold.note.time + (hold.note.durationMs ?? 500);
+      const tickInterval = 100;
+
+      // Award ticks while the key is held
+      while (hold.nextTickTime + tickInterval <= audioTime && hold.nextTickTime + tickInterval <= endTime) {
+        hold.nextTickTime += tickInterval;
+        if (this.keyStates[hold.lane]) {
+          hold.ticksAwarded++;
+          this.scoreUnits += 1;
+        }
+      }
+
+      // Key released early
+      if (!this.keyStates[hold.lane] && audioTime < endTime + this.hitWindow) {
+        hold.missed = true;
+        this.stats.update(stats => ({ ...stats, combo: 0 }));
+        this.spawnHitFeedback(hold.lane, 'Dropped', '#ff9ea8');
+        this.playMissSound();
+        this.activeHolds.splice(i, 1);
+        this.updateScaledScore();
+        this.updateAccuracy();
+        continue;
+      }
+
+      // Hold completed without explicit release
+      if (audioTime > endTime + this.hitWindow) {
+        hold.released = true;
+        const releaseResult = this.judgeTiming(0); // perfect release for holding through
+        this.finalizeHoldScoring(hold, releaseResult);
+        this.activeHolds.splice(i, 1);
+      }
+    }
   }
 
   private applyBombPenalty(): void {
@@ -841,10 +1025,18 @@ export class Gameplay implements AfterViewInit, OnDestroy {
       return;
     }
 
-    const maxUnits = totalNotes * 3;
+    const maxUnits = this.chartNotes.reduce((sum, note) => sum + this.getNoteMaxUnits(note), 0);
     const baseScore = Math.round((this.scoreUnits / maxUnits) * this.maxSongScore);
     const score = Math.max(0, baseScore - this.scorePenalty);
     this.stats.update(current => ({ ...current, score }));
+  }
+
+  private getNoteMaxUnits(note: ChartNote): number {
+    if (note.type === NoteType.Hold && note.durationMs && note.durationMs > 0) {
+      const tickCount = Math.floor(note.durationMs / 100);
+      return 3 + tickCount;
+    }
+    return 3;
   }
 
   private render(audioTime: number): void {
@@ -876,6 +1068,7 @@ export class Gameplay implements AfterViewInit, OnDestroy {
     const hitZoneY = this.getHitZoneY(height);
     this.drawFlashes(hitZoneY, geometry);
     this.drawNotes(audioTime, width, height);
+    this.drawActiveHolds(audioTime, width, height);
     this.updateAndDrawShatters();
     this.updateAndDrawHitFeedbacks(geometry);
     this.drawLaneLabels(height);
@@ -1018,18 +1211,102 @@ export class Gameplay implements AfterViewInit, OnDestroy {
       const timeDiff = note.time - audioTime;
       const yCenter = hitZoneY - timeDiff * this.fallingSpeed;
 
-      if (yCenter < -noteRadius * 2 || yCenter > height + noteRadius * 2) continue;
-
       const xCenter = this.getLaneCenterX(note.lane, geometry);
       const color = this.laneColors[note.lane] ?? '#ffffff';
 
-      if (note.type === NoteType.Bomb) {
-        this.drawBombNote(xCenter, yCenter, noteRadius);
+      if (note.type === NoteType.Hold) {
+        const durationMs = note.durationMs ?? 500;
+        const endTime = note.time + durationMs;
+        const endTimeDiff = endTime - audioTime;
+        const endY = hitZoneY - endTimeDiff * this.fallingSpeed;
+        const minY = Math.min(yCenter, endY);
+        const maxY = Math.max(yCenter, endY);
+        if (maxY < -noteRadius * 2 || minY > height + noteRadius * 2) continue;
+        this.drawHoldNote(audioTime, xCenter, yCenter, note, noteRadius, color);
       } else {
-        // Glowing falling bulb
-        this.drawLightbulb(xCenter, yCenter, noteRadius, color, true);
+        if (yCenter < -noteRadius * 2 || yCenter > height + noteRadius * 2) continue;
+        if (note.type === NoteType.Bomb) {
+          this.drawBombNote(xCenter, yCenter, noteRadius);
+        } else {
+          // Glowing falling bulb
+          this.drawLightbulb(xCenter, yCenter, noteRadius, color, true);
+        }
       }
     }
+  }
+
+  private drawActiveHolds(audioTime: number, width: number, height: number): void {
+    const geometry = this.getLaneGeometry(width);
+    const hitZoneY = this.getHitZoneY(height);
+    const noteRadius = this.noteSize / 2;
+
+    for (const hold of this.activeHolds) {
+      if (hold.released || hold.missed) continue;
+
+      const note = hold.note;
+      const xCenter = this.getLaneCenterX(note.lane, geometry);
+      const yCenter = hitZoneY - (note.time - audioTime) * this.fallingSpeed;
+      const color = this.laneColors[note.lane] ?? '#ffffff';
+      this.drawHoldNote(audioTime, xCenter, yCenter, note, noteRadius, color, false);
+    }
+  }
+
+  private drawHoldNote(
+    audioTime: number,
+    x: number,
+    y: number,
+    note: ChartNote,
+    radius: number,
+    color: string,
+    drawHead: boolean = true
+  ): void {
+    const durationMs = note.durationMs ?? 500;
+    const endTime = note.time + durationMs;
+    const hitZoneY = this.getHitZoneY(this.canvas.height);
+    const startY = y;
+    const endY = hitZoneY - (endTime - audioTime) * this.fallingSpeed;
+
+    const activeHold = this.activeHolds.find(h => h.note === note && !h.released && !h.missed);
+    const heldProgress = activeHold
+      ? Math.max(0, Math.min(1, (audioTime - note.time) / durationMs))
+      : 0;
+
+    // Body: in gameplay the head (startY) is below the tail (endY), so draw
+    // from the top of the body down to the head.
+    const bodyWidth = radius * 1.4;
+    const topY = Math.min(startY, endY);
+    const bottomY = Math.max(startY, endY);
+    const bodyHeight = Math.max(2, bottomY - topY);
+
+    this.ctx.save();
+    this.ctx.fillStyle = color + '60';
+    this.ctx.strokeStyle = color;
+    this.ctx.lineWidth = 2;
+    this.ctx.shadowColor = color;
+    this.ctx.shadowBlur = 12;
+    this.ctx.beginPath();
+    this.ctx.roundRect(x - bodyWidth / 2, topY, bodyWidth, bodyHeight, 4);
+    this.ctx.fill();
+    this.ctx.stroke();
+
+    // Held progress overlay: fill from the head upward.
+    if (heldProgress > 0) {
+      const heldHeight = bodyHeight * heldProgress;
+      this.ctx.fillStyle = color + 'B0';
+      this.ctx.beginPath();
+      this.ctx.roundRect(x - bodyWidth / 2, bottomY - heldHeight, bodyWidth, heldHeight, 4);
+      this.ctx.fill();
+    }
+
+    this.ctx.restore();
+
+    // Head
+    if (drawHead) {
+      this.drawLightbulb(x, startY, radius, color, true);
+    }
+
+    // Tail
+    this.drawLightbulb(x, endY, radius * 0.7, color, false);
   }
 
   private drawBombNote(x: number, y: number, radius: number): void {
@@ -1153,6 +1430,7 @@ export class Gameplay implements AfterViewInit, OnDestroy {
     this.scoreUnits = 0;
     this.scorePenalty = 0;
     this.keyStates = [false, false, false, false]; // Reset key states
+    this.activeHolds = [];
     this.notes = this.cloneNotes(this.chartNotes);
     this.hitFeedbacks = [];
     this.gameStarted.set(false);
@@ -1179,12 +1457,21 @@ export class Gameplay implements AfterViewInit, OnDestroy {
 
     this.currentSongTimeMs.set(this.totalSongDurationMs());
 
-    // Count any remaining unjudged notes as misses (bombs are ignored)
+    // Finalize any active holds as misses
+    for (const hold of this.activeHolds) {
+      if (!hold.released && !hold.missed) {
+        hold.missed = true;
+        this.stats.update(stats => ({ ...stats, miss: stats.miss + 1, combo: 0 }));
+      }
+    }
+    this.activeHolds = [];
+
+    // Count any remaining unjudged notes as misses (bombs and holds are ignored)
     let remainingMisses = 0;
     for (const note of this.notes) {
       if (!note.judged) {
         note.judged = true;
-        if (note.type !== NoteType.Bomb) {
+        if (note.type !== NoteType.Bomb && note.type !== NoteType.Hold) {
           note.missed = true;
           remainingMisses++;
         }
