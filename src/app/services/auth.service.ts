@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { signal, computed } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
-import { Observable, catchError, throwError, map } from 'rxjs';
+import { Observable, catchError, throwError, map, tap } from 'rxjs';
 
 export interface LoginRequest {
   username: string;
@@ -33,6 +33,9 @@ export interface User {
   youtubeUrl?: string | null;
   twitchUrl?: string | null;
   totalSp?: number;
+  lastLoginDate?: string;
+  loginStreak?: number;
+  longestStreak?: number;
 }
 
 export interface UpdateProfileRequest {
@@ -121,6 +124,13 @@ export class AuthService {
         }
         return response;
       }),
+      tap(response => {
+        if (response.success && response.user?.id) {
+          this.refreshUser(response.user.id).subscribe({
+            error: err => console.warn('Failed to refresh user after login:', err)
+          });
+        }
+      }),
       catchError(error => {
         return throwError(() => new Error(error.error?.error || 'Login failed'));
       })
@@ -149,6 +159,14 @@ export class AuthService {
           this.currentUserSignal.set(normalized);
         }
         return response;
+      }),
+      tap(response => {
+        const userId = response.user?.id ?? response.userId;
+        if (response.success && userId) {
+          this.refreshUser(userId).subscribe({
+            error: err => console.warn('Failed to refresh user after registration:', err)
+          });
+        }
       }),
       catchError(error => {
         return throwError(() => new Error(error.error?.error || 'Registration failed'));

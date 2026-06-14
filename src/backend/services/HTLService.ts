@@ -57,6 +57,9 @@ export interface UserJSON {
   youtubeUrl?: string | null;
   twitchUrl?: string | null;
   totalSp?: number;
+  lastLoginDate?: string;
+  loginStreak?: number;
+  longestStreak?: number;
 }
 
 export class HTLService {
@@ -87,7 +90,10 @@ export class HTLService {
       discordUrl: (user as any).discordUrl ?? null,
       youtubeUrl: (user as any).youtubeUrl ?? null,
       twitchUrl: (user as any).twitchUrl ?? null,
-      totalSp: typeof (user as any).totalSp === 'number' ? (user as any).totalSp : (typeof (user as any).total_sp === 'number' ? (user as any).total_sp : 0)
+      totalSp: typeof (user as any).totalSp === 'number' ? (user as any).totalSp : (typeof (user as any).total_sp === 'number' ? (user as any).total_sp : 0),
+      lastLoginDate: (user as any).lastLoginDate ?? undefined,
+      loginStreak: typeof (user as any).loginStreak === 'number' ? (user as any).loginStreak : 0,
+      longestStreak: typeof (user as any).longestStreak === 'number' ? (user as any).longestStreak : 0
     };
   }
 

@@ -17,7 +17,10 @@ export type User = {
   discordUrl?: string | null,
   youtubeUrl?: string | null,
   twitchUrl?: string | null,
-  totalSp?: number
+  totalSp?: number;
+  lastLoginDate?: string;
+  loginStreak?: number;
+  longestStreak?: number;
 };
 
 export interface UserControls {

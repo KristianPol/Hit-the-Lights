@@ -41,6 +41,16 @@ export interface PendingRequestsResponse {
   error?: string;
 }
 
+export interface SuggestedUser extends SearchUserResult {
+  commonFriendCount: number;
+}
+
+export interface SuggestionsResponse {
+  success: boolean;
+  users: SuggestedUser[];
+  error?: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -101,6 +111,12 @@ export class FriendshipService {
   removeFriend(userId: number, friendId: number): Observable<FriendActionResult> {
     return this.http.delete<FriendActionResult>(`${this.apiUrl}/${userId}/${friendId}`).pipe(
       catchError(error => throwError(() => new Error(error.error?.error || 'Failed to remove friend')))
+    );
+  }
+
+  getSuggestions(userId: number): Observable<SuggestionsResponse> {
+    return this.http.get<SuggestionsResponse>(`${this.apiUrl}/suggestions/${userId}`).pipe(
+      catchError(error => throwError(() => new Error(error.error?.error || 'Failed to load friend suggestions')))
     );
   }
 }

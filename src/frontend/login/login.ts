@@ -58,8 +58,8 @@ export class Login {
       next: (response) => {
         this.loading.set(false);
         if (response.success) {
-          // Redirect to menu on successful login
-          this.router.navigate(['/menu']);
+          // Redirect to home on successful login
+          this.router.navigate(['/menu/home']);
         } else {
           this.errorMessage.set(response.error || 'Login failed');
         }

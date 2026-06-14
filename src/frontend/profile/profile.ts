@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { AuthService, User } from '../../app/services/auth.service';
 import { SongService, Song, SongDifficulty, difficultyNumberToName } from '../../app/services/song.service';
+import { FriendshipService, FriendshipResult } from '../../app/services/friendship.service';
 import { AchievementService } from '../../app/services/achievement.service';
 import { Achievement } from '../../app/services/achievement.model';
 import { catchError, of, tap, finalize, take, map, firstValueFrom } from 'rxjs';
@@ -160,6 +161,22 @@ export class ProfileComponent implements OnInit {
   get activeTab(): 'about' | 'creations' | 'admin' { return this.activeTabSignal(); }
   set activeTab(v: 'about' | 'creations' | 'admin') { this.activeTabSignal.set(v); }
 
+  private friendsSignal = signal<FriendshipResult[]>([]);
+  get friends(): FriendshipResult[] { return this.friendsSignal(); }
+  set friends(v: FriendshipResult[]) { this.friendsSignal.set(v); }
+
+  private friendsLoadingSignal = signal<boolean>(false);
+  get friendsLoading(): boolean { return this.friendsLoadingSignal(); }
+  set friendsLoading(v: boolean) { this.friendsLoadingSignal.set(v); }
+
+  private recentlyPlayedSignal = signal<Song[]>([]);
+  get recentlyPlayed(): Song[] { return this.recentlyPlayedSignal(); }
+  set recentlyPlayed(v: Song[]) { this.recentlyPlayedSignal.set(v); }
+
+  private recentlyPlayedLoadingSignal = signal<boolean>(false);
+  get recentlyPlayedLoading(): boolean { return this.recentlyPlayedLoadingSignal(); }
+  set recentlyPlayedLoading(v: boolean) { this.recentlyPlayedLoadingSignal.set(v); }
+
   get isAdmin(): boolean {
     return this.authService.isAdmin;
   }
@@ -270,6 +287,7 @@ export class ProfileComponent implements OnInit {
     private router: Router,
     private route: ActivatedRoute,
     private songService: SongService,
+    private friendshipService: FriendshipService,
     private achievementService: AchievementService,
     private http: HttpClient,
     private ngZone: NgZone,
@@ -321,6 +339,8 @@ export class ProfileComponent implements OnInit {
       this.loadUploadedSongCount(currentUser.id);
       this.loadPinnedAchievements(currentUser.id);
       this.loadCreations(currentUser.id);
+      this.loadFriends(currentUser.id);
+      this.loadRecentlyPlayed(currentUser.id);
       this.totalGamesPlayed = currentUser.gamesPlayed ?? 0;
     }
 
@@ -380,6 +400,8 @@ export class ProfileComponent implements OnInit {
           this.loadUploadedSongCount(userId);
           this.loadPinnedAchievements(userId);
           this.loadCreations(userId);
+          this.loadFriends(userId);
+          this.loadRecentlyPlayed(userId);
           this.totalGamesPlayed = response.user.gamesPlayed ?? 0;
         } else {
           this.error = response.error || 'User not found';
@@ -393,6 +415,38 @@ export class ProfileComponent implements OnInit {
         this.loading = false;
         this.error = err.message || 'Failed to load user profile';
         this.user = null;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  private loadFriends(userId: number): void {
+    this.friendsLoading = true;
+    this.friendshipService.getFriends(userId).subscribe({
+      next: res => {
+        this.friends = res.success && Array.isArray(res.friends) ? res.friends : [];
+        this.friendsLoading = false;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.friends = [];
+        this.friendsLoading = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  private loadRecentlyPlayed(userId: number): void {
+    this.recentlyPlayedLoading = true;
+    this.songService.getRecentlyPlayed(userId).subscribe({
+      next: res => {
+        this.recentlyPlayed = res.success && Array.isArray(res.songs) ? res.songs : [];
+        this.recentlyPlayedLoading = false;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.recentlyPlayed = [];
+        this.recentlyPlayedLoading = false;
         this.cdr.detectChanges();
       }
     });

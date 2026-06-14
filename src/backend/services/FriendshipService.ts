@@ -33,6 +33,16 @@ export interface FriendActionResult {
   error?: string;
 }
 
+export interface SuggestedUser extends SearchUserResult {
+  commonFriendCount: number;
+}
+
+export interface SuggestionsResponse {
+  success: boolean;
+  users: SuggestedUser[];
+  error?: string;
+}
+
 export class FriendshipService {
   constructor(private unit: Unit) {}
 
@@ -325,6 +335,54 @@ export class FriendshipService {
     );
     await stmt.run();
     return { success: true };
+  }
+
+  /**
+   * Get suggested users based on common accepted friends
+   */
+  public async getSuggestions(userId: number, limit = 10): Promise<SuggestionsResponse> {
+    const stmt = this.unit.prepare<
+      { id: number; username: string; profilePicture: Buffer | null; profilePictureUrl: string | null; common_count: number },
+      { userId: number; limit: number }
+    >(
+      `WITH user_friends AS (
+         SELECT CASE WHEN requester_id = $userId THEN addressee_id ELSE requester_id END AS friend_id
+         FROM Friendship
+         WHERE status = 'accepted' AND (requester_id = $userId OR addressee_id = $userId)
+       )
+       SELECT u.id, u.username, u.profilePicture, u.profilePictureUrl, COUNT(*)::int AS common_count
+       FROM "User" u
+       JOIN Friendship f ON f.status = 'accepted'
+         AND u.id != $userId
+         AND (
+           (f.requester_id = u.id AND f.addressee_id IN (SELECT friend_id FROM user_friends))
+           OR (f.addressee_id = u.id AND f.requester_id IN (SELECT friend_id FROM user_friends))
+         )
+         AND NOT EXISTS (
+           SELECT 1 FROM Friendship f2
+           WHERE f2.status = 'accepted'
+             AND ((f2.requester_id = $userId AND f2.addressee_id = u.id)
+               OR (f2.addressee_id = $userId AND f2.requester_id = u.id))
+         )
+       GROUP BY u.id, u.username, u.profilePicture, u.profilePictureUrl
+       ORDER BY common_count DESC, u.username ASC
+       LIMIT $limit`,
+      { userId, limit }
+    );
+    const rows = await stmt.all();
+    return {
+      success: true,
+      users: rows.map(row => ({
+        id: row.id,
+        username: row.username,
+        profilePictureUrl: row.profilePictureUrl
+          ? row.profilePictureUrl
+          : row.profilePicture
+            ? `/api/auth/profile-picture/${row.id}?t=${Date.now()}`
+            : undefined,
+        commonFriendCount: row.common_count
+      }))
+    };
   }
 
   /**

@@ -71,6 +71,9 @@ const COLUMN_MAP: Record<string, string> = {
   discordurl: 'discordUrl',
   youtubeurl: 'youtubeUrl',
   twitchurl: 'twitchUrl',
+  lastlogindate: 'lastLoginDate',
+  loginstreak: 'loginStreak',
+  longeststreak: 'longestStreak',
 };
 
 function normalizeRow(row: Record<string, unknown>): Record<string, unknown> {
@@ -317,6 +320,9 @@ export class Unit {
         role TEXT DEFAULT 'user',
         is_banned INTEGER DEFAULT 0,
         last_song_upload_at TIMESTAMP,
+        lastLoginDate TIMESTAMP,
+        loginStreak INTEGER NOT NULL DEFAULT 0,
+        longestStreak INTEGER NOT NULL DEFAULT 0,
         CONSTRAINT uq_username UNIQUE (username)
       )
     `);
@@ -351,6 +357,23 @@ export class Unit {
     // Ensure last_song_upload_at exists on older User tables
     try {
       await getSql().unsafe(`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS last_song_upload_at TIMESTAMP`);
+    } catch (e: any) {
+      // ignore
+    }
+
+    // Ensure login streak columns exist on older User tables
+    try {
+      await getSql().unsafe(`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS lastLoginDate TIMESTAMP`);
+    } catch (e: any) {
+      // ignore
+    }
+    try {
+      await getSql().unsafe(`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS loginStreak INTEGER NOT NULL DEFAULT 0`);
+    } catch (e: any) {
+      // ignore
+    }
+    try {
+      await getSql().unsafe(`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS longestStreak INTEGER NOT NULL DEFAULT 0`);
     } catch (e: any) {
       // ignore
     }

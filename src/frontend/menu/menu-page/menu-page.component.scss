@@ -35,4 +35,9 @@
     position: relative;
     z-index: 1;
   }
+
+  > :not(router-outlet) {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
 }

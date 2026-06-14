@@ -627,6 +627,25 @@ songRouter.delete('/:songId/comments/:commentId', authMiddleware, async (req: Re
   }
 });
 
+songRouter.get('/recently-played/:userId', async (req: Request, res: Response) => {
+  const unit = new Unit(true);
+  try {
+    const userId = parseInt(req.params['userId'] as string, 10);
+    if (isNaN(userId) || userId <= 0) { await unit.complete(); res.status(400).json({ success: false, error: 'Invalid user ID' }); return; }
+    const svc = new SongService(unit);
+    const result = await svc.getRecentlyPlayed(userId);
+    await unit.complete();
+    if (result.success) {
+      res.status(200).json({ success: true, songs: result.songs });
+    } else {
+      res.status(400).json({ success: false, error: result.error });
+    }
+  } catch (error: any) {
+    await unit.complete();
+    res.status(500).json({ success: false, error: error.message || 'Internal server error' });
+  }
+});
+
 songRouter.get('/leaderboard/sp', async (req: Request, res: Response) => {
   const unit = new Unit(true);
   try {

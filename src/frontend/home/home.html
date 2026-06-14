@@ -1,0 +1,184 @@
+<div class="home-container">
+  <div class="home-header">
+    <div class="header-spacer"></div>
+    <h1>Home</h1>
+    <div class="user-greeting">
+      <div class="user-avatar">
+        @if (!currentUser()?.profilePictureUrl || imageError()) {
+          {{ currentUser()?.username?.charAt(0)?.toUpperCase() || '?' }}
+        }
+        @if (currentUser()?.profilePictureUrl && !imageError()) {
+          <img
+            [src]="currentUser()?.profilePictureUrl"
+            [alt]="'Profile picture'"
+            class="user-avatar-image"
+            (error)="onImageError()">
+        }
+      </div>
+      <div class="greeting-text">
+        <span class="greeting-label">{{ greeting() }},</span>
+        <span class="greeting-name">{{ currentUser()?.username || 'Guest' }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="home-content">
+    <div class="home-banner">
+      <span class="banner-greeting">{{ greeting() }}, {{ currentUser()?.username || 'Guest' }}</span>
+      <span class="banner-subtitle">Ready to hit the lights?</span>
+    </div>
+
+    <section class="dashboard-panel streak-panel">
+      <div class="panel-header">
+        <i class="fas fa-fire"></i>
+        <span>Daily Login Streak</span>
+      </div>
+      <div class="panel-body">
+        <div class="streak-stats">
+          <div class="streak-stat">
+            <span class="streak-value">{{ currentUser()?.loginStreak ?? 0 }}</span>
+            <span class="streak-label">Current</span>
+          </div>
+          <div class="streak-stat">
+            <span class="streak-value">{{ currentUser()?.longestStreak ?? 0 }}</span>
+            <span class="streak-label">Longest</span>
+          </div>
+        </div>
+        <p class="streak-nudge">Come back tomorrow to keep it going.</p>
+      </div>
+    </section>
+
+    <div class="bento-grid">
+      <section class="dashboard-panel songs-panel recently-played-panel">
+        <div class="panel-header">
+          <i class="fas fa-music"></i>
+          <span>Recently Played</span>
+        </div>
+        <div class="panel-body">
+          @if (loadingSongs()) {
+            <p class="empty-text">Loading songs...</p>
+          } @else if (errorSongs()) {
+            <p class="error-text">{{ errorSongs() }}</p>
+          } @else if (recentlyPlayed().length === 0) {
+            <p class="empty-text">No recently played songs.</p>
+          } @else {
+            <ul class="row-list songs-list">
+              @for (song of recentlyPlayed(); track trackBySongId($index, song)) {
+                <li class="row-item song-item" [routerLink]="['/menu/song', song.id]">
+                  @if (song.coverUrl) {
+                    <img [src]="song.coverUrl" [alt]="song.name" class="song-cover">
+                  } @else {
+                    <div class="song-cover song-cover-placeholder"><i class="fas fa-music"></i></div>
+                  }
+                  <div class="song-info">
+                    <span class="song-name">{{ song.name }}</span>
+                    <span class="song-author">{{ song.author }}</span>
+                  </div>
+                </li>
+              }
+            </ul>
+          }
+        </div>
+      </section>
+
+      <section class="dashboard-panel friends-panel">
+        <div class="panel-header">
+          <i class="fas fa-user-group"></i>
+          <span>Friends</span>
+          <span class="panel-count">{{ displayedFriends().length }} / 10</span>
+        </div>
+        <div class="panel-body">
+          @if (loadingFriends()) {
+            <p class="empty-text">Loading friends...</p>
+          } @else if (errorFriends()) {
+            <p class="error-text">{{ errorFriends() }}</p>
+          } @else if (displayedFriends().length === 0) {
+            <p class="empty-text">No friends yet.</p>
+          } @else {
+            <ul class="row-list friends-list">
+              @for (friend of displayedFriends(); track trackByFriendId($index, friend)) {
+                <li class="row-item friend-item" [routerLink]="['/profile', friend.otherUser.id]">
+                  <div class="friend-avatar">{{ friend.otherUser.username.charAt(0).toUpperCase() }}</div>
+                  <span class="friend-name">{{ friend.otherUser.username }}</span>
+                </li>
+              }
+            </ul>
+          }
+        </div>
+      </section>
+
+      <section class="dashboard-panel suggestions-panel">
+        <div class="panel-header">
+          <i class="fas fa-user-plus"></i>
+          <span>People You May Know</span>
+        </div>
+        <div class="panel-body">
+          @if (loadingSuggestions()) {
+            <p class="empty-text">Loading suggestions...</p>
+          } @else if (errorSuggestions()) {
+            <p class="error-text">{{ errorSuggestions() }}</p>
+          } @else if (suggestions().length === 0) {
+            <p class="empty-text">No suggestions right now.</p>
+          } @else {
+            <ul class="row-list suggestions-list">
+              @for (user of suggestions(); track trackByUserId($index, user)) {
+                <li class="row-item suggestion-item">
+                  <div class="suggestion-avatar">{{ user.username.charAt(0).toUpperCase() }}</div>
+                  <div class="suggestion-info">
+                    <span class="suggestion-name">{{ user.username }}</span>
+                    <span class="suggestion-common">{{ user.commonFriendCount }} common friend{{ user.commonFriendCount === 1 ? '' : 's' }}</span>
+                  </div>
+                  <button
+                    class="btn-add-friend"
+                    [class.sent]="sentRequestIds().has(user.id)"
+                    [disabled]="sentRequestIds().has(user.id)"
+                    (click)="sendFriendRequest(user.id, $event)">
+                    @if (sentRequestIds().has(user.id)) {
+                      <i class="fas fa-check"></i>
+                      Sent
+                    } @else {
+                      <i class="fas fa-plus"></i>
+                      Add
+                    }
+                  </button>
+                </li>
+              }
+            </ul>
+          }
+        </div>
+      </section>
+    </div>
+
+    <section class="dashboard-panel songs-panel recommended-panel">
+      <div class="panel-header">
+        <i class="fas fa-wand-magic-sparkles"></i>
+        <span>Recommended</span>
+      </div>
+      <div class="panel-body">
+        @if (loadingRecommended()) {
+          <p class="empty-text">Loading recommendations...</p>
+        } @else if (errorRecommended()) {
+          <p class="error-text">{{ errorRecommended() }}</p>
+        } @else if (recommended().length === 0) {
+          <p class="empty-text">No recommendations available.</p>
+        } @else {
+          <ul class="row-list songs-list">
+            @for (song of recommended(); track trackBySongId($index, song)) {
+              <li class="row-item song-item" [routerLink]="['/menu/song', song.id]">
+                @if (song.coverUrl) {
+                  <img [src]="song.coverUrl" [alt]="song.name" class="song-cover">
+                } @else {
+                  <div class="song-cover song-cover-placeholder"><i class="fas fa-music"></i></div>
+                }
+                <div class="song-info">
+                  <span class="song-name">{{ song.name }}</span>
+                  <span class="song-author">{{ song.author }}</span>
+                </div>
+              </li>
+            }
+          </ul>
+        }
+      </div>
+    </section>
+  </div>
+</div>

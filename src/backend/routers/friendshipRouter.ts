@@ -131,6 +131,23 @@ friendshipRouter.get('/sent/:userId', authMiddleware, async (req: Request, res: 
   }
 });
 
+friendshipRouter.get('/suggestions/:userId', authMiddleware, async (req: Request, res: Response) => {
+  const unit = new Unit(true);
+  try {
+    const requestedUserId = parseInt(req.params['userId'] as string, 10);
+    const authUserId = req.authenticatedUserId!;
+    if (requestedUserId !== authUserId) { await unit.complete(); res.status(403).json({ success: false, error: 'Forbidden' }); return; }
+    if (!requestedUserId) { await unit.complete(); res.status(400).json({ success: false, error: 'Invalid userId' }); return; }
+    const service = new FriendshipService(unit);
+    const result = await service.getSuggestions(requestedUserId);
+    await unit.complete();
+    res.status(200).json(result);
+  } catch (error: any) {
+    await unit.complete();
+    res.status(500).json({ success: false, error: error.message || 'Internal server error' });
+  }
+});
+
 friendshipRouter.delete('/:userId/:friendId', authMiddleware, async (req: Request, res: Response) => {
   const unit = new Unit(false);
   try {

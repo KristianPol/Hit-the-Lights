@@ -59,8 +59,8 @@ export class Register extends Login {
       next: (response) => {
         this.loading.set(false);
         if (response.success) {
-          // Redirect to menu on successful registration
-          this.router.navigate(['/menu']);
+          // Redirect to home on successful registration
+          this.router.navigate(['/menu/home']);
         } else {
           this.errorMessage.set(response.error || 'Registration failed');
         }

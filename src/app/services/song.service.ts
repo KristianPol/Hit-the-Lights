@@ -235,6 +235,12 @@ export interface GetDifficultyChartResponse {
   error?: string;
 }
 
+export interface GetRecentlyPlayedResponse {
+  success: boolean;
+  songs?: Song[];
+  error?: string;
+}
+
 export interface Comment {
   id: number;
   songId: number;
@@ -532,6 +538,18 @@ export class SongService {
         catchError(error => {
           return throwError(
             () => new Error(error.error?.error || 'Failed to fetch chart')
+          );
+        })
+      );
+  }
+
+  getRecentlyPlayed(userId: number): Observable<GetRecentlyPlayedResponse> {
+    return this.http
+      .get<GetRecentlyPlayedResponse>(`${this.apiUrl}/recently-played/${userId}`)
+      .pipe(
+        catchError(error => {
+          return throwError(
+            () => new Error(error.error?.error || 'Failed to fetch recently played songs')
           );
         })
       );

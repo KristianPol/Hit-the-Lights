@@ -17,6 +17,33 @@ export interface LoginResponse {
 export class AuthenticationService {
   constructor(private unit: Unit) {}
 
+  private getTodayUtc(): string {
+    const now = new Date();
+    return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}-${String(now.getUTCDate()).padStart(2, '0')}`;
+  }
+
+  private computeStreak(lastLoginDate: string | null | undefined, currentStreak: number): { streak: number; updated: boolean } {
+    const today = this.getTodayUtc();
+    if (!lastLoginDate) {
+      return { streak: 1, updated: true };
+    }
+    const lastDate = lastLoginDate.slice(0, 10);
+    if (lastDate === today) {
+      return { streak: currentStreak, updated: false };
+    }
+    const yesterday = new Date(Date.UTC(
+      Number(today.slice(0, 4)),
+      Number(today.slice(5, 7)) - 1,
+      Number(today.slice(8, 10))
+    ));
+    yesterday.setUTCDate(yesterday.getUTCDate() - 1);
+    const yesterdayStr = `${yesterday.getUTCFullYear()}-${String(yesterday.getUTCMonth() + 1).padStart(2, '0')}-${String(yesterday.getUTCDate()).padStart(2, '0')}`;
+    if (lastDate === yesterdayStr) {
+      return { streak: currentStreak + 1, updated: true };
+    }
+    return { streak: 1, updated: true };
+  }
+
   /**
    * Authenticates a user
    * @param request Login request with username and password
@@ -80,6 +107,24 @@ export class AuthenticationService {
         };
       }
 
+      const today = this.getTodayUtc();
+      const lastLoginDate = (user as any).lastLoginDate ? String((user as any).lastLoginDate) : null;
+      const currentStreak = typeof (user as any).loginStreak === 'number' ? (user as any).loginStreak : 0;
+      const longestStreak = typeof (user as any).longestStreak === 'number' ? (user as any).longestStreak : 0;
+      const { streak: newStreak, updated } = this.computeStreak(lastLoginDate, currentStreak);
+      const newLongest = Math.max(longestStreak, newStreak);
+
+      if (updated || newLongest !== longestStreak) {
+        const updateStmt = this.unit.prepare<
+          unknown,
+          { userId: number; lastLoginDate: string; loginStreak: number; longestStreak: number }
+        >(
+          'UPDATE "User" SET lastLoginDate = $lastLoginDate, loginStreak = $loginStreak, longestStreak = $longestStreak WHERE id = $userId',
+          { userId: user.id, lastLoginDate: today, loginStreak: newStreak, longestStreak: newLongest }
+        );
+        await updateStmt.run();
+      }
+
       return {
         success: true,
         user: {
@@ -90,7 +135,10 @@ export class AuthenticationService {
           // Map DB column playtime_seconds to model property playtimeSeconds
           playtimeSeconds: typeof (user as any).playtime_seconds === 'number' ? (user as any).playtime_seconds : 0,
           role: (user as any).role || 'user',
-          totalSp: typeof (user as any).total_sp === 'number' ? (user as any).total_sp : 0
+          totalSp: typeof (user as any).total_sp === 'number' ? (user as any).total_sp : 0,
+          lastLoginDate: today,
+          loginStreak: newStreak,
+          longestStreak: newLongest
         }
       };
     } catch (error: any) {
@@ -109,7 +157,7 @@ export class AuthenticationService {
   private async findUserByUsername(username: string): Promise<User | undefined> {
     // Include playtime_seconds, role, and is_banned
     const stmt = this.unit.prepare<any, { username: string }>(
-      'SELECT id, username, password, profilePicture, profilePictureUrl, joinDate, playtime_seconds, role, is_banned, total_sp FROM "User" WHERE username = $username',
+      'SELECT id, username, password, profilePicture, profilePictureUrl, joinDate, playtime_seconds, role, is_banned, total_sp, lastLoginDate, loginStreak, longestStreak FROM "User" WHERE username = $username',
       { username }
     );
     return await stmt.get();

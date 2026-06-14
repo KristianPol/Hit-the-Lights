@@ -46,6 +46,9 @@ export interface GetUserResponse {
   youtubeUrl?: string | null;
   twitchUrl?: string | null;
   totalSp?: number;
+  lastLoginDate?: string;
+  loginStreak?: number;
+  longestStreak?: number;
 }
 
 export interface UpdateProfileRequest {
@@ -300,11 +303,15 @@ export class UserService {
         youtubeUrl?: string | null;
         twitchUrl?: string | null;
         total_sp?: number;
+        lastLoginDate?: string | null;
+        loginStreak?: number;
+        longestStreak?: number;
       },
       { userId: number }
     >(
       `SELECT id, username, joinDate, role, profilePicture, profilePictureUrl, playtime_seconds, runs_count, total_sp,
-        bio, location, favoriteGenre, githubUrl, osuUrl, robloxUrl, discordUrl, youtubeUrl, twitchUrl
+        bio, location, favoriteGenre, githubUrl, osuUrl, robloxUrl, discordUrl, youtubeUrl, twitchUrl,
+        lastLoginDate, loginStreak, longestStreak
        FROM User WHERE id = $userId`,
       { userId }
     );
@@ -335,7 +342,10 @@ export class UserService {
       discordUrl: result.discordUrl,
       youtubeUrl: result.youtubeUrl,
       twitchUrl: result.twitchUrl,
-      totalSp: typeof result.total_sp === 'number' ? result.total_sp : 0
+      totalSp: typeof result.total_sp === 'number' ? result.total_sp : 0,
+      lastLoginDate: result.lastLoginDate ?? undefined,
+      loginStreak: typeof result.loginStreak === 'number' ? result.loginStreak : 0,
+      longestStreak: typeof result.longestStreak === 'number' ? result.longestStreak : 0
     };
   }
 
@@ -377,17 +387,22 @@ export class UserService {
     }
 
     const stmt = this.unit.prepare<
-      { lane_bindings_json: string | null; note_speed: number | null },
+      { lane_bindings_json: string | null; note_speed: number | null; settings_json: string | null },
       { userId: number }
     >(
-      'SELECT lane_bindings_json, note_speed FROM UserControls WHERE user_id = $userId',
+      'SELECT lane_bindings_json, note_speed, settings_json FROM UserControls WHERE user_id = $userId',
       { userId }
     );
     const result = await stmt.get();
 
     if (!result) {
-      await this.upsertUserControls(userId, DEFAULT_CONTROLS);
-      return JSON.stringify(DEFAULT_CONTROLS);
+      const defaults = JSON.stringify(DEFAULT_CONTROLS);
+      await this.upsertUserControls(userId, DEFAULT_CONTROLS, defaults);
+      return defaults;
+    }
+
+    if (result.settings_json) {
+      return result.settings_json;
     }
 
     const parsedControls = this.parseSettingsJson(result.lane_bindings_json ?? '');
@@ -422,7 +437,7 @@ export class UserService {
 
       const parsedSettings = this.parseSettingsJson(settingsJson);
       const normalized = this.normalizeControls(parsedSettings);
-      await this.upsertUserControls(userId, normalized);
+      await this.upsertUserControls(userId, normalized, settingsJson);
       return { success: true };
     } catch (error: any) {
       return { success: false, error: error.message || 'Database error' };
@@ -560,7 +575,7 @@ export class UserService {
     }
   }
 
-  private async upsertUserControls(userId: number, controls: StoredControls): Promise<void> {
+  private async upsertUserControls(userId: number, controls: StoredControls, settingsJson: string): Promise<void> {
     const payload: UserControls = {
       userId,
       laneBindingsJson: JSON.stringify({
@@ -571,17 +586,19 @@ export class UserService {
       noteSpeed: controls.noteSpeed
     };
 
-    const stmt = this.unit.prepare<unknown, { userId: number; laneBindingsJson: string; noteSpeed: number }>(
-      `INSERT INTO UserControls (user_id, lane_bindings_json, note_speed, created_at, updated_at)
-       VALUES ($userId, $laneBindingsJson, $noteSpeed, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    const stmt = this.unit.prepare<unknown, { userId: number; laneBindingsJson: string; noteSpeed: number; settingsJson: string }>(
+      `INSERT INTO UserControls (user_id, lane_bindings_json, note_speed, settings_json, created_at, updated_at)
+       VALUES ($userId, $laneBindingsJson, $noteSpeed, $settingsJson, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
        ON CONFLICT(user_id) DO UPDATE SET
          lane_bindings_json = excluded.lane_bindings_json,
          note_speed = excluded.note_speed,
+         settings_json = excluded.settings_json,
          updated_at = CURRENT_TIMESTAMP`,
       {
         userId: payload.userId,
         laneBindingsJson: payload.laneBindingsJson,
-        noteSpeed: payload.noteSpeed
+        noteSpeed: payload.noteSpeed,
+        settingsJson
       }
     );
 

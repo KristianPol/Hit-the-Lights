@@ -1388,6 +1388,34 @@ export class SongService {
     return Math.round(weight * Math.pow(ratio, 4) * 10) / 10;
   }
 
+  public async getRecentlyPlayed(userId: number): Promise<{ success: boolean; songs?: SongResponse[]; error?: string }> {
+    try {
+      if (!Number.isInteger(userId) || userId <= 0) {
+        return { success: false, error: 'Invalid user ID' };
+      }
+
+      const stmt = this.unit.prepare<
+        SongRecord & { last_played_date: string },
+        { userId: number }
+      >(
+        `SELECT s.id, s.name, s.author, s.bpm, s.length, s.songUrl, s.coverUrl, s.ownerId, s.isPublic, s.genre, s.play_count, MAX(h.date) AS last_played_date
+         FROM Highscore h
+         JOIN Difficulty d ON h.difficulty_id = d.id
+         JOIN Song s ON d.song_id = s.id
+         WHERE h.user_id = $userId
+         GROUP BY s.id, s.name, s.author, s.bpm, s.length, s.songUrl, s.coverUrl, s.ownerId, s.isPublic, s.genre, s.play_count
+         ORDER BY last_played_date DESC
+         LIMIT 10`,
+        { userId }
+      );
+      const rows = await stmt.all();
+      const songs = await Promise.all(rows.map(row => this.toResponse(row)));
+      return { success: true, songs };
+    } catch (error: any) {
+      return { success: false, error: error.message || 'Failed to fetch recently played songs' };
+    }
+  }
+
   private async recalculateUserTotalSp(userId: number): Promise<number> {
     const rowsStmt = this.unit.prepare<{ sp: number }, { userId: number }>(
       'SELECT h.sp FROM Highscore h WHERE h.user_id = $userId',
