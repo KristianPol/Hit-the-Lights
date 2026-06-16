@@ -148,7 +148,7 @@ export function calculateDifficultyEstimate(input: DifficultyCalcInput): number 
   const { bpm, durationMs, normalCount, holdCount, bombCount } = input;
   const totalNotes = normalCount + holdCount + bombCount;
   if (totalNotes === 0 || durationMs <= 0) {
-    return 0.01;
+    return 1.00;
   }
 
   const durationSeconds = durationMs / 1000;
@@ -156,13 +156,14 @@ export function calculateDifficultyEstimate(input: DifficultyCalcInput): number 
   const notesPerSecond = totalNotes / durationSeconds;
   const lengthFactor = 1 + (durationSeconds / 900);
 
-  // Scaled to give a wide spread: sparse charts ~0.5–1.5, dense charts ~5–10.
-  const densityDifficulty = notesPerSecond * bpmFactor * lengthFactor * 3.0;
-  const typeDifficulty = normalCount * 0.004 + holdCount * 0.016 + bombCount * 0.01;
+  // Very harsh scaling: only the densest, fastest charts reach the top.
+  // Most charts will sit between 1.00 and 3.00.
+  const densityDifficulty = notesPerSecond * bpmFactor * lengthFactor * 0.2;
+  const typeDifficulty = normalCount * 0.0002 + holdCount * 0.0008 + bombCount * 0.0005;
 
-  const rawDifficulty = densityDifficulty + typeDifficulty + 0.15;
+  const rawDifficulty = densityDifficulty + typeDifficulty + 0.1;
 
-  return Math.min(10, Math.max(0.01, Math.round(rawDifficulty * 100) / 100));
+  return Math.min(10, Math.max(1.00, Math.round(rawDifficulty * 100) / 100));
 }
 
 // SP difficulty weights chosen so D1=10, D5=100, D10=1000 with smooth exponential growth.
@@ -330,7 +331,7 @@ export class SongService {
       `SELECT d.id, d.song_id, d.difficulty, s.length, s.bpm
        FROM Difficulty d
        JOIN Song s ON s.id = d.song_id
-       WHERE d.difficulty_estimate IS NULL`,
+       WHERE d.difficulty_estimate IS NULL OR d.difficulty_estimate >= 0`,
       {}
     );
     const rows = await stmt.all();
@@ -1696,7 +1697,7 @@ export class SongService {
       id: difficulty.id,
       difficulty: difficulty.difficulty,
       noteCount: difficulty.note_count,
-      difficultyEstimate: difficulty.difficulty_estimate ?? 0.01
+      difficultyEstimate: difficulty.difficulty_estimate ?? 1.00
     }));
   }
 

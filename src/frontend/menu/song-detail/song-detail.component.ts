@@ -14,6 +14,7 @@ import {
   difficultyNameToNumber
 } from '../../../app/services/song.service';
 import { AchievementService } from '../../../app/services/achievement.service';
+import { calculateDifficultyEstimate } from '../../utils/difficulty-calculator';
 import { Song, Comment, normalizeSong, isSongPublic, isSongOwnedByViewer } from '../menu-helpers';
 
 const GENRES = [
@@ -611,7 +612,30 @@ export class SongDetailComponent implements OnInit, OnDestroy {
     const id = this.selectedDifficultyId();
     if (!id) return '—';
     const found = this.difficultyPickerState().difficulties.find(d => d.id === id);
-    return found ? found.difficultyEstimate.toFixed(2) : '—';
+    if (!found) return '—';
+    const estimate = this.resolveDifficultyEstimate(found);
+    return estimate.toFixed(2);
+  }
+
+  getDifficultyEstimate(diff: SongDifficulty): string {
+    return this.resolveDifficultyEstimate(diff).toFixed(2);
+  }
+
+  private resolveDifficultyEstimate(diff: SongDifficulty): number {
+    if (diff.difficultyEstimate > 1.00) {
+      return diff.difficultyEstimate;
+    }
+    const song = this.song();
+    if (!song) return 1.00;
+    const durationParts = song.length.split(':').map(Number);
+    const durationSeconds = (durationParts[0] || 0) * 60 + (durationParts[1] || 0);
+    return calculateDifficultyEstimate({
+      bpm: song.bpm,
+      durationMs: durationSeconds * 1000,
+      normalCount: diff.noteCount,
+      holdCount: 0,
+      bombCount: 0
+    });
   }
 
   requestDeleteSong(): void {

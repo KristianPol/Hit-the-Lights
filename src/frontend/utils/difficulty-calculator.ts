@@ -26,7 +26,7 @@ export function calculateDifficultyEstimate(input: DifficultyCalculationInput): 
   const totalNotes = normalCount + holdCount + bombCount;
 
   if (totalNotes === 0 || durationMs <= 0) {
-    return 0.01;
+    return 1.00;
   }
 
   const durationSeconds = durationMs / 1000;
@@ -34,13 +34,14 @@ export function calculateDifficultyEstimate(input: DifficultyCalculationInput): 
   const notesPerSecond = totalNotes / durationSeconds;
   const lengthFactor = 1 + (durationSeconds / 900);
 
-  // Scaled to give a wide spread: sparse charts ~0.5–1.5, dense charts ~5–10.
-  const densityDifficulty = notesPerSecond * bpmFactor * lengthFactor * 3.0;
-  const typeDifficulty = normalCount * 0.004 + holdCount * 0.016 + bombCount * 0.01;
+  // Very harsh scaling: only the densest, fastest charts reach the top.
+  // Most charts will sit between 1.00 and 3.00.
+  const densityDifficulty = notesPerSecond * bpmFactor * lengthFactor * 0.2;
+  const typeDifficulty = normalCount * 0.0002 + holdCount * 0.0008 + bombCount * 0.0005;
 
-  const rawDifficulty = densityDifficulty + typeDifficulty + 0.15;
+  const rawDifficulty = densityDifficulty + typeDifficulty + 0.1;
 
-  return Math.min(10, Math.max(0.01, Math.round(rawDifficulty * 100) / 100));
+  return Math.min(10, Math.max(1.00, Math.round(rawDifficulty * 100) / 100));
 }
 
 export function formatDifficultyEstimate(value: number): string {

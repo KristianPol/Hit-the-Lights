@@ -356,7 +356,7 @@
                     [class.selected]="difficultyPickerState().selectedDifficultyId === diff.id"
                     (click)="selectDifficulty(diff.id)">
                     <span class="diff-label">{{ difficultyNumberToName(diff.difficulty) }}</span>
-                    <span class="diff-estimate"><i class="fas fa-star"></i> {{ diff.difficultyEstimate.toFixed(2) }}</span>
+                    <span class="diff-estimate"><i class="fas fa-star"></i> {{ getDifficultyEstimate(diff) }}</span>
                     <span class="diff-notes">{{ diff.noteCount }} notes</span>
                     @if (difficultyPickerState().selectedDifficultyId === diff.id) {
                       <span class="checkmark"><i class="fas fa-check"></i></span>

@@ -282,7 +282,7 @@ export class Gameplay implements AfterViewInit, OnDestroy {
   });
   readonly difficultyEstimate = computed(() => {
     const stored = this.resolvedDifficulty()?.difficultyEstimate;
-    if (stored !== undefined && stored !== null && stored > 0) {
+    if (stored !== undefined && stored !== null && stored > 1.00) {
       return stored;
     }
     const bpm = this.currentSong()?.bpm ?? this.chartMetadata().bpm ?? 120;
