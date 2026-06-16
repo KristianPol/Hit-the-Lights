@@ -4,6 +4,7 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { NoteType, SongService, Song, SongDifficulty } from '../../app/services/song.service';
 import { AuthService } from '../../app/services/auth.service';
+import { calculateDifficultyEstimate, formatDifficultyEstimate } from '../utils/difficulty-calculator';
 
 interface EditorNote {
   time: number;
@@ -131,6 +132,19 @@ export class ChartMaker implements AfterViewInit, OnDestroy {
     }
     return text;
   });
+  readonly difficultyEstimate = computed(() => {
+    const normalCount = this.notes().filter(n => n.type === NoteType.Normal).length;
+    const holdCount = this.notes().filter(n => n.type === NoteType.Hold).length;
+    const bombCount = this.notes().filter(n => n.type === NoteType.Bomb).length;
+    return calculateDifficultyEstimate({
+      bpm: this.bpm(),
+      durationMs: this.durationMs(),
+      normalCount,
+      holdCount,
+      bombCount
+    });
+  });
+  readonly formattedDifficultyEstimate = computed(() => formatDifficultyEstimate(this.difficultyEstimate()));
 
   constructor() {
     this.loadOwnedSongs();
@@ -219,7 +233,8 @@ export class ChartMaker implements AfterViewInit, OnDestroy {
           this.editingDifficulty.set({
             id: difficultyId,
             difficulty: this.findDifficultyNumber(song.difficulties, difficultyId),
-            noteCount: res.chart.notes.length
+            noteCount: res.chart.notes.length,
+            difficultyEstimate: this.difficultyEstimate()
           });
           this.assignDifficulty.set(this.editingDifficulty()?.difficulty ?? 1);
         } else {
@@ -1147,6 +1162,7 @@ export class ChartMaker implements AfterViewInit, OnDestroy {
     this.showAssignModal.set(true);
     this.assignError.set(null);
     this.assignSuccess.set(false);
+    this.assignDifficulty.set(Math.min(10, Math.max(1, Math.round(this.difficultyEstimate()))));
   }
 
   closeAssignModal(): void {

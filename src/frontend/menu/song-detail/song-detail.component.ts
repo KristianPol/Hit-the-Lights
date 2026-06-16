@@ -607,6 +607,13 @@ export class SongDetailComponent implements OnInit, OnDestroy {
     return found ? difficultyNumberToName(found.difficulty) : '?';
   }
 
+  getSelectedDifficultyEstimate(): string {
+    const id = this.selectedDifficultyId();
+    if (!id) return '—';
+    const found = this.difficultyPickerState().difficulties.find(d => d.id === id);
+    return found ? found.difficultyEstimate.toFixed(2) : '—';
+  }
+
   requestDeleteSong(): void {
     const song = this.song();
     if (!song) return;

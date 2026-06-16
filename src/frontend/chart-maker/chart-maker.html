@@ -142,6 +142,7 @@
               <option [value]="level">Level {{ level }}</option>
             }
           </select>
+          <span class="difficulty-estimate">Estimated: {{ formattedDifficultyEstimate() }} / 10.00</span>
         </div>
         @if (assignError()) {
           <p class="error-text">{{ assignError() }}</p>

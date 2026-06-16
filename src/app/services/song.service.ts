@@ -25,6 +25,7 @@ export interface SongDifficulty {
   id: number;
   difficulty: number;
   noteCount: number;
+  difficultyEstimate: number;
 }
 
 export type DifficultyLevel =

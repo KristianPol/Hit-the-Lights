@@ -8,6 +8,7 @@ import { GameSettingsService, PARTICLE_INTENSITY_OPTIONS, formatBindingLabel, fo
 import { FriendshipService, FriendshipResult } from '../../app/services/friendship.service';
 import { MessageService } from '../../app/services/message.service';
 import { AchievementService } from '../../app/services/achievement.service';
+import { calculateDifficultyEstimate, formatDifficultyEstimate } from '../utils/difficulty-calculator';
 interface HitFeedback {
   lane: number;
   y: number;
@@ -70,6 +71,24 @@ interface ShatterShard {
   color: string;
   size: number;
   points: number[]; // relative polygon points [x1,y1, x2,y2, ...]
+}
+
+export function getRankRingSegments(
+  perfect: number,
+  good: number,
+  glimmer: number,
+  miss: number
+): { label: string; value: number; color: string }[] {
+  const total = perfect + good + glimmer + miss;
+  if (total === 0) {
+    return [{ label: 'pending', value: 100, color: 'rgba(255, 255, 255, 0.1)' }];
+  }
+  return [
+    { label: 'Radiant', value: (perfect / total) * 100, color: '#ffd700' },
+    { label: 'Shinning', value: (good / total) * 100, color: '#78dcff' },
+    { label: 'Glimmer', value: (glimmer / total) * 100, color: '#d2c7ff' },
+    { label: 'Shattered', value: (miss / total) * 100, color: '#ff9ea8' }
+  ];
 }
 
 @Component({
@@ -238,6 +257,42 @@ export class Gameplay implements AfterViewInit, OnDestroy {
     }
     return 'D';
   });
+  readonly rankRingSegments = computed(() => {
+    const s = this.stats();
+    return getRankRingSegments(s.perfect, s.good, s.glimmer, s.miss);
+  });
+  readonly rankRingGradient = computed(() => {
+    const segments = this.rankRingSegments();
+    let current = 0;
+    const stops = segments
+      .filter(s => s.value > 0)
+      .map(s => {
+        const start = current;
+        current += s.value;
+        return `${s.color} ${start.toFixed(2)}% ${current.toFixed(2)}%`;
+      });
+    return `conic-gradient(${stops.join(', ')})`;
+  });
+  readonly mapperText = computed(() => {
+    return this.currentSong()?.ownerUsername || this.currentSong()?.author || this.chartMetadata().artist || 'Hit the Lights';
+  });
+  readonly totalNotesCount = computed(() => this.chartNotes.length);
+  readonly userInitial = computed(() => {
+    return this.authService.currentUser?.username?.charAt(0).toUpperCase() ?? 'G';
+  });
+  readonly difficultyEstimate = computed(() => {
+    const stored = this.resolvedDifficulty()?.difficultyEstimate;
+    if (stored !== undefined && stored !== null && stored > 0) {
+      return stored;
+    }
+    const bpm = this.currentSong()?.bpm ?? this.chartMetadata().bpm ?? 120;
+    const durationMs = this.totalSongDurationMs();
+    const normalCount = this.chartNotes.filter(n => n.type === NoteType.Normal).length;
+    const holdCount = this.chartNotes.filter(n => n.type === NoteType.Hold).length;
+    const bombCount = this.chartNotes.filter(n => n.type === NoteType.Bomb).length;
+    return calculateDifficultyEstimate({ bpm, durationMs, normalCount, holdCount, bombCount });
+  });
+  readonly formattedDifficultyEstimate = computed(() => formatDifficultyEstimate(this.difficultyEstimate()));
   readonly resultFlavorText = computed(() => {
     const accuracy = this.stats().accuracy;
     if (accuracy >= 96) {
@@ -252,8 +307,7 @@ export class Gameplay implements AfterViewInit, OnDestroy {
     return 'Solid attempt. Stay in rhythm and try again.';
   });
   readonly difficultyName = computed(() => {
-    const diff = this.resolvedDifficulty();
-    return diff ? difficultyNumberToName(diff.difficulty) : 'Unknown';
+    return difficultyNumberToName(Math.round(this.difficultyEstimate()));
   });
   readonly spEarnedText = computed(() => {
     const earned = this.spEarned();
@@ -409,7 +463,7 @@ export class Gameplay implements AfterViewInit, OnDestroy {
         .map(note => ({ ...note, type: this.normalizeNoteType(note.type), judged: false, missed: false }))
         .sort((a, b) => a.time - b.time);
       this.notes = this.cloneNotes(this.chartNotes);
-      this.resolvedDifficulty.set({ id: 0, difficulty: 1, noteCount: this.chartNotes.length });
+      this.resolvedDifficulty.set({ id: 0, difficulty: 1, noteCount: this.chartNotes.length, difficultyEstimate: this.difficultyEstimate() });
       this.resolvedDifficultyId = 0;
       await this.configureAudio(stateSong?.songUrl ?? this.defaultSongUrl);
       return;
@@ -490,7 +544,7 @@ export class Gameplay implements AfterViewInit, OnDestroy {
       artist: 'Hit the Lights',
       bpm: 120
     });
-    this.resolvedDifficulty.set({ id: 0, difficulty: 1, noteCount: 24 });
+    this.resolvedDifficulty.set({ id: 0, difficulty: 1, noteCount: 24, difficultyEstimate: this.difficultyEstimate() });
     this.chartNotes = this.buildFallbackChart();
     this.notes = this.cloneNotes(this.chartNotes);
   }

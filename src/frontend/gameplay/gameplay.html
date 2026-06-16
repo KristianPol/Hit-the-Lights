@@ -74,63 +74,71 @@
   @if (gameFinished()) {
     <div class="results-overlay">
       <div class="results-card">
-      <p class="eyebrow">Set Complete</p>
-      <h2>{{ displayTitleText() }}</h2>
-      <p class="results-subtitle">{{ displayArtistText() }} • {{ difficultyName() }} • {{ displayBpmText() }}</p>
+        <header class="results-header">
+          <div class="results-avatar">
+            @if (authService.currentUser?.profilePictureUrl) {
+              <img [src]="authService.currentUser?.profilePictureUrl" alt="" />
+            } @else {
+              <span>{{ userInitial() }}</span>
+            }
+          </div>
+          <div class="results-title-group">
+            <h2>{{ displayTitleText() }}</h2>
+            <p class="results-subtitle">{{ displayArtistText() }}</p>
+          </div>
+        </header>
 
-      <div class="results-hero">
-        <div class="score-block">
-          <span class="hero-label">Final Score</span>
-          <span class="hero-score">{{ stats().score }}</span>
+        <div class="results-ring-wrap">
+          <div class="results-ring" [style.background]="rankRingGradient()">
+            <div class="results-ring-inner">
+              <span class="results-rank">{{ resultRank() }}</span>
+            </div>
+          </div>
         </div>
 
-        <div class="rank-chip">
-          <span class="rank-label">Rank</span>
-          <span class="rank-value">{{ resultRank() }}</span>
-        </div>
-      </div>
+        <div class="results-score">{{ stats().score.toLocaleString() }}</div>
 
-      @if (spEarned() !== null) {
-        <div class="results-sp-display" [class.no-sp]="spEarned() === 0">
-          <span class="sp-label"><i class="fas fa-bolt"></i> Shine Points Earned</span>
-          <span class="sp-value">{{ spEarnedText() }}</span>
-          <span class="sp-total">Total: {{ totalSpText() }}</span>
-        </div>
-      }
-
-      <div class="results-grid">
-        <div class="metric-card radiant-card">
-          <span class="metric-label">Radiant</span>
-          <span class="metric-value">{{ stats().perfect }}</span>
-          <span class="metric-sub">{{ radiantRateText() }}</span>
+        <div class="results-difficulty">
+          <span class="diff-stars"><i class="fas fa-star"></i> {{ formattedDifficultyEstimate() }}</span>
+          <span class="diff-name">{{ difficultyName() }}</span>
+          <span class="diff-mapper">mapped by {{ mapperText() }}</span>
         </div>
 
-        <div class="metric-card shinning-card">
-          <span class="metric-label">Shinning</span>
-          <span class="metric-value">{{ stats().good }}</span>
-          <span class="metric-sub">{{ shinningRateText() }}</span>
+        <div class="results-stats-row">
+          <div class="results-stat">
+            <span class="results-stat-label">Accuracy</span>
+            <span class="results-stat-value">{{ accuracyLabelText() }}</span>
+          </div>
+          <div class="results-stat">
+            <span class="results-stat-label">Max Combo</span>
+            <span class="results-stat-value">{{ stats().maxCombo }}<small>/{{ totalNotesCount() }}</small></span>
+          </div>
+          <div class="results-stat">
+            <span class="results-stat-label">Shine Points</span>
+            <span class="results-stat-value">{{ totalSpText() ?? '—' }}</span>
+          </div>
         </div>
 
-        <div class="metric-card glimmer-card">
-          <span class="metric-label">Glimmer</span>
-          <span class="metric-value">{{ stats().glimmer }}</span>
-          <span class="metric-sub">{{ glimmerRateText() }}</span>
+        <div class="results-judgments">
+          <div class="judgment-item radiant">
+            <span class="judgment-label">Radiant</span>
+            <span class="judgment-value">{{ stats().perfect }}</span>
+          </div>
+          <div class="judgment-item shinning">
+            <span class="judgment-label">Shinning</span>
+            <span class="judgment-value">{{ stats().good }}</span>
+          </div>
+          <div class="judgment-item glimmer">
+            <span class="judgment-label">Glimmer</span>
+            <span class="judgment-value">{{ stats().glimmer }}</span>
+          </div>
+          <div class="judgment-item shattered">
+            <span class="judgment-label">Shattered</span>
+            <span class="judgment-value">{{ stats().miss }}</span>
+          </div>
         </div>
 
-        <div class="metric-card shatterred-card">
-          <span class="metric-label">Shatterred</span>
-          <span class="metric-value">{{ stats().miss }}</span>
-          <span class="metric-sub">Avoid late drops</span>
-        </div>
-
-        <div class="metric-card neutral-card">
-          <span class="metric-label">Max Combo</span>
-          <span class="metric-value">{{ stats().maxCombo }}</span>
-          <span class="metric-sub">Accuracy: {{ accuracyLabelText() }}</span>
-        </div>
-      </div>
-
-      <p class="results-flavor">{{ resultFlavorText() }}</p>
+        <p class="results-flavor">{{ resultFlavorText() }}</p>
 
         <div class="results-actions">
           <button type="button" class="menu-button play-again" (click)="restartSong()">Play Again</button>

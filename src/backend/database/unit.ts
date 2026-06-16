@@ -436,6 +436,10 @@ export class Unit {
     `);
 
     await getSql().unsafe(`
+      ALTER TABLE Difficulty ADD COLUMN IF NOT EXISTS difficulty_estimate REAL`
+    );
+
+    await getSql().unsafe(`
       CREATE TABLE IF NOT EXISTS Highscore (
         user_id INTEGER NOT NULL,
         difficulty_id INTEGER NOT NULL,

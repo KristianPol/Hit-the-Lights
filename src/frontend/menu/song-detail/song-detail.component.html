@@ -95,12 +95,11 @@
             <span class="stat-value">{{ song()!.genre }}</span>
           </div>
         }
-        <div class="stat-pill difficulty-stat-box" (click)="openDifficultyPicker()">
+        <div class="stat-pill difficulty-stat-box" (click)="openDifficultyPicker()" title="Click to choose a difficulty">
           <i class="fas fa-star stat-icon"></i>
-          <span class="stat-label">Difficulty</span>
+          <span class="stat-label">Difficulty <i class="fas fa-chevron-down"></i></span>
           <span class="stat-value clickable">
-            {{ getSelectedDifficultyLevel() }}
-            <i class="dropdown-indicator fas fa-chevron-down"></i>
+            {{ getSelectedDifficultyEstimate() }}
           </span>
         </div>
         <div class="stat-pill">
@@ -357,6 +356,7 @@
                     [class.selected]="difficultyPickerState().selectedDifficultyId === diff.id"
                     (click)="selectDifficulty(diff.id)">
                     <span class="diff-label">{{ difficultyNumberToName(diff.difficulty) }}</span>
+                    <span class="diff-estimate"><i class="fas fa-star"></i> {{ diff.difficultyEstimate.toFixed(2) }}</span>
                     <span class="diff-notes">{{ diff.noteCount }} notes</span>
                     @if (difficultyPickerState().selectedDifficultyId === diff.id) {
                       <span class="checkmark"><i class="fas fa-check"></i></span>

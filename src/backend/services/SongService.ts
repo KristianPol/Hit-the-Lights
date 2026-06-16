@@ -61,12 +61,14 @@ export interface SongDifficultyRecord {
   song_id: number;
   difficulty: number;
   note_count: number;
+  difficulty_estimate: number | null;
 }
 
 export interface SongDifficultyResponse {
   id: number;
   difficulty: number;
   noteCount: number;
+  difficultyEstimate: number;
 }
 
 export interface CommentRecord {
@@ -127,6 +129,40 @@ export enum NoteType {
   Normal = 1,
   Bomb = 2,
   Hold = 3
+}
+
+export interface DifficultyCalcInput {
+  bpm: number;
+  durationMs: number;
+  normalCount: number;
+  holdCount: number;
+  bombCount: number;
+}
+
+/**
+ * Estimates a chart difficulty on a 0.01–10.00 scale.
+ * Higher BPM, note density, and hold/bomb counts push the rating up.
+ * ~5.00 = serious skill threshold; 10.00 = near-impossible.
+ */
+export function calculateDifficultyEstimate(input: DifficultyCalcInput): number {
+  const { bpm, durationMs, normalCount, holdCount, bombCount } = input;
+  const totalNotes = normalCount + holdCount + bombCount;
+  if (totalNotes === 0 || durationMs <= 0) {
+    return 0.01;
+  }
+
+  const durationSeconds = durationMs / 1000;
+  const bpmFactor = Math.max(0.5, bpm / 120);
+  const notesPerSecond = totalNotes / durationSeconds;
+  const lengthFactor = 1 + (durationSeconds / 900);
+
+  // Scaled to give a wide spread: sparse charts ~0.5–1.5, dense charts ~5–10.
+  const densityDifficulty = notesPerSecond * bpmFactor * lengthFactor * 3.0;
+  const typeDifficulty = normalCount * 0.004 + holdCount * 0.016 + bombCount * 0.01;
+
+  const rawDifficulty = densityDifficulty + typeDifficulty + 0.15;
+
+  return Math.min(10, Math.max(0.01, Math.round(rawDifficulty * 100) / 100));
 }
 
 // SP difficulty weights chosen so D1=10, D5=100, D10=1000 with smooth exponential growth.
@@ -275,6 +311,63 @@ export class SongService {
 
   constructor(private unit: Unit) {
     this.htlService = new HTLService(unit);
+  }
+
+  /**
+   * One-time backfill: calculate difficulty_estimate for any existing
+   * difficulties that were created before the column existed.
+   */
+  public async backfillDifficultyEstimates(): Promise<void> {
+    interface DifficultyWithSong {
+      id: number;
+      song_id: number;
+      difficulty: number;
+      length: string;
+      bpm: number;
+    }
+
+    const stmt = this.unit.prepare<DifficultyWithSong, Record<string, never>>(
+      `SELECT d.id, d.song_id, d.difficulty, s.length, s.bpm
+       FROM Difficulty d
+       JOIN Song s ON s.id = d.song_id
+       WHERE d.difficulty_estimate IS NULL`,
+      {}
+    );
+    const rows = await stmt.all();
+    if (rows.length === 0) return;
+
+    for (const row of rows) {
+      const durationParts = row.length.split(':').map(Number);
+      const durationSeconds = (durationParts[0] || 0) * 60 + (durationParts[1] || 0);
+      const durationMs = durationSeconds * 1000;
+
+      interface NoteTypeRow {
+        type: number;
+      }
+      const notesStmt = this.unit.prepare<NoteTypeRow, { difficultyId: number }>(
+        'SELECT type FROM Note WHERE difficulty_id = $difficultyId',
+        { difficultyId: row.id }
+      );
+      const notes = await notesStmt.all();
+      const normalCount = notes.filter(n => n.type === NoteType.Normal).length;
+      const holdCount = notes.filter(n => n.type === NoteType.Hold).length;
+      const bombCount = notes.filter(n => n.type === NoteType.Bomb).length;
+
+      const estimate = calculateDifficultyEstimate({
+        bpm: row.bpm,
+        durationMs,
+        normalCount,
+        holdCount,
+        bombCount
+      });
+
+      await this.unit.prepare<unknown, { difficultyId: number; estimate: number }>(
+        'UPDATE Difficulty SET difficulty_estimate = $estimate WHERE id = $difficultyId',
+        { difficultyId: row.id, estimate }
+      ).run();
+    }
+
+    console.log(`✅ Backfilled difficulty estimates for ${rows.length} charts`);
   }
 
   public async addSong(request: AddSongRequest): Promise<AddSongResponse> {
@@ -526,10 +619,30 @@ export class SongService {
         return { success: false, error: 'This difficulty already exists for the selected song' };
       }
 
-      const insertDifficulty = this.unit.prepare<unknown, { songId: number; difficulty: number; noteCount: number }>(
-        `INSERT INTO Difficulty (song_id, difficulty, note_count)
-         VALUES ($songId, $difficulty, $noteCount)`,
-        { songId, difficulty, noteCount: notes.length }
+      const durationParts = song.length.split(':').map(Number);
+      const durationSeconds = (durationParts[0] || 0) * 60 + (durationParts[1] || 0);
+      const durationMs = durationSeconds * 1000;
+
+      const normalCount = notes.filter(n => {
+        const type = Number.isInteger(n.type) ? Number(n.type) : NoteType.Normal;
+        return type === NoteType.Normal;
+      }).length;
+      const holdCount = notes.filter(n => {
+        const type = Number.isInteger(n.type) ? Number(n.type) : NoteType.Normal;
+        return type === NoteType.Hold;
+      }).length;
+      const difficultyEstimate = calculateDifficultyEstimate({
+        bpm: song.bpm,
+        durationMs,
+        normalCount,
+        holdCount,
+        bombCount
+      });
+
+      const insertDifficulty = this.unit.prepare<unknown, { songId: number; difficulty: number; noteCount: number; difficultyEstimate: number }>(
+        `INSERT INTO Difficulty (song_id, difficulty, note_count, difficulty_estimate)
+         VALUES ($songId, $difficulty, $noteCount, $difficultyEstimate)`,
+        { songId, difficulty, noteCount: notes.length, difficultyEstimate }
       );
       await insertDifficulty.run();
 
@@ -558,7 +671,8 @@ export class SongService {
         difficulty: {
           id: difficultyId,
           difficulty,
-          noteCount: notes.length
+          noteCount: notes.length,
+          difficultyEstimate
         }
       };
     } catch (error: any) {
@@ -937,9 +1051,29 @@ export class SongService {
         ).run();
       }
 
-      await this.unit.prepare<unknown, { difficultyId: number; noteCount: number }>(
-        'UPDATE Difficulty SET note_count = $noteCount WHERE id = $difficultyId',
-        { difficultyId, noteCount: notes.length }
+      const durationParts = song.length.split(':').map(Number);
+      const durationSeconds = (durationParts[0] || 0) * 60 + (durationParts[1] || 0);
+      const durationMs = durationSeconds * 1000;
+
+      const normalCount = notes.filter(n => {
+        const type = Number.isInteger(n.type) ? Number(n.type) : NoteType.Normal;
+        return type === NoteType.Normal;
+      }).length;
+      const holdCount = notes.filter(n => {
+        const type = Number.isInteger(n.type) ? Number(n.type) : NoteType.Normal;
+        return type === NoteType.Hold;
+      }).length;
+      const difficultyEstimate = calculateDifficultyEstimate({
+        bpm: song.bpm,
+        durationMs,
+        normalCount,
+        holdCount,
+        bombCount
+      });
+
+      await this.unit.prepare<unknown, { difficultyId: number; noteCount: number; difficultyEstimate: number }>(
+        'UPDATE Difficulty SET note_count = $noteCount, difficulty_estimate = $difficultyEstimate WHERE id = $difficultyId',
+        { difficultyId, noteCount: notes.length, difficultyEstimate }
       ).run();
 
       return {
@@ -947,7 +1081,8 @@ export class SongService {
         difficulty: {
           id: difficultyId,
           difficulty: difficulty.difficulty,
-          noteCount: notes.length
+          noteCount: notes.length,
+          difficultyEstimate
         }
       };
     } catch (error: any) {
@@ -1458,7 +1593,7 @@ export class SongService {
 
   private async getRawDifficultyById(difficultyId: number): Promise<SongDifficultyRecord | undefined> {
     const stmt = this.unit.prepare<SongDifficultyRecord, { id: number }>(
-      'SELECT id, song_id, difficulty, note_count FROM Difficulty WHERE id = $id',
+      'SELECT id, song_id, difficulty, note_count, difficulty_estimate FROM Difficulty WHERE id = $id',
       { id: difficultyId }
     );
 
@@ -1553,14 +1688,15 @@ export class SongService {
 
   private async getDifficultiesBySongId(songId: number): Promise<SongDifficultyResponse[]> {
     const stmt = this.unit.prepare<SongDifficultyRecord, { songId: number }>(
-      'SELECT id, song_id, difficulty, note_count FROM Difficulty WHERE song_id = $songId ORDER BY difficulty ASC',
+      'SELECT id, song_id, difficulty, note_count, difficulty_estimate FROM Difficulty WHERE song_id = $songId ORDER BY difficulty ASC',
       { songId }
     );
 
     return (await stmt.all()).map(difficulty => ({
       id: difficulty.id,
       difficulty: difficulty.difficulty,
-      noteCount: difficulty.note_count
+      noteCount: difficulty.note_count,
+      difficultyEstimate: difficulty.difficulty_estimate ?? 0.01
     }));
   }
 

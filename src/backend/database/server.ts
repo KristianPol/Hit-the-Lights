@@ -22,6 +22,7 @@ import rateLimit from 'express-rate-limit';
 import { authRouter, songRouter, friendshipRouter, messageRouter } from "../routers";
 import { authMiddleware } from "../middleware/authMiddleware";
 import { Unit, sql } from './unit';
+import { SongService } from '../services/SongService';
 
 const DATABASE_URL = process.env['DATABASE_URL'];
 console.log('🔍 DATABASE_URL loaded:', DATABASE_URL ? 'yes' : 'NO — .env file may be missing');
@@ -48,6 +49,13 @@ Unit.initTables().then(async () => {
     console.log('👑 Founder admin seed checked');
   } catch (seedErr: any) {
     console.warn('⚠️ Founder admin seed skipped:', seedErr.message);
+  }
+  // Backfill difficulty estimates for charts created before the column existed
+  try {
+    const songService = new SongService(new Unit(false));
+    await songService.backfillDifficultyEstimates();
+  } catch (backfillErr: any) {
+    console.warn('⚠️ Difficulty estimate backfill skipped:', backfillErr.message);
   }
 }).catch((err) => {
   console.error('❌ Failed to ensure database schema:', err);
