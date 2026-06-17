@@ -44,10 +44,23 @@
 
         <div class="detail-header-right">
           <div class="detail-actions">
-            <button class="play-track-btn" type="button" (click)="launchGameplay()">
-              <i class="fas fa-play"></i>
-              Play Track
-            </button>
+            <div class="play-dropdown" [class.open]="playDropdownOpen()">
+              <button class="play-track-btn" type="button" (click)="togglePlayDropdown($event)">
+                <i class="fas fa-play"></i>
+                Play Track
+                <i class="dropdown-chevron fas fa-chevron-down"></i>
+              </button>
+              @if (playDropdownOpen()) {
+                <div class="play-dropdown-menu">
+                  <button class="play-dropdown-item" type="button" (click)="launchGameplay()">
+                    <i class="fas fa-play"></i> Play
+                  </button>
+                  <button class="play-dropdown-item duel" type="button" (click)="goToDuel()">
+                    <i class="fas fa-bolt"></i> Duel
+                  </button>
+                </div>
+              }
+            </div>
             @if (currentUser()) {
               <button
                 class="like-detail-btn"
@@ -550,6 +563,59 @@
       <div class="modal-footer">
         <button class="btn-cancel" (click)="cancelDeleteComment()">Cancel</button>
         <button class="btn-danger" (click)="confirmDeleteComment()">Delete Comment</button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Duel Invite Modal -->
+@if (duelModalOpen()) {
+  <div class="modal-overlay" (click)="closeDuelModal()">
+    <div class="modal duel-modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Invite a Friend to Duel</h2>
+        <button class="modal-close" (click)="closeDuelModal()"><i class="fas fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        @if (duelLoading()) {
+          <div class="duel-loading"><i class="fas fa-circle-notch fa-spin"></i> Loading friends...</div>
+        } @else if (duelError()) {
+          <p class="error-text">{{ duelError() }}</p>
+        } @else if (duelFriends().length === 0) {
+          <div class="duel-empty">
+            <i class="fas fa-users"></i>
+            <p>No friends yet</p>
+            <span>Add friends from the Messages page to challenge them.</span>
+          </div>
+        } @else {
+          <ul class="duel-friend-list">
+            @for (friend of duelFriends(); track friend.id) {
+              <li class="duel-friend-item">
+                <div class="duel-friend-info">
+                  @if (friend.otherUser.profilePictureUrl) {
+                    <img [src]="friend.otherUser.profilePictureUrl" class="duel-friend-avatar" alt="" />
+                  } @else {
+                    <div class="duel-friend-avatar fallback">{{ friend.otherUser.username.charAt(0).toUpperCase() }}</div>
+                  }
+                  <span class="duel-friend-name">{{ friend.otherUser.username }}</span>
+                </div>
+                <button
+                  class="btn-submit"
+                  [disabled]="duelInviting()"
+                  (click)="inviteFriendToDuel(friend)">
+                  @if (duelInviting()) {
+                    <i class="fas fa-circle-notch fa-spin"></i> Inviting...
+                  } @else {
+                    <i class="fas fa-bolt"></i> Invite
+                  }
+                </button>
+              </li>
+            }
+          </ul>
+        }
+      </div>
+      <div class="modal-footer">
+        <button class="btn-cancel" (click)="closeDuelModal()">Cancel</button>
       </div>
     </div>
   </div>

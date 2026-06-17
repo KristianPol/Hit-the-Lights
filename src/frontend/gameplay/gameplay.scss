@@ -890,5 +890,20 @@
       margin: 0;
       color: rgba(255, 255, 255, 0.75);
     }
+
+    .cancel-duel {
+      margin-top: 1rem;
+      padding: 0.55rem 1.1rem;
+      font-size: 0.8rem;
+      background: rgba(255, 71, 87, 0.15);
+      border-color: rgba(255, 71, 87, 0.45);
+      color: #ff9e9e;
+
+      &:hover {
+        background: rgba(255, 71, 87, 0.25);
+        border-color: rgba(255, 71, 87, 0.65);
+        color: #ff6b6b;
+      }
+    }
   }
 }

@@ -14,6 +14,8 @@ import {
   difficultyNameToNumber
 } from '../../../app/services/song.service';
 import { AchievementService } from '../../../app/services/achievement.service';
+import { MultiplayerService } from '../../../app/services/multiplayer.service';
+import { FriendshipService, FriendshipResult } from '../../../app/services/friendship.service';
 import { calculateDifficultyEstimate } from '../../utils/difficulty-calculator';
 import { Song, Comment, normalizeSong, isSongPublic, isSongOwnedByViewer } from '../menu-helpers';
 
@@ -93,6 +95,79 @@ export class SongDetailComponent implements OnInit, OnDestroy {
 
   closeCommentMenu(): void {
     this.activeCommentMenuId.set(null);
+  }
+
+  togglePlayDropdown(event?: MouseEvent): void {
+    event?.stopPropagation();
+    this.playDropdownOpen.update(open => !open);
+  }
+
+  closePlayDropdown(): void {
+    this.playDropdownOpen.set(false);
+  }
+
+  goToDuel(): void {
+    this.stopAudio();
+    this.closePlayDropdown();
+    this.openDuelModal();
+  }
+
+  openDuelModal(): void {
+    const user = this.currentUser();
+    if (!user?.id) {
+      alert('Please log in to challenge a friend.');
+      return;
+    }
+    this.duelModalOpen.set(true);
+    this.duelLoading.set(true);
+    this.duelError.set(null);
+    this.friendshipService.getFriends(user.id).subscribe({
+      next: response => {
+        if (response.success) {
+          this.duelFriends.set(response.friends);
+        } else {
+          this.duelError.set(response.error || 'Failed to load friends');
+        }
+        this.duelLoading.set(false);
+      },
+      error: err => {
+        this.duelError.set(err.message || 'Failed to load friends');
+        this.duelLoading.set(false);
+      }
+    });
+  }
+
+  closeDuelModal(): void {
+    this.duelModalOpen.set(false);
+    this.duelError.set(null);
+  }
+
+  inviteFriendToDuel(friend: FriendshipResult): void {
+    const user = this.currentUser();
+    const song = this.song();
+    const difficultyId = this.selectedDifficultyId();
+    if (!user?.id || !song || !difficultyId) return;
+
+    this.duelInviting.set(true);
+    this.duelError.set(null);
+    this.multiplayerService.createRoom(difficultyId, friend.otherUser.id).subscribe({
+      next: response => {
+        if (response.success && response.roomId) {
+          this.duelInviting.set(false);
+          this.closeDuelModal();
+          void this.router.navigate(['/gameplay', song.id], {
+            state: { song, difficultyId, roomId: response.roomId }
+          });
+        } else {
+          this.duelError.set(response.error || 'Failed to create duel room');
+          this.duelInviting.set(false);
+        }
+      },
+      error: err => {
+        this.duelError.set(err.message || 'Failed to create duel room');
+        this.duelInviting.set(false);
+      }
+    });
   }
 
   startEditComment(comment: Comment): void {
@@ -184,6 +259,12 @@ export class SongDetailComponent implements OnInit, OnDestroy {
   uploadDifficultyChoice = signal<DifficultyLevel | null>(null);
 
   activeCommentMenuId = signal<number | null>(null);
+  playDropdownOpen = signal<boolean>(false);
+  duelModalOpen = signal<boolean>(false);
+  duelFriends = signal<FriendshipResult[]>([]);
+  duelLoading = signal<boolean>(false);
+  duelError = signal<string | null>(null);
+  duelInviting = signal<boolean>(false);
   editingCommentId = signal<number | null>(null);
   editCommentDraft = signal<string>('');
   commentToDelete = signal<Comment | null>(null);
@@ -213,7 +294,9 @@ export class SongDetailComponent implements OnInit, OnDestroy {
     private router: Router,
     private authService: AuthService,
     private songService: SongService,
-    private achievementService: AchievementService
+    private achievementService: AchievementService,
+    private friendshipService: FriendshipService,
+    private multiplayerService: MultiplayerService
   ) {
     this.currentUser.set(this.authService.currentUser);
   }
@@ -223,6 +306,9 @@ export class SongDetailComponent implements OnInit, OnDestroy {
     const target = event.target as HTMLElement | null;
     if (!target || !target.closest('.comment-menu-wrap')) {
       this.closeCommentMenu();
+    }
+    if (!target || !target.closest('.play-dropdown')) {
+      this.closePlayDropdown();
     }
   }
 
@@ -455,6 +541,7 @@ export class SongDetailComponent implements OnInit, OnDestroy {
       alert('Please select a song first.');
       return;
     }
+    this.closePlayDropdown();
     this.stopAudio();
     const difficultyId = this.selectedDifficultyId();
     void this.router.navigate(['/gameplay', song.id], { state: { song, difficultyId } });
