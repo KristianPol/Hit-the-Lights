@@ -172,8 +172,10 @@ export class Gameplay implements AfterViewInit, OnDestroy {
   readonly opponentState = signal<MatchState | null>(null);
   readonly matchResult = signal<MatchResult | null>(null);
   readonly waitingForOpponent = signal(false);
+  readonly multiplayerMatchStarted = signal(false);
   private multiplayerRoomId: string | null = null;
   private multiplayerStartTimeMs = 0;
+  private multiplayerResultTimeoutId: number | null = null;
   private lastStateEmitMs = 0;
   private lastJudgment: string | null = null;
   private lastLaneActivity: LaneActivity | null = null;
@@ -521,6 +523,7 @@ export class Gameplay implements AfterViewInit, OnDestroy {
     this.multiplayerService.matchStart.subscribe(({ serverTimeMs }) => {
       this.multiplayerCountdown.set(null);
       this.multiplayerStartTimeMs = serverTimeMs;
+      this.multiplayerMatchStarted.set(true);
       this.startGame();
     });
 
@@ -529,6 +532,10 @@ export class Gameplay implements AfterViewInit, OnDestroy {
     });
 
     this.multiplayerService.matchResult.subscribe(result => {
+      if (this.multiplayerResultTimeoutId != null) {
+        clearTimeout(this.multiplayerResultTimeoutId);
+        this.multiplayerResultTimeoutId = null;
+      }
       this.matchResult.set(result);
       this.waitingForOpponent.set(false);
       this.finishGameShowResults();
@@ -537,6 +544,11 @@ export class Gameplay implements AfterViewInit, OnDestroy {
     this.multiplayerService.roomError.subscribe(message => {
       console.error('Multiplayer error:', message);
       this.loadingError.set(message);
+      if (this.multiplayerResultTimeoutId != null) {
+        clearTimeout(this.multiplayerResultTimeoutId);
+        this.multiplayerResultTimeoutId = null;
+      }
+      this.waitingForOpponent.set(false);
       this.isMultiplayerMode.set(false);
       this.multiplayerService.disconnect();
     });
@@ -1591,10 +1603,16 @@ export class Gameplay implements AfterViewInit, OnDestroy {
     this.gameStarted.set(false);
     this.gameRunning.set(false);
     this.gameFinished.set(false);
+    this.multiplayerMatchStarted.set(false);
     this.playCountReported = false;
     this.challengeSent.set(false);
     this.audio.pause();
     this.audio.currentTime = 0;
+
+    if (this.multiplayerResultTimeoutId != null) {
+      clearTimeout(this.multiplayerResultTimeoutId);
+      this.multiplayerResultTimeoutId = null;
+    }
     if (this.animationFrameId !== null) {
       cancelAnimationFrame(this.animationFrameId);
       this.animationFrameId = null;
@@ -1677,6 +1695,13 @@ export class Gameplay implements AfterViewInit, OnDestroy {
         shattered: stats.miss
       });
       this.waitingForOpponent.set(true);
+      this.multiplayerResultTimeoutId = window.setTimeout(() => {
+        if (!this.matchResult()) {
+          console.warn('[Gameplay] Match result not received in time, showing own results');
+          this.waitingForOpponent.set(false);
+          this.finishGameShowResults();
+        }
+      }, 15000);
       return;
     }
 
@@ -1920,6 +1945,11 @@ export class Gameplay implements AfterViewInit, OnDestroy {
 
     if (this.isMultiplayerMode()) {
       this.multiplayerService.disconnect();
+    }
+
+    if (this.multiplayerResultTimeoutId != null) {
+      clearTimeout(this.multiplayerResultTimeoutId);
+      this.multiplayerResultTimeoutId = null;
     }
   }
 
