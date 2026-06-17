@@ -13,7 +13,8 @@ import {
   MessageResult,
   ConversationPreview
 } from '../../app/services/message.service';
-import { SongService } from '../../app/services/song.service';
+import { SongService, SongDifficulty, difficultyNumberToName } from '../../app/services/song.service';
+import { calculateDifficultyEstimate } from '../utils/difficulty-calculator';
 import { NotificationService } from '../../app/services/notification.service';
 import { MultiplayerService } from '../../app/services/multiplayer.service';
 import { Subscription } from 'rxjs';
@@ -571,19 +572,34 @@ export class Messages implements OnInit, OnDestroy {
     return { lines: filteredLines, coverUrl, songId, difficultyId };
   }
 
-  parseChallenge(content: string): { roomId: string | null; difficultyId: number | null } {
+  parseChallenge(content: string): { roomId: string | null; difficultyId: number | null; songId: number | null; songName: string | null; difficultyEstimate: number | null; coverUrl: string | null } {
     const lines = content.split('\n');
     let roomId: string | null = null;
     let difficultyId: number | null = null;
+    let songId: number | null = null;
+    let songName: string | null = null;
+    let difficultyEstimate: number | null = null;
+    let coverUrl: string | null = null;
     for (const line of lines) {
       if (line.startsWith('Room ID: ')) {
         roomId = line.slice('Room ID: '.length).trim();
       } else if (line.startsWith('Difficulty ID: ')) {
         const parsed = Number(line.slice('Difficulty ID: '.length).trim());
         if (Number.isFinite(parsed) && parsed > 0) difficultyId = parsed;
+      } else if (line.startsWith('Song ID: ')) {
+        const parsed = Number(line.slice('Song ID: '.length).trim());
+        if (Number.isFinite(parsed) && parsed > 0) songId = parsed;
+      } else if (line.startsWith('Song: ')) {
+        songName = line.slice('Song: '.length).trim() || null;
+      } else if (line.startsWith('Difficulty: ')) {
+        const value = line.slice('Difficulty: '.length).trim().replace('★', '').trim();
+        const parsed = parseFloat(value);
+        if (Number.isFinite(parsed) && parsed > 0) difficultyEstimate = parsed;
+      } else if (line.startsWith('Cover: ')) {
+        coverUrl = line.slice('Cover: '.length).trim() || null;
       }
     }
-    return { roomId, difficultyId };
+    return { roomId, difficultyId, songId, songName, difficultyEstimate, coverUrl };
   }
 
   canChallenge(content: string): boolean {
@@ -593,30 +609,59 @@ export class Messages implements OnInit, OnDestroy {
 
   challengeFriend(content: string, senderId: number): void {
     const share = this.parseScoreShare(content);
-    if (!share.songId || !share.difficultyId) return;
+    const songId = share.songId;
+    const difficultyId = share.difficultyId;
+    if (!songId || !difficultyId) return;
 
-    this.multiplayerService.createRoom(share.difficultyId, senderId).subscribe({
-      next: response => {
-        if (response.success && response.roomId) {
-          this.multiplayerService.joinRoom(response.roomId);
-          const viewerId = this.authService.currentUser?.id ?? undefined;
-          this.songService.getSongById(share.songId!, viewerId).subscribe({
-            next: songResponse => {
-              if (songResponse.success && songResponse.song) {
-                this.router.navigate(['/gameplay'], {
-                  state: {
-                    song: songResponse.song,
-                    difficultyId: share.difficultyId,
-                    roomId: response.roomId
-                  }
-                });
-              }
-            },
-            error: err => console.warn('Failed to load song for challenge:', err)
-          });
-        }
+    const viewerId = this.authService.currentUser?.id ?? undefined;
+    this.songService.getSongById(songId, viewerId).subscribe({
+      next: songResponse => {
+        if (!songResponse.success || !songResponse.song) return;
+        const song = songResponse.song;
+        const difficulty = song.difficulties?.find((d: SongDifficulty) => d.id === difficultyId);
+
+        this.multiplayerService.createRoom({
+          difficultyId,
+          inviteeId: senderId,
+          songId: song.id,
+          songName: song.name,
+          songArtist: song.author,
+          songCoverUrl: song.coverUrl,
+          difficultyName: difficulty ? difficultyNumberToName(difficulty.difficulty) : undefined,
+          difficultyEstimate: difficulty ? this.resolveDifficultyEstimate(song, difficulty) : null
+        }).subscribe({
+          next: response => {
+            if (response.success && response.roomId) {
+              this.multiplayerService.joinRoom(response.roomId);
+              this.router.navigate(['/gameplay'], {
+                state: {
+                  song,
+                  difficultyId,
+                  roomId: response.roomId
+                }
+              });
+            }
+          },
+          error: err => console.warn('Failed to create room:', err)
+        });
       },
-      error: err => console.warn('Failed to create room:', err)
+      error: err => console.warn('Failed to load song for challenge:', err)
+    });
+  }
+
+  private resolveDifficultyEstimate(song: any, difficulty: SongDifficulty): number | null {
+    if (difficulty.difficultyEstimate > 1.00) {
+      return difficulty.difficultyEstimate;
+    }
+    if (!song?.length || !song.bpm) return null;
+    const durationParts = song.length.split(':').map(Number);
+    const durationSeconds = (durationParts[0] || 0) * 60 + (durationParts[1] || 0);
+    return calculateDifficultyEstimate({
+      bpm: song.bpm,
+      durationMs: durationSeconds * 1000,
+      normalCount: difficulty.noteCount,
+      holdCount: 0,
+      bombCount: 0
     });
   }
 
@@ -628,12 +673,35 @@ export class Messages implements OnInit, OnDestroy {
       next: response => {
         if (response.success) {
           this.multiplayerService.joinRoom(challenge.roomId!);
-          this.router.navigate(['/gameplay'], {
-            state: {
+          const viewerId = this.authService.currentUser?.id ?? undefined;
+
+          const navigateToGameplay = (song?: any) => {
+            const state: any = {
               difficultyId: challenge.difficultyId,
               roomId: challenge.roomId
-            }
-          });
+            };
+            if (song) state.song = song;
+            const path = song?.id ? ['/gameplay', song.id] : ['/gameplay'];
+            void this.router.navigate(path, { state });
+          };
+
+          if (challenge.songId) {
+            this.songService.getSongById(challenge.songId, viewerId).subscribe({
+              next: songResponse => {
+                if (songResponse.success && songResponse.song) {
+                  navigateToGameplay(songResponse.song);
+                } else {
+                  navigateToGameplay();
+                }
+              },
+              error: err => {
+                console.warn('Failed to load song for challenge:', err);
+                navigateToGameplay();
+              }
+            });
+          } else {
+            navigateToGameplay();
+          }
         }
       },
       error: err => console.warn('Failed to accept challenge:', err)

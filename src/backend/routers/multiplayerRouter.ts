@@ -9,9 +9,20 @@ multiplayerRouter.post('/rooms', authMiddleware, async (req: Request, res: Respo
   const unit = new Unit(false);
   try {
     const userId = req.authenticatedUserId!;
-    const { difficultyId, inviteeId } = req.body;
+    const {
+      difficultyId,
+      inviteeId,
+      songId,
+      songName,
+      songArtist,
+      songCoverUrl,
+      difficultyName,
+      difficultyEstimate
+    } = req.body;
     const parsedDifficultyId = parseInt(difficultyId, 10);
     const parsedInviteeId = parseInt(inviteeId, 10);
+    const parsedSongId = songId ? parseInt(songId, 10) : null;
+    const parsedDifficultyEstimate = difficultyEstimate != null ? parseFloat(difficultyEstimate) : null;
 
     if (!parsedDifficultyId || !parsedInviteeId) {
       await unit.complete(false);
@@ -41,10 +52,16 @@ multiplayerRouter.post('/rooms', authMiddleware, async (req: Request, res: Respo
     }
 
     const messageService = new MessageService(unit);
+    const songIdLine = parsedSongId ? `\nSong ID: ${parsedSongId}` : '';
+    const songNameLine = songName ? `\nSong: ${songName}` : '';
+    const difficultyLine = parsedDifficultyEstimate != null
+      ? `\nDifficulty: ${parsedDifficultyEstimate.toFixed(1)}★`
+      : (difficultyName ? `\nDifficulty: ${difficultyName}` : '');
+    const coverLine = songCoverUrl ? `\nCover: ${songCoverUrl}` : '';
     await messageService.sendMessage({
       senderId: userId,
       receiverId: parsedInviteeId,
-      content: `Multiplayer Challenge\nRoom ID: ${result.roomId}\nDifficulty ID: ${parsedDifficultyId}`
+      content: `Multiplayer Challenge\nRoom ID: ${result.roomId}\nDifficulty ID: ${parsedDifficultyId}${songIdLine}${songNameLine}${difficultyLine}${coverLine}`
     });
 
     await unit.complete(true);

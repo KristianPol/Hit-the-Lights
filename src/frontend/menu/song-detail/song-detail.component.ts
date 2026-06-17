@@ -150,7 +150,17 @@ export class SongDetailComponent implements OnInit, OnDestroy {
 
     this.duelInviting.set(true);
     this.duelError.set(null);
-    this.multiplayerService.createRoom(difficultyId, friend.otherUser.id).subscribe({
+    const difficultyEstimate = parseFloat(this.getSelectedDifficultyEstimate());
+    this.multiplayerService.createRoom({
+      difficultyId,
+      inviteeId: friend.otherUser.id,
+      songId: song.id,
+      songName: song.name,
+      songArtist: song.author,
+      songCoverUrl: song.coverUrl,
+      difficultyName: this.getSelectedDifficultyLevel(),
+      difficultyEstimate: Number.isFinite(difficultyEstimate) ? difficultyEstimate : null
+    }).subscribe({
       next: response => {
         if (response.success && response.roomId) {
           this.duelInviting.set(false);

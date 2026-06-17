@@ -148,7 +148,7 @@ export class MessageService {
          um.receiver_id AS last_receiver_id,
          um.created_at AS last_created_at,
          um.is_read AS last_is_read,
-         (SELECT COUNT(*) FROM user_messages um2 WHERE um2.other_user_id = um.other_user_id AND um2.receiver_id = $userId AND um2.is_read = 0) AS unread_count
+         (SELECT COUNT(*)::int FROM user_messages um2 WHERE um2.other_user_id = um.other_user_id AND um2.receiver_id = $userId AND um2.is_read = 0) AS unread_count
        FROM user_messages um
        JOIN latest_per_conversation lpc ON um.other_user_id = lpc.other_user_id AND um.created_at = lpc.max_created_at
        JOIN User u ON u.id = um.other_user_id
@@ -267,7 +267,7 @@ export class MessageService {
    */
   public async getUnreadCount(userId: number): Promise<number> {
     const stmt = this.unit.prepare<{ count: number }, { userId: number }>(
-      'SELECT COUNT(*) AS count FROM Message WHERE receiver_id = $userId AND is_read = 0',
+      'SELECT COUNT(*)::int AS count FROM Message WHERE receiver_id = $userId AND is_read = 0',
       { userId }
     );
     const result = await stmt.get();

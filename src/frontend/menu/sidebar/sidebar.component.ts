@@ -39,8 +39,8 @@ export class MenuSidebarComponent implements OnInit {
   currentUser = signal<User | null>(null);
   menuImageError = signal<boolean>(false);
 
-  get unreadMessageCount() {
-    return this.notificationService.unreadCount;
+  get unreadMessageCount(): number {
+    return this.notificationService.unreadCount();
   }
 
   constructor(

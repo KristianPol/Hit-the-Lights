@@ -1045,6 +1045,27 @@
     }
   }
 
+  .challenge-card {
+    min-height: 120px;
+    display: flex;
+    align-items: flex-end;
+    background: rgba(var(--color-accent-rgb), 0.08);
+
+    &.has-cover {
+      display: block;
+      background: transparent;
+    }
+
+    .score-share-content {
+      position: static;
+      width: 100%;
+    }
+
+    &.has-cover .score-share-content {
+      position: absolute;
+    }
+  }
+
   .message-meta {
     display: flex;
     align-items: center;
