@@ -5,6 +5,7 @@ module.exports = {
   rootDir: '.',
   testMatch: ['**/src/tests/**/*.spec.ts'],
   collectCoverageFrom: ['src/backend/*.ts'],
+  maxWorkers: 1,
   moduleNameMapper: {
     '^src/(.*)$': '<rootDir>/src/$1'
   },

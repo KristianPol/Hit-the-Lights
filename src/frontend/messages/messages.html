@@ -354,7 +354,20 @@
                 class="message-bubble"
                 [class.own]="msg.senderId === currentUser?.id"
               >
-                @if (isScoreShareMessage(msg.content)) {
+                @if (isChallengeMessage(msg.content)) {
+                  @let challenge = parseChallenge(msg.content);
+                  <div class="score-share-card challenge-card">
+                    <div class="score-share-content">
+                      <p><strong>Multiplayer Challenge</strong></p>
+                      <p>Difficulty ID: {{ challenge.difficultyId }}</p>
+                      @if (msg.senderId !== currentUser?.id) {
+                        <button class="challenge-btn" (click)="acceptChallenge(msg.content)">
+                          <i class="fas fa-gamepad"></i> Accept
+                        </button>
+                      }
+                    </div>
+                  </div>
+                } @else if (isScoreShareMessage(msg.content)) {
                   <div class="score-share-card">
                     @let scoreShare = parseScoreShare(msg.content);
                     @if (scoreShare.coverUrl) {

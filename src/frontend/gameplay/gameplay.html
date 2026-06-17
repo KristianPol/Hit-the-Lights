@@ -44,6 +44,21 @@
         (click)="focusCanvas()"
         aria-label="Hit The Lights gameplay canvas"
       ></canvas>
+      @if (isMultiplayerMode()) {
+        <app-opponent-overlay
+          [state]="opponentState()"
+          [connected]="multiplayerService.opponentConnected()"
+          [countdown]="multiplayerCountdown()"
+        ></app-opponent-overlay>
+      }
+      @if (isMultiplayerMode() && waitingForOpponent()) {
+        <div class="multiplayer-waiting-overlay">
+          <div class="multiplayer-waiting-card">
+            <h3>Waiting for opponent...</h3>
+            <p>Your results have been submitted.</p>
+          </div>
+        </div>
+      }
     </div>
 
     <aside class="stats-column right-column">
@@ -142,8 +157,19 @@
 
         <div class="results-actions">
           <button type="button" class="menu-button play-again" (click)="restartSong()">Play Again</button>
-          @if (authService.isLoggedIn && !isChallengeMode()) {
+          @if (authService.isLoggedIn && !isChallengeMode() && !isMultiplayerMode()) {
             <button type="button" class="menu-button send-score" (click)="openSendScoreModal()">Send to Friends</button>
+          }
+          @if (isMultiplayerMode() && matchResult()) {
+            <span class="challenge-status">
+              @if (matchResult()?.winnerId === authService.currentUser?.id) {
+                <i class="fas fa-trophy"></i> You won!
+              } @else if (matchResult()?.winnerId === null) {
+                <i class="fas fa-handshake"></i> Tie!
+              } @else {
+                <i class="fas fa-flag-checkered"></i> Opponent won
+              }
+            </span>
           }
           @if (isChallengeMode()) {
             @if (challengeSent()) {

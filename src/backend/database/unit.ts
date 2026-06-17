@@ -74,6 +74,14 @@ const COLUMN_MAP: Record<string, string> = {
   lastlogindate: 'lastLoginDate',
   loginstreak: 'loginStreak',
   longeststreak: 'longestStreak',
+  challengerid: 'challengerId',
+  inviteeid: 'inviteeId',
+  winnerid: 'winnerId',
+  startedat: 'startedAt',
+  finishedat: 'finishedAt',
+  roomid: 'roomId',
+  finalplacement: 'finalPlacement',
+  submittedat: 'submittedAt',
 };
 
 function normalizeRow(row: Record<string, unknown>): Record<string, unknown> {
@@ -185,6 +193,11 @@ export class Unit {
     } catch {
       return 0;
     }
+  }
+
+  public async unsafe(sqlStr: string, args?: any[]): Promise<unknown[]> {
+    const conn = await this.ensureConnection();
+    return await conn.unsafe(sqlStr, args ?? []);
   }
 
   public async complete(commit: boolean | null = null): Promise<void> {
@@ -580,6 +593,54 @@ export class Unit {
 
     await getSql().unsafe(`
       CREATE INDEX IF NOT EXISTS idx_song_like_user ON SongLike(user_id)
+    `);
+
+    await getSql().unsafe(`
+      CREATE TABLE IF NOT EXISTS GameRoom (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        difficulty_id INTEGER NOT NULL,
+        challenger_id INTEGER NOT NULL,
+        invitee_id INTEGER NOT NULL,
+        status TEXT NOT NULL DEFAULT 'pending',
+        winner_id INTEGER,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        started_at TIMESTAMP,
+        finished_at TIMESTAMP,
+        CONSTRAINT fk_gameroom_difficulty FOREIGN KEY (difficulty_id) REFERENCES Difficulty(id),
+        CONSTRAINT fk_gameroom_challenger FOREIGN KEY (challenger_id) REFERENCES "User"(id),
+        CONSTRAINT fk_gameroom_invitee FOREIGN KEY (invitee_id) REFERENCES "User"(id),
+        CONSTRAINT fk_gameroom_winner FOREIGN KEY (winner_id) REFERENCES "User"(id)
+      )
+    `);
+
+    await getSql().unsafe(`
+      CREATE INDEX IF NOT EXISTS idx_gameroom_challenger ON GameRoom(challenger_id, status)
+    `);
+    await getSql().unsafe(`
+      CREATE INDEX IF NOT EXISTS idx_gameroom_invitee ON GameRoom(invitee_id, status)
+    `);
+
+    await getSql().unsafe(`
+      CREATE TABLE IF NOT EXISTS GameRoomResult (
+        id SERIAL PRIMARY KEY,
+        room_id UUID NOT NULL,
+        user_id INTEGER NOT NULL,
+        score INTEGER NOT NULL,
+        max_combo INTEGER NOT NULL,
+        accuracy INTEGER NOT NULL,
+        radiant INTEGER NOT NULL,
+        shinning INTEGER NOT NULL,
+        glimmer INTEGER NOT NULL,
+        shattered INTEGER NOT NULL,
+        final_placement INTEGER,
+        submitted_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT fk_gameroomresult_room FOREIGN KEY (room_id) REFERENCES GameRoom(id) ON DELETE CASCADE,
+        CONSTRAINT fk_gameroomresult_user FOREIGN KEY (user_id) REFERENCES "User"(id) ON DELETE CASCADE
+      )
+    `);
+
+    await getSql().unsafe(`
+      CREATE INDEX IF NOT EXISTS idx_gameroomresult_room ON GameRoomResult(room_id)
     `);
 
     // Remove duplicate highscores (keep best per user+difficulty)

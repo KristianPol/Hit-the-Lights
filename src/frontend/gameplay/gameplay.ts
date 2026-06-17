@@ -8,6 +8,8 @@ import { GameSettingsService, PARTICLE_INTENSITY_OPTIONS, formatBindingLabel, fo
 import { FriendshipService, FriendshipResult } from '../../app/services/friendship.service';
 import { MessageService } from '../../app/services/message.service';
 import { AchievementService } from '../../app/services/achievement.service';
+import { MultiplayerService, MatchState, MatchResult, LaneActivity } from '../../app/services/multiplayer.service';
+import { OpponentOverlayComponent } from './opponent-overlay/opponent-overlay';
 import { calculateDifficultyEstimate, formatDifficultyEstimate } from '../utils/difficulty-calculator';
 interface HitFeedback {
   lane: number;
@@ -94,7 +96,7 @@ export function getRankRingSegments(
 @Component({
   selector: 'app-gameplay',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, OpponentOverlayComponent],
   templateUrl: './gameplay.html',
   styleUrls: ['./gameplay.scss']
 })
@@ -122,6 +124,7 @@ export class Gameplay implements AfterViewInit, OnDestroy {
   @ViewChild('comboCard') comboCardRef!: ElementRef<HTMLDivElement>;
 
   private readonly gameSettingsService = inject(GameSettingsService);
+  protected readonly multiplayerService = inject(MultiplayerService);
   private readonly defaultSongUrl = '/assets/music/SpearOfJustice.mp3';
   private readonly laneColors = ['#ff6b6b', '#4ecdc4', '#4d96ff', '#ff9f43'];
   private readonly laneCount = 4;
@@ -163,6 +166,17 @@ export class Gameplay implements AfterViewInit, OnDestroy {
   private challengeFromUserId: number | null = null;
   readonly challengeSent = signal(false);
   readonly isChallengeMode = signal(false);
+
+  readonly isMultiplayerMode = signal(false);
+  readonly multiplayerCountdown = signal<number | null>(null);
+  readonly opponentState = signal<MatchState | null>(null);
+  readonly matchResult = signal<MatchResult | null>(null);
+  readonly waitingForOpponent = signal(false);
+  private multiplayerRoomId: string | null = null;
+  private multiplayerStartTimeMs = 0;
+  private lastStateEmitMs = 0;
+  private lastJudgment: string | null = null;
+  private lastLaneActivity: LaneActivity | null = null;
 
   private chartNotes: ChartNote[] = [];
   notes: ChartNote[] = [];
@@ -206,6 +220,9 @@ export class Gameplay implements AfterViewInit, OnDestroy {
     }
     if (this.gameStarted()) {
       return 'Keep the rhythm going';
+    }
+    if (this.isMultiplayerMode()) {
+      return `Press ${formatBindingList(this.gameSettingsService.laneBindings().map(binding => formatBindingLabel(binding)))} to ready up`;
     }
     return `Press ${formatBindingList(this.gameSettingsService.laneBindings().map(binding => formatBindingLabel(binding)))} to start`;
   });
@@ -415,6 +432,10 @@ export class Gameplay implements AfterViewInit, OnDestroy {
     this.keyStates[lane] = true;
 
     if (!this.gameStarted()) {
+      if (this.isMultiplayerMode()) {
+        this.multiplayerService.markReady();
+        return;
+      }
       this.startGame();
       return;
     }
@@ -456,6 +477,16 @@ export class Gameplay implements AfterViewInit, OnDestroy {
     this.challengeFromUserId = state?.challengeFrom ?? null;
     this.isChallengeMode.set(this.challengeFromUserId !== null);
 
+    const roomIdFromState = state?.roomId ?? null;
+    if (roomIdFromState) {
+      this.isMultiplayerMode.set(true);
+      this.isChallengeMode.set(false);
+      this.multiplayerRoomId = roomIdFromState;
+      this.waitingForOpponent.set(true);
+      this.multiplayerService.joinRoom(roomIdFromState);
+      this.subscribeToMultiplayerEvents();
+    }
+
     if (testChart && testChartData && testChartData.notes) {
       this.currentSong.set(stateSong ?? null);
       this.chartMetadata.set(testChartData.metadata ?? {});
@@ -475,6 +506,40 @@ export class Gameplay implements AfterViewInit, OnDestroy {
     this.resolvedDifficultyId = diff?.id ?? null;
     this.resolvedDifficulty.set(diff);
     await Promise.all([this.loadChart(song, this.resolvedDifficultyId), this.configureAudio(song?.songUrl ?? this.defaultSongUrl)]);
+  }
+
+  private subscribeToMultiplayerEvents(): void {
+    this.multiplayerService.roomJoined.subscribe(({ roomId, opponentId }) => {
+      this.multiplayerRoomId = roomId;
+      this.waitingForOpponent.set(false);
+    });
+
+    this.multiplayerService.countdown.subscribe(value => {
+      this.multiplayerCountdown.set(value);
+    });
+
+    this.multiplayerService.matchStart.subscribe(({ serverTimeMs }) => {
+      this.multiplayerCountdown.set(null);
+      this.multiplayerStartTimeMs = serverTimeMs;
+      this.startGame();
+    });
+
+    this.multiplayerService.opponentState.subscribe(state => {
+      this.opponentState.set(state);
+    });
+
+    this.multiplayerService.matchResult.subscribe(result => {
+      this.matchResult.set(result);
+      this.waitingForOpponent.set(false);
+      this.finishGameShowResults();
+    });
+
+    this.multiplayerService.roomError.subscribe(message => {
+      console.error('Multiplayer error:', message);
+      this.loadingError.set(message);
+      this.isMultiplayerMode.set(false);
+      this.multiplayerService.disconnect();
+    });
   }
 
   private resolveDifficulty(song: Song | null): SongDifficulty | null {
@@ -690,6 +755,22 @@ export class Gameplay implements AfterViewInit, OnDestroy {
 
     this.render(audioTime);
 
+    if (this.isMultiplayerMode() && this.gameRunning()) {
+      const now = performance.now();
+      if (now - this.lastStateEmitMs > 250) {
+        this.lastStateEmitMs = now;
+        const stats = this.stats();
+        this.multiplayerService.emitState({
+          score: stats.score,
+          combo: stats.combo,
+          accuracy: stats.accuracy,
+          lastJudgment: this.lastJudgment,
+          laneActivity: this.lastLaneActivity ?? undefined
+        });
+        this.lastLaneActivity = null;
+      }
+    }
+
     this.animationFrameId = requestAnimationFrame(this.gameLoop);
   };
 
@@ -723,6 +804,8 @@ export class Gameplay implements AfterViewInit, OnDestroy {
         this.updateAccuracy();
         this.spawnHitFeedback(note.lane, 'Shattered', '#ff9ea8');
         this.playMissSound();
+        this.lastJudgment = 'Shattered';
+        this.lastLaneActivity = { lane: note.lane as 0 | 1 | 2 | 3, judgment: 'shattered' };
       }
     }
   }
@@ -777,6 +860,8 @@ export class Gameplay implements AfterViewInit, OnDestroy {
       this.updateAccuracy();
       this.spawnHitFeedback(lane, 'Shattered', '#ff9ea8');
       this.playMissSound();
+      this.lastJudgment = 'Shattered';
+      this.lastLaneActivity = { lane: lane as 0 | 1 | 2 | 3, judgment: 'shattered' };
       return;
     }
 
@@ -789,6 +874,8 @@ export class Gameplay implements AfterViewInit, OnDestroy {
       this.spawnBombDebris(lane);
       this.triggerRedFlash();
       this.playMissSound();
+      this.lastJudgment = 'Shattered';
+      this.lastLaneActivity = { lane: lane as 0 | 1 | 2 | 3, judgment: 'shattered' };
       return;
     }
 
@@ -832,6 +919,8 @@ export class Gameplay implements AfterViewInit, OnDestroy {
 
     this.spawnHitFeedback(lane, feedbackText, feedbackColour);
     this.playHitSound();
+    this.lastJudgment = feedbackText;
+    this.lastLaneActivity = { lane: lane as 0 | 1 | 2 | 3, judgment: this.judgmentTextToLaneJudgment(feedbackText) };
 
     this.scoreUnits += points;
 
@@ -876,6 +965,8 @@ export class Gameplay implements AfterViewInit, OnDestroy {
     this.spawnShatter(laneCenterX, hitZoneY, color);
     this.spawnHitFeedback(lane, pressResult.label, pressResult.color);
     this.playHitSound();
+    this.lastJudgment = pressResult.label;
+    this.lastLaneActivity = { lane: lane as 0 | 1 | 2 | 3, judgment: this.judgmentTextToLaneJudgment(pressResult.label) };
 
     this.stats.update(stats => {
       const combo = stats.combo + 1;
@@ -885,6 +976,16 @@ export class Gameplay implements AfterViewInit, OnDestroy {
         maxCombo: Math.max(stats.maxCombo, combo)
       };
     });
+  }
+
+  private judgmentTextToLaneJudgment(text: string): LaneActivity['judgment'] {
+    switch (text) {
+      case 'Radiant': return 'radiant';
+      case 'Shinning': return 'shinning';
+      case 'Glimmer': return 'glimmer';
+      case 'Shattered': return 'shattered';
+      default: return null;
+    }
   }
 
   private judgeTiming(timingDelta: number): { points: number; grade: 'perfect' | 'good' | 'glimmer' | 'miss'; label: string; color: string } {
@@ -1558,12 +1659,32 @@ export class Gameplay implements AfterViewInit, OnDestroy {
     }
     this.stopPlaytimeTracking();
     this.gameRunning.set(false);
-    this.gameFinished.set(true);
 
     if (this.animationFrameId !== null) {
       cancelAnimationFrame(this.animationFrameId);
       this.animationFrameId = null;
     }
+
+    if (this.isMultiplayerMode()) {
+      const stats = this.stats();
+      this.multiplayerService.emitFinished({
+        score: stats.score,
+        maxCombo: stats.maxCombo,
+        accuracy: stats.accuracy,
+        radiant: stats.perfect,
+        shinning: stats.good,
+        glimmer: stats.glimmer,
+        shattered: stats.miss
+      });
+      this.waitingForOpponent.set(true);
+      return;
+    }
+
+    this.finishGameShowResults();
+  }
+
+  private finishGameShowResults(): void {
+    this.gameFinished.set(true);
 
     // Check run-based skill achievements
     const currentStats = this.stats();
@@ -1795,6 +1916,10 @@ export class Gameplay implements AfterViewInit, OnDestroy {
     if (this.animationFrameId !== null) {
       cancelAnimationFrame(this.animationFrameId);
       this.animationFrameId = null;
+    }
+
+    if (this.isMultiplayerMode()) {
+      this.multiplayerService.disconnect();
     }
   }
 

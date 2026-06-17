@@ -15,6 +15,7 @@ import {
 } from '../../app/services/message.service';
 import { SongService } from '../../app/services/song.service';
 import { NotificationService } from '../../app/services/notification.service';
+import { MultiplayerService } from '../../app/services/multiplayer.service';
 import { Subscription } from 'rxjs';
 
 type TabType = 'conversations' | 'friends' | 'requests';
@@ -108,6 +109,7 @@ export class Messages implements OnInit, OnDestroy {
     private messageService: MessageService,
     private songService: SongService,
     private notificationService: NotificationService,
+    private multiplayerService: MultiplayerService,
     private router: Router
   ) {
     effect(() => {
@@ -543,6 +545,10 @@ export class Messages implements OnInit, OnDestroy {
     return content.startsWith('Score Share');
   }
 
+  isChallengeMessage(content: string): boolean {
+    return content.startsWith('Multiplayer Challenge');
+  }
+
   parseScoreShare(content: string): { lines: string[]; coverUrl: string | null; songId: number | null; difficultyId: number | null } {
     const lines = content.split('\n');
     let coverUrl: string | null = null;
@@ -565,6 +571,21 @@ export class Messages implements OnInit, OnDestroy {
     return { lines: filteredLines, coverUrl, songId, difficultyId };
   }
 
+  parseChallenge(content: string): { roomId: string | null; difficultyId: number | null } {
+    const lines = content.split('\n');
+    let roomId: string | null = null;
+    let difficultyId: number | null = null;
+    for (const line of lines) {
+      if (line.startsWith('Room ID: ')) {
+        roomId = line.slice('Room ID: '.length).trim();
+      } else if (line.startsWith('Difficulty ID: ')) {
+        const parsed = Number(line.slice('Difficulty ID: '.length).trim());
+        if (Number.isFinite(parsed) && parsed > 0) difficultyId = parsed;
+      }
+    }
+    return { roomId, difficultyId };
+  }
+
   canChallenge(content: string): boolean {
     const share = this.parseScoreShare(content);
     return share.songId != null && share.difficultyId != null;
@@ -574,20 +595,48 @@ export class Messages implements OnInit, OnDestroy {
     const share = this.parseScoreShare(content);
     if (!share.songId || !share.difficultyId) return;
 
-    const viewerId = this.authService.currentUser?.id ?? undefined;
-    this.songService.getSongById(share.songId, viewerId).subscribe({
+    this.multiplayerService.createRoom(share.difficultyId, senderId).subscribe({
       next: response => {
-        if (response.success && response.song) {
+        if (response.success && response.roomId) {
+          this.multiplayerService.joinRoom(response.roomId);
+          const viewerId = this.authService.currentUser?.id ?? undefined;
+          this.songService.getSongById(share.songId!, viewerId).subscribe({
+            next: songResponse => {
+              if (songResponse.success && songResponse.song) {
+                this.router.navigate(['/gameplay'], {
+                  state: {
+                    song: songResponse.song,
+                    difficultyId: share.difficultyId,
+                    roomId: response.roomId
+                  }
+                });
+              }
+            },
+            error: err => console.warn('Failed to load song for challenge:', err)
+          });
+        }
+      },
+      error: err => console.warn('Failed to create room:', err)
+    });
+  }
+
+  acceptChallenge(content: string): void {
+    const challenge = this.parseChallenge(content);
+    if (!challenge.roomId || !challenge.difficultyId) return;
+
+    this.multiplayerService.acceptInvite(challenge.roomId).subscribe({
+      next: response => {
+        if (response.success) {
+          this.multiplayerService.joinRoom(challenge.roomId!);
           this.router.navigate(['/gameplay'], {
             state: {
-              song: response.song,
-              difficultyId: share.difficultyId,
-              challengeFrom: senderId
+              difficultyId: challenge.difficultyId,
+              roomId: challenge.roomId
             }
           });
         }
       },
-      error: err => console.warn('Failed to load song for challenge:', err)
+      error: err => console.warn('Failed to accept challenge:', err)
     });
   }
 }

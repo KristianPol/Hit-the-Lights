@@ -861,3 +861,34 @@
   letter-spacing: 0.04em;
   pointer-events: none;
 }
+
+.gameplay-card {
+  position: relative;
+}
+
+.multiplayer-waiting-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.82);
+  border-radius: 12px;
+  z-index: 60;
+
+  .multiplayer-waiting-card {
+    text-align: center;
+    padding: 1.5rem;
+
+    h3 {
+      margin: 0 0 0.5rem;
+      font-size: 1.5rem;
+      color: $yellow-primary;
+    }
+
+    p {
+      margin: 0;
+      color: rgba(255, 255, 255, 0.75);
+    }
+  }
+}

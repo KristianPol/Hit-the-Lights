@@ -19,9 +19,10 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import rateLimit from 'express-rate-limit';
-import { authRouter, songRouter, friendshipRouter, messageRouter } from "../routers";
+import { authRouter, songRouter, friendshipRouter, messageRouter, multiplayerRouter } from "../routers";
 import { authMiddleware } from "../middleware/authMiddleware";
 import { Unit, sql } from './unit';
+import { initMultiplayerSocket } from '../socket/MultiplayerSocket';
 import { SongService } from '../services/SongService';
 
 const DATABASE_URL = process.env['DATABASE_URL'];
@@ -144,6 +145,7 @@ app.use('/api/auth', authRouter);
 app.use('/api/songs', songRouter);
 app.use('/api/friends', friendshipRouter);
 app.use('/api/messages', messageRouter);
+app.use('/api/multiplayer', multiplayerRouter);
 
 app.get('/api/health', (_req: any, res: any) => {
   res.json({
@@ -177,6 +179,7 @@ app.use((err: any, _req: any, res: any, _next: any) => {
 
 const server = app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`Socket.IO mounted`);
   console.log(`API endpoints:`);
   console.log(`  POST http://localhost:${PORT}/api/auth/register`);
   console.log(`  POST http://localhost:${PORT}/api/auth/login`);
@@ -194,6 +197,8 @@ const server = app.listen(PORT, () => {
   console.log(`  GET  http://localhost:${PORT}/api/messages/conversations/:userId`);
   console.log(`  GET  http://localhost:${PORT}/api/health`);
 });
+
+const io = initMultiplayerSocket(server);
 
 // Handle uncaught exceptions — log but do not crash the server
 process.on('uncaughtException', (err: Error) => {

@@ -108,6 +108,14 @@ export class AuthService {
   }
 
   /**
+   * Get stored JWT token
+   */
+  public getToken(): string | null {
+    if (typeof window === 'undefined') return null;
+    return localStorage.getItem('authToken');
+  }
+
+  /**
    * Login user
    */
   login(request: LoginRequest): Observable<AuthResponse> {

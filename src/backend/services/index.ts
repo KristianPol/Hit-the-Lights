@@ -18,6 +18,8 @@ import { MessageService } from './MessageService';
 import type { SendMessageRequest, SendMessageResult, MessageResult, ConversationPreview } from './MessageService';
 import { HTLService } from './HTLService';
 import { R2Service } from './R2Service';
+import { MultiplayerService } from './MultiplayerService';
+import type { CreateRoomRequest, CreateRoomResult, RoomResult, PlayerMatchStats, SubmitResultRequest } from './MultiplayerService';
 
 export type { RegistrationRequest, RegistrationResponse };
 export type { LoginRequest, LoginResponse };
@@ -31,5 +33,6 @@ export type {
 export type { UpdateProfilePictureRequest, UpdateProfilePictureResponse, GetUserResponse };
 export type { SearchUserResult, FriendRequestResult, FriendshipResult, FriendActionResult };
 export type { SendMessageRequest, SendMessageResult, MessageResult, ConversationPreview };
+export type { CreateRoomRequest, CreateRoomResult, RoomResult, PlayerMatchStats, SubmitResultRequest };
 
-export { RegistrationService, AuthenticationService, SongService, UserService, FriendshipService, MessageService, HTLService, R2Service };
+export { RegistrationService, AuthenticationService, SongService, UserService, FriendshipService, MessageService, HTLService, R2Service, MultiplayerService };
