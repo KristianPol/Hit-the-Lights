@@ -1,0 +1,30 @@
+<div class="opponent-overlay">
+  <div class="connection-badge" [class.connected]="connected()">
+    {{ connected() ? 'Opponent Online' : 'Opponent Offline' }}
+  </div>
+
+  <div class="countdown" *ngIf="countdown() != null">{{ countdown() }}</div>
+
+  <div class="stats" *ngIf="state()">
+    <div class="stat">
+      <span class="label">Score</span>
+      <span class="value">{{ state()!.score | number }}</span>
+    </div>
+    <div class="stat">
+      <span class="label">Combo</span>
+      <span class="value">{{ state()!.combo }}</span>
+    </div>
+    <div class="stat">
+      <span class="label">Accuracy</span>
+      <span class="value">{{ accuracyText }}</span>
+    </div>
+  </div>
+
+  <div class="lanes">
+    <div
+      *ngFor="let lane of lanes"
+      class="lane"
+      [class.flash]="isFlashed(lane)"
+    ></div>
+  </div>
+</div>

@@ -1,0 +1,71 @@
+.opponent-overlay {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 180px;
+  background: rgba(0, 0, 0, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  padding: 12px;
+  color: #fff;
+  z-index: 50;
+  backdrop-filter: blur(4px);
+
+  .connection-badge {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #ff6b6b;
+    margin-bottom: 8px;
+
+    &.connected {
+      color: #4ecdc4;
+    }
+  }
+
+  .countdown {
+    font-size: 48px;
+    font-weight: 700;
+    text-align: center;
+    margin: 8px 0;
+    color: #ffd700;
+  }
+
+  .stats {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 12px;
+
+    .stat {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+
+      .label {
+        opacity: 0.7;
+      }
+
+      .value {
+        font-weight: 600;
+      }
+    }
+  }
+
+  .lanes {
+    display: flex;
+    gap: 4px;
+    height: 40px;
+
+    .lane {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+      transition: background-color 0.05s;
+
+      &.flash {
+        background: #ffd700;
+      }
+    }
+  }
+}
