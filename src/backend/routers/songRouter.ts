@@ -429,11 +429,10 @@ songRouter.post('/:songId/difficulties', authMiddleware, async (req: Request, re
     const { difficulty, notes } = req.body;
     if (isNaN(songId)) { await unit.complete(false); res.status(400).json({ success: false, error: 'Invalid song ID' }); return; }
     const parsedDifficulty = parseOptionalNumber(difficulty);
-    if (parsedDifficulty === undefined) { await unit.complete(false); res.status(400).json({ success: false, error: 'difficulty is required' }); return; }
     if (!Array.isArray(notes)) { await unit.complete(false); res.status(400).json({ success: false, error: 'notes must be an array' }); return; }
 
     const svc = new SongService(unit);
-    const result = await svc.addSongDifficulty(songId, ownerId, parsedDifficulty, notes);
+    const result = await svc.addSongDifficulty(songId, ownerId, notes, parsedDifficulty);
     if (result.success) { await unit.complete(true); res.status(201).json({ success: true, difficulty: result.difficulty, message: 'Difficulty uploaded successfully' }); } else { await unit.complete(false); res.status(result.error === 'Song not found' ? 404 : 400).json({ success: false, error: result.error }); }
   } catch (error: any) {
     await unit.complete(false);

@@ -166,7 +166,7 @@ export interface GetDifficultiesResponse {
 }
 
 export interface AddDifficultyRequest {
-  difficulty: number;
+  difficulty?: number;
   notes: ChartNote[];
 }
 

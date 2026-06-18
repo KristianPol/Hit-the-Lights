@@ -372,9 +372,7 @@
                     class="difficulty-btn"
                     [class.selected]="difficultyPickerState().selectedDifficultyId === diff.id"
                     (click)="selectDifficulty(diff.id)">
-                    <span class="diff-label">{{ difficultyNumberToName(diff.difficulty) }}</span>
                     <span class="diff-estimate"><i class="fas fa-star"></i> {{ getDifficultyEstimate(diff) }}</span>
-                    <span class="diff-notes">{{ diff.noteCount }} notes</span>
                     @if (difficultyPickerState().selectedDifficultyId === diff.id) {
                       <span class="checkmark"><i class="fas fa-check"></i></span>
                     }
@@ -395,31 +393,11 @@
           </div>
           @if (isSongOwnedByViewer(song()!, currentUser()?.id)) {
             <button class="btn-upload-chart" (click)="openUploadDifficultyForm()">
-              <i class="fas fa-upload"></i> Upload New Difficulty
+              <i class="fas fa-upload"></i> Upload Chart
             </button>
           }
         } @else {
           <div class="upload-chart-form">
-            <div class="form-group">
-              <label for="difficultySelect">Difficulty Level</label>
-              <select
-                id="difficultySelect"
-                [ngModel]="uploadDifficultyChoice()"
-                (ngModelChange)="uploadDifficultyChoice.set($event)"
-                class="difficulty-select">
-                <option [ngValue]="null" disabled>Select difficulty...</option>
-                @if (isDifficultyAvailable('Easy')) { <option value="Easy">Easy</option> }
-                @if (isDifficultyAvailable('Normal')) { <option value="Normal">Normal</option> }
-                @if (isDifficultyAvailable('Hard')) { <option value="Hard">Hard</option> }
-                @if (isDifficultyAvailable('Expert')) { <option value="Expert">Expert</option> }
-                @if (isDifficultyAvailable('Master')) { <option value="Master">Master</option> }
-                @if (isDifficultyAvailable('Lunatic')) { <option value="Lunatic">Lunatic</option> }
-                @if (isDifficultyAvailable('Insane')) { <option value="Insane">Insane</option> }
-                @if (isDifficultyAvailable('Extreme')) { <option value="Extreme">Extreme</option> }
-                @if (isDifficultyAvailable('Nightmare')) { <option value="Nightmare">Nightmare</option> }
-                @if (isDifficultyAvailable('Impossible')) { <option value="Impossible">Impossible</option> }
-              </select>
-            </div>
             <div class="form-group">
               <label>Chart File (JSON)</label>
               <button class="file-btn" (click)="chartFileInput.click()">
