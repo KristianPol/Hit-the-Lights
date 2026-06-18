@@ -169,6 +169,7 @@ export class Gameplay implements AfterViewInit, OnDestroy {
 
   readonly isMultiplayerMode = signal(false);
   readonly multiplayerCountdown = signal<number | null>(null);
+  readonly multiplayerMatchStarted = signal(false);
   readonly opponentState = signal<MatchState | null>(null);
   readonly matchResult = signal<MatchResult | null>(null);
   readonly waitingForOpponent = signal(false);
@@ -542,6 +543,7 @@ export class Gameplay implements AfterViewInit, OnDestroy {
 
     this.multiplayerService.matchStart.subscribe(({ serverTimeMs }) => {
       this.multiplayerCountdown.set(null);
+      this.multiplayerMatchStarted.set(true);
       this.multiplayerStartTimeMs = serverTimeMs;
       this.startGame();
     });
