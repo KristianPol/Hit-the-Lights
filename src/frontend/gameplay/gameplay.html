@@ -44,13 +44,6 @@
         (click)="focusCanvas()"
         aria-label="Hit The Lights gameplay canvas"
       ></canvas>
-      @if (isMultiplayerMode()) {
-        <app-opponent-overlay
-          [state]="opponentState()"
-          [connected]="multiplayerService.opponentConnected()"
-          [countdown]="multiplayerCountdown()"
-        ></app-opponent-overlay>
-      }
       @if (isMultiplayerMode() && waitingForOpponent() && !gameFinished()) {
         <div class="multiplayer-waiting-overlay">
           <div class="multiplayer-waiting-card">
@@ -68,6 +61,13 @@
     </div>
 
     <aside class="stats-column right-column">
+      @if (isMultiplayerMode()) {
+        <app-opponent-overlay
+          [state]="opponentState()"
+          [connected]="multiplayerService.opponentConnected()"
+          [countdown]="multiplayerCountdown()"
+        ></app-opponent-overlay>
+      }
 
       <button type="button" class="menu-button" (click)="returnToMenu()">Back to Menu</button>
       @if (!isLoading() && !gameFinished()) {
