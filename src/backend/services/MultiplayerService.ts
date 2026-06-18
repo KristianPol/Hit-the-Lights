@@ -36,6 +36,25 @@ export interface PlayerMatchStats {
   shattered: number;
 }
 
+export interface MatchPlayerResult {
+  userId: number;
+  username: string;
+  profilePictureUrl: string | null;
+  score: number;
+  maxCombo: number;
+  accuracy: number;
+  radiant: number;
+  shinning: number;
+  glimmer: number;
+  shattered: number;
+  finalPlacement: number | null;
+}
+
+export interface MatchResult {
+  winnerId: number | null;
+  results: MatchPlayerResult[];
+}
+
 export interface SubmitResultRequest {
   roomId: string;
   userId: number;
@@ -190,17 +209,38 @@ export class MultiplayerService {
     return { success: true };
   }
 
-  async calculateAndStoreWinner(roomId: string): Promise<{ winnerId: number | null; results: any[] }> {
+  async calculateAndStoreWinner(roomId: string): Promise<MatchResult> {
     const resultsStmt = this.unit.prepare<
       {
-        user_id: number;
+        userId: number;
+        username: string;
+        profilePictureUrl: string | null;
         score: number;
-        max_combo: number;
+        maxCombo: number;
         accuracy: number;
+        radiant: number;
+        shinning: number;
+        glimmer: number;
+        shattered: number;
+        finalPlacement: number | null;
       },
       { roomId: string }
     >(
-      `SELECT user_id, score, max_combo, accuracy FROM GameRoomResult WHERE room_id = $roomId`,
+      `SELECT
+        grr.user_id AS userId,
+        u.username,
+        u.profilePictureUrl AS profilePictureUrl,
+        grr.score,
+        grr.max_combo AS maxCombo,
+        grr.accuracy,
+        grr.radiant,
+        grr.shinning,
+        grr.glimmer,
+        grr.shattered,
+        grr.final_placement AS finalPlacement
+       FROM GameRoomResult grr
+       JOIN "User" u ON u.id = grr.user_id
+       WHERE grr.room_id = $roomId`,
       { roomId }
     );
     const rows = await resultsStmt.all();
@@ -212,19 +252,19 @@ export class MultiplayerService {
     const ranked = [...rows].sort((a, b) => {
       if (b.score !== a.score) return b.score - a.score;
       if (b.accuracy !== a.accuracy) return b.accuracy - a.accuracy;
-      return b.max_combo - a.max_combo;
+      return b.maxCombo - a.maxCombo;
     });
 
     const winnerId = ranked[0].score === ranked[1]?.score &&
                      ranked[0].accuracy === ranked[1]?.accuracy &&
-                     ranked[0].max_combo === ranked[1]?.max_combo
+                     ranked[0].maxCombo === ranked[1]?.maxCombo
                      ? null
-                     : ranked[0].user_id;
+                     : ranked[0].userId;
 
     for (let i = 0; i < ranked.length; i++) {
       await this.unit.unsafe(
         `UPDATE GameRoomResult SET final_placement = $1 WHERE room_id = $2 AND user_id = $3`,
-        [i + 1, roomId, ranked[i].user_id]
+        [i + 1, roomId, ranked[i].userId]
       );
     }
 
