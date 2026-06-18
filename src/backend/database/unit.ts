@@ -432,10 +432,15 @@ export class Unit {
         user_id INTEGER PRIMARY KEY,
         lane_bindings_json TEXT NOT NULL DEFAULT '["d","f","j","k"]',
         note_speed REAL NOT NULL DEFAULT 1,
+        settings_json TEXT,
         created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
         CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES "User"(id) ON DELETE CASCADE
       )
+    `);
+
+    await getSql().unsafe(`
+      ALTER TABLE UserControls ADD COLUMN IF NOT EXISTS settings_json TEXT
     `);
 
     await getSql().unsafe(`

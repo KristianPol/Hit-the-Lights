@@ -27,6 +27,7 @@ export interface UserControls {
   userId: number;
   laneBindingsJson: string;
   noteSpeed: number;
+  settingsJson?: string;
   updatedAt?: string;
 }
 
