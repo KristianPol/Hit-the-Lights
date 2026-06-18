@@ -163,12 +163,31 @@ export function initMultiplayerSocket(httpServer: HttpServer): SocketIOServer {
     socket.on('match:finished', async ({ roomId, stats }: { roomId: string; stats: PlayerMatchStats }) => {
       const room = rooms.get(roomId);
       if (!room || !room.active) return;
-      room.finished.add(userId);
+      if (room.finished.has(userId)) {
+        console.warn(`[multiplayer] User ${userId} already finished room ${roomId}; ignoring duplicate submission`);
+        return;
+      }
 
       const unit = new Unit(false);
-      const multiplayerService = new MultiplayerService(unit);
-      await multiplayerService.submitResult({ roomId, userId, stats });
-      await unit.complete(true);
+      try {
+        const multiplayerService = new MultiplayerService(unit);
+        const submitResult = await multiplayerService.submitResult({ roomId, userId, stats });
+        if (!submitResult.success) {
+          await unit.complete(false);
+          console.error(`[multiplayer] Failed to submit result for user ${userId} in room ${roomId}:`, submitResult.error);
+          socket.emit('room:error', { message: submitResult.error || 'Failed to submit result' });
+          return;
+        }
+        await unit.complete(true);
+      } catch (err: any) {
+        await unit.complete(false);
+        console.error(`[multiplayer] Exception submitting result for user ${userId} in room ${roomId}:`, err);
+        socket.emit('room:error', { message: 'Failed to submit result' });
+        return;
+      }
+
+      room.finished.add(userId);
+      console.info(`[multiplayer] User ${userId} finished room ${roomId}. Finished count: ${room.finished.size}`);
 
       if (room.finished.size === 2) {
         await finalizeRoom(roomId);

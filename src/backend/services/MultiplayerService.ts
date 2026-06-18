@@ -174,6 +174,16 @@ export class MultiplayerService {
       return { success: false, error: 'Not a room participant' };
     }
 
+    const existingStmt = this.unit.prepare<{ id: number }, { roomId: string; userId: number }>(
+      'SELECT id FROM GameRoomResult WHERE room_id = $roomId AND user_id = $userId',
+      { roomId: request.roomId, userId: request.userId }
+    );
+    const existing = await existingStmt.get();
+    if (existing) {
+      console.warn(`[multiplayer] Result already exists for user ${request.userId} in room ${request.roomId}; ignoring duplicate insert`);
+      return { success: true };
+    }
+
     const insert = this.unit.prepare<
       { id: number },
       {
@@ -255,11 +265,20 @@ export class MultiplayerService {
       return b.maxCombo - a.maxCombo;
     });
 
-    const winnerId = ranked[0].score === ranked[1]?.score &&
-                     ranked[0].accuracy === ranked[1]?.accuracy &&
-                     ranked[0].maxCombo === ranked[1]?.maxCombo
-                     ? null
-                     : ranked[0].userId;
+    const first = ranked[0];
+    const second = ranked[1];
+    const isTie = !!second &&
+      first.score === second.score &&
+      first.accuracy === second.accuracy &&
+      first.maxCombo === second.maxCombo;
+    const winnerId = isTie ? null : first.userId;
+
+    console.info(`[multiplayer] Calculating winner for room ${roomId}:`, {
+      resultCount: rows.length,
+      ranked: ranked.map(r => ({ userId: r.userId, username: r.username, score: r.score, accuracy: r.accuracy, maxCombo: r.maxCombo })),
+      winnerId,
+      isTie
+    });
 
     for (let i = 0; i < ranked.length; i++) {
       await this.unit.unsafe(
