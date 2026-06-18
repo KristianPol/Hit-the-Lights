@@ -155,21 +155,97 @@
 
         <p class="results-flavor">{{ resultFlavorText() }}</p>
 
+        @if (isMultiplayerMode()) {
+          <div class="duel-results">
+            <h4 class="duel-title">
+              <i class="fas fa-bolt"></i> Duel Results
+            </h4>
+
+            @if (waitingForOpponent()) {
+              <div class="duel-waiting">
+                <div class="spinner"></div>
+                <p>Waiting for opponent to finish...</p>
+              </div>
+            }
+
+            <div class="duel-players">
+              <div class="duel-player you">
+                <div class="duel-player-avatar">
+                  @if (authService.currentUser?.profilePictureUrl) {
+                    <img [src]="authService.currentUser?.profilePictureUrl" alt="" />
+                  } @else {
+                    <span>{{ userInitial() }}</span>
+                  }
+                </div>
+                <span class="duel-player-name">You</span>
+                <span class="duel-player-score">{{ stats().score.toLocaleString() }}</span>
+                <div class="duel-player-stats">
+                  <span>{{ accuracyLabelText() }}</span>
+                  <span>Max {{ stats().maxCombo }}</span>
+                </div>
+                <div class="duel-player-judgments">
+                  <span class="radiant">{{ stats().perfect }}</span>
+                  <span class="shinning">{{ stats().good }}</span>
+                  <span class="glimmer">{{ stats().glimmer }}</span>
+                  <span class="shattered">{{ stats().miss }}</span>
+                </div>
+              </div>
+
+              <div class="duel-player opponent">
+                <div class="duel-player-avatar">
+                  @if (opponentMatchResult()?.profilePictureUrl) {
+                    <img [src]="opponentMatchResult()?.profilePictureUrl" alt="" />
+                  } @else {
+                    <span>{{ getOpponentInitial(opponentMatchResult()) }}</span>
+                  }
+                </div>
+                <span class="duel-player-name">{{ opponentUsername() }}</span>
+                @if (opponentMatchResult(); as opponent) {
+                  <span class="duel-player-score">{{ opponent.score.toLocaleString() }}</span>
+                  <div class="duel-player-stats">
+                    <span>{{ opponent.accuracy.toFixed(1) }}%</span>
+                    <span>Max {{ opponent.maxCombo }}</span>
+                  </div>
+                  <div class="duel-player-judgments">
+                    <span class="radiant">{{ opponent.radiant }}</span>
+                    <span class="shinning">{{ opponent.shinning }}</span>
+                    <span class="glimmer">{{ opponent.glimmer }}</span>
+                    <span class="shattered">{{ opponent.shattered }}</span>
+                  </div>
+                } @else {
+                  <span class="duel-player-score">—</span>
+                  <div class="duel-player-stats">
+                    <span>—</span>
+                    <span>—</span>
+                  </div>
+                  <div class="duel-player-judgments">
+                    <span>—</span>
+                    <span>—</span>
+                    <span>—</span>
+                    <span>—</span>
+                  </div>
+                }
+              </div>
+            </div>
+
+            @if (matchResult()) {
+              <div class="duel-outcome">
+                @if (matchResult()?.winnerId === authService.currentUser?.id) {
+                  <span class="won"><i class="fas fa-trophy"></i> You won!</span>
+                } @else if (matchResult()?.winnerId === null) {
+                  <span class="tie"><i class="fas fa-handshake"></i> Tie!</span>
+                } @else {
+                  <span class="lost"><i class="fas fa-flag-checkered"></i> Opponent won</span>
+                }
+              </div>
+            }
+          </div>
+        }
+
         <div class="results-actions">
-          <button type="button" class="menu-button play-again" (click)="restartSong()">Play Again</button>
+          <button type="button" class="menu-button play-again" (click)="restartSong()" [disabled]="isMultiplayerMode() && waitingForOpponent()">Play Again</button>
           @if (authService.isLoggedIn && !isChallengeMode() && !isMultiplayerMode()) {
             <button type="button" class="menu-button send-score" (click)="openSendScoreModal()">Send to Friends</button>
-          }
-          @if (isMultiplayerMode() && matchResult()) {
-            <span class="challenge-status">
-              @if (matchResult()?.winnerId === authService.currentUser?.id) {
-                <i class="fas fa-trophy"></i> You won!
-              } @else if (matchResult()?.winnerId === null) {
-                <i class="fas fa-handshake"></i> Tie!
-              } @else {
-                <i class="fas fa-flag-checkered"></i> Opponent won
-              }
-            </span>
           }
           @if (isChallengeMode()) {
             @if (challengeSent()) {

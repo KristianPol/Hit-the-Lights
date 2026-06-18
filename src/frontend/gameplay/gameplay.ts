@@ -8,7 +8,7 @@ import { GameSettingsService, PARTICLE_INTENSITY_OPTIONS, formatBindingLabel, fo
 import { FriendshipService, FriendshipResult } from '../../app/services/friendship.service';
 import { MessageService } from '../../app/services/message.service';
 import { AchievementService } from '../../app/services/achievement.service';
-import { MultiplayerService, MatchState, MatchResult, LaneActivity } from '../../app/services/multiplayer.service';
+import { MultiplayerService, MatchState, MatchResult, MatchPlayerResult, LaneActivity } from '../../app/services/multiplayer.service';
 import { OpponentOverlayComponent } from './opponent-overlay/opponent-overlay';
 import { calculateDifficultyEstimate, formatDifficultyEstimate } from '../utils/difficulty-calculator';
 interface HitFeedback {
@@ -297,6 +297,10 @@ export class Gameplay implements AfterViewInit, OnDestroy {
   readonly userInitial = computed(() => {
     return this.authService.currentUser?.username?.charAt(0).toUpperCase() ?? 'G';
   });
+
+  getOpponentInitial(result: MatchPlayerResult | null): string {
+    return result?.username?.charAt(0).toUpperCase() ?? '?';
+  }
   readonly difficultyEstimate = computed(() => {
     const stored = this.resolvedDifficulty()?.difficultyEstimate;
     if (stored !== undefined && stored !== null && stored > 1.00) {
@@ -339,6 +343,24 @@ export class Gameplay implements AfterViewInit, OnDestroy {
   readonly totalSpText = computed(() => {
     const total = this.totalSp();
     return total !== null ? `${this.formatSpDecimal(total)} SP` : null;
+  });
+
+  readonly currentPlayerMatchResult = computed<MatchPlayerResult | null>(() => {
+    const result = this.matchResult();
+    const userId = this.authService.currentUser?.id;
+    if (!result || !userId) return null;
+    return result.results.find(r => r.userId === userId) ?? null;
+  });
+
+  readonly opponentMatchResult = computed<MatchPlayerResult | null>(() => {
+    const result = this.matchResult();
+    const userId = this.authService.currentUser?.id;
+    if (!result) return null;
+    return result.results.find(r => r.userId !== userId) ?? null;
+  });
+
+  readonly opponentUsername = computed(() => {
+    return this.opponentMatchResult()?.username ?? 'Opponent';
   });
 
   // FIX: Added key state tracking to prevent held-key spamming
@@ -1677,6 +1699,7 @@ export class Gameplay implements AfterViewInit, OnDestroy {
         shattered: stats.miss
       });
       this.waitingForOpponent.set(true);
+      this.finishGameShowResults();
       return;
     }
 
@@ -1684,6 +1707,9 @@ export class Gameplay implements AfterViewInit, OnDestroy {
   }
 
   private finishGameShowResults(): void {
+    if (this.gameFinished()) {
+      return;
+    }
     this.gameFinished.set(true);
 
     // Check run-based skill achievements
