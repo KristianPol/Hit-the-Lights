@@ -246,6 +246,13 @@
               </div>
             </div>
 
+            @if (!opponentMatchResult()) {
+              <div class="duel-missing-opponent">
+                <i class="fas fa-triangle-exclamation"></i>
+                Opponent result was not received.
+              </div>
+            }
+
             @if (matchResult()) {
               <div class="duel-outcome">
                 @if (matchResult()?.winnerId === authService.currentUser?.id) {

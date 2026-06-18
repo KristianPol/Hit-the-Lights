@@ -629,6 +629,20 @@
   }
 }
 
+.duel-missing-opponent {
+  text-align: center;
+  font-size: 0.8rem;
+  color: #ff9ea8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+
+  i {
+    font-size: 0.9rem;
+  }
+}
+
 .play-again {
   color: $black-secondary;
   background: linear-gradient(135deg, $yellow-primary, $yellow-bright);
