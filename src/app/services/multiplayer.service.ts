@@ -31,9 +31,23 @@ export interface MatchState {
   laneActivity?: LaneActivity;
 }
 
+export interface MatchPlayerResult {
+  userId: number;
+  username: string;
+  profilePictureUrl: string | null;
+  score: number;
+  maxCombo: number;
+  accuracy: number;
+  radiant: number;
+  shinning: number;
+  glimmer: number;
+  shattered: number;
+  finalPlacement: number | null;
+}
+
 export interface MatchResult {
   winnerId: number | null;
-  results: any[];
+  results: MatchPlayerResult[];
 }
 
 export interface CreateRoomResponse {
