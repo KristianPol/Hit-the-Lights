@@ -51,11 +51,17 @@
           [countdown]="multiplayerCountdown()"
         ></app-opponent-overlay>
       }
-      @if (isMultiplayerMode() && waitingForOpponent()) {
+      @if (isMultiplayerMode() && waitingForOpponent() && !gameFinished()) {
         <div class="multiplayer-waiting-overlay">
           <div class="multiplayer-waiting-card">
-            <h3>Waiting for opponent...</h3>
-            <p>Your results have been submitted.</p>
+            @if (multiplayerMatchStarted()) {
+              <h3>Waiting for results...</h3>
+              <p>Calculating the duel results...</p>
+            } @else {
+              <h3>Waiting for opponent...</h3>
+              <p>The duel invite has been sent. The match starts once your friend joins.</p>
+            }
+            <button type="button" class="menu-button cancel-duel" (click)="returnToMenu()">Back to Menu</button>
           </div>
         </div>
       }
@@ -102,6 +108,18 @@
             <p class="results-subtitle">{{ displayArtistText() }}</p>
           </div>
         </header>
+
+        @if (isMultiplayerMode() && matchResult()) {
+          <div class="results-winner">
+            @if (matchResult()?.winnerId === authService.currentUser?.id) {
+              <i class="fas fa-trophy"></i> You won!
+            } @else if (matchResult()?.winnerId === null) {
+              <i class="fas fa-handshake"></i> Tie!
+            } @else {
+              <i class="fas fa-flag-checkered"></i> Opponent won
+            }
+          </div>
+        }
 
         <div class="results-ring-wrap">
           <div class="results-ring" [style.background]="rankRingGradient()">

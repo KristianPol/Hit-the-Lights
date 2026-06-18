@@ -1,3 +1,4 @@
+import { inject } from '@angular/core';
 import { Routes } from '@angular/router';
 import { Login } from '../frontend/login/login';
 import { Register } from '../frontend/register/register';
@@ -16,6 +17,7 @@ import { AchievementsComponent } from '../frontend/achievements/achievements';
 import { ChartMaker } from '../frontend/chart-maker/chart-maker';
 import { LeaderboardPage } from '../frontend/leaderboard/leaderboard';
 import { HomePage } from '../frontend/home/home';
+import { AuthService } from './services/auth.service';
 
 export const routes: Routes = [
     {path: 'login', component: Login},
@@ -42,5 +44,12 @@ export const routes: Routes = [
     {path: 'gameplay/:songId', component: Gameplay},
     {path: 'chart-maker', component: ChartMaker},
     {path: 'leaderboard', component: LeaderboardPage},
-    {path: '', pathMatch: 'full', redirectTo: 'menu/home'}
+    {
+        path: '',
+        pathMatch: 'full',
+        redirectTo: () => {
+            const authService = inject(AuthService);
+            return authService.isLoggedIn ? 'menu/home' : 'starterPage';
+        }
+    }
 ];

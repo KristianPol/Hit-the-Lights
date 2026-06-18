@@ -356,10 +356,23 @@
               >
                 @if (isChallengeMessage(msg.content)) {
                   @let challenge = parseChallenge(msg.content);
-                  <div class="score-share-card challenge-card">
+                  <div class="score-share-card challenge-card" [class.has-cover]="challenge.coverUrl">
+                    @if (challenge.coverUrl) {
+                      <div class="score-share-cover">
+                        <img [src]="challenge.coverUrl" alt="Song cover" />
+                        <div class="score-share-overlay"></div>
+                      </div>
+                    }
                     <div class="score-share-content">
                       <p><strong>Multiplayer Challenge</strong></p>
-                      <p>Difficulty ID: {{ challenge.difficultyId }}</p>
+                      @if (challenge.songName) {
+                        <p>{{ challenge.songName }}</p>
+                      }
+                      @if (challenge.difficultyEstimate != null) {
+                        <p><i class="fas fa-star"></i> {{ challenge.difficultyEstimate.toFixed(1) }}</p>
+                      } @else if (challenge.difficultyId) {
+                        <p>Difficulty ID: {{ challenge.difficultyId }}</p>
+                      }
                       @if (msg.senderId !== currentUser?.id) {
                         <button class="challenge-btn" (click)="acceptChallenge(msg.content)">
                           <i class="fas fa-gamepad"></i> Accept

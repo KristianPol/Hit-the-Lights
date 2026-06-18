@@ -137,10 +137,25 @@ export class MultiplayerService {
     this.opponentConnected.set(false);
   }
 
-  createRoom(difficultyId: number, inviteeId: number): Observable<CreateRoomResponse> {
+  createRoom(request: {
+    difficultyId: number;
+    inviteeId: number;
+    songId?: number | null;
+    songName?: string;
+    songArtist?: string;
+    songCoverUrl?: string;
+    difficultyName?: string;
+    difficultyEstimate?: number | null;
+  }): Observable<CreateRoomResponse> {
     return this.http.post<CreateRoomResponse>('/api/multiplayer/rooms', {
-      difficultyId,
-      inviteeId
+      difficultyId: request.difficultyId,
+      inviteeId: request.inviteeId,
+      songId: request.songId ?? null,
+      songName: request.songName ?? null,
+      songArtist: request.songArtist ?? null,
+      songCoverUrl: request.songCoverUrl ?? null,
+      difficultyName: request.difficultyName ?? null,
+      difficultyEstimate: request.difficultyEstimate ?? null
     });
   }
 

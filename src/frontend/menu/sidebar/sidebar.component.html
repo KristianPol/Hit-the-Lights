@@ -16,10 +16,10 @@
               [class.action-item]="item.isAction"
               (click)="setActive(item.label)">
             <a [routerLink]="item.route" class="menu-link">
-              <i class="item-icon" [ngClass]="item.icon" [class.has-notification]="item.label === 'Messages' && unreadMessageCount() > 0"></i>
+              <i class="item-icon" [ngClass]="item.icon" [class.has-notification]="item.label === 'Messages' && unreadMessageCount > 0"></i>
               <span class="item-label">{{ item.label }}</span>
-              @if (item.label === 'Messages' && unreadMessageCount() > 0) {
-                <span class="badge">{{ unreadMessageCount() }}</span>
+              @if (item.label === 'Messages' && unreadMessageCount > 0) {
+                <span class="badge">{{ unreadMessageCount }}</span>
               }
               <span class="hover-glow"></span>
               <span class="active-indicator"></span>

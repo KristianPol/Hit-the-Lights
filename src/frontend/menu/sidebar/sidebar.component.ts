@@ -35,12 +35,12 @@ export class MenuSidebarComponent implements OnInit {
     { label: 'Logout', icon: 'fas fa-right-from-bracket', route: '/logout', isAction: true }
   ];
 
-  activeItem = signal<string>('Dashboard');
+  activeItem = signal<string>('Home');
   currentUser = signal<User | null>(null);
   menuImageError = signal<boolean>(false);
 
-  get unreadMessageCount() {
-    return this.notificationService.unreadCount;
+  get unreadMessageCount(): number {
+    return this.notificationService.unreadCount();
   }
 
   constructor(
