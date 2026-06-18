@@ -55,7 +55,11 @@
                   <button class="play-dropdown-item" type="button" (click)="launchGameplay()">
                     <i class="fas fa-play"></i> Play
                   </button>
-                  <button class="play-dropdown-item duel" type="button" (click)="goToDuel()">
+                  <button
+                    class="play-dropdown-item duel"
+                    type="button"
+                    [disabled]="!selectedDifficultyId()"
+                    (click)="goToDuel()">
                     <i class="fas fa-bolt"></i> Duel
                   </button>
                 </div>

@@ -270,9 +270,14 @@ $hit-shatter: #d96b75;
     transition: all 0.2s ease;
     white-space: nowrap;
 
-    &:hover {
+    &:hover:not(:disabled) {
       background: rgba(var(--color-accent-rgb), 0.12);
       color: $yellow-bright;
+    }
+
+    &:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
     }
 
     &.duel {

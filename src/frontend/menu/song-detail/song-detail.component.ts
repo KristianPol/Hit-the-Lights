@@ -146,7 +146,12 @@ export class SongDetailComponent implements OnInit, OnDestroy {
     const user = this.currentUser();
     const song = this.song();
     const difficultyId = this.selectedDifficultyId();
-    if (!user?.id || !song || !difficultyId) return;
+    if (!user?.id || !song) return;
+
+    if (!difficultyId) {
+      this.duelError.set('Please select a difficulty first.');
+      return;
+    }
 
     this.duelInviting.set(true);
     this.duelError.set(null);
