@@ -1488,38 +1488,28 @@ export class Gameplay implements AfterViewInit, OnDestroy {
     const endY = hitZoneY - (endTime - audioTime) * this.fallingSpeed;
 
     const activeHold = this.activeHolds.find(h => h.note === note && !h.released && !h.missed);
-    const heldProgress = activeHold
-      ? Math.max(0, Math.min(1, (audioTime - note.time) / durationMs))
-      : 0;
+    const isActive = activeHold != null;
 
-    // Body: in gameplay the head (startY) is below the tail (endY), so draw
-    // from the top of the body down to the head.
+    // Body: for active holds, anchor the body at the receptor and let the tail
+    // descend until it reaches the receptor. For falling holds, draw normally.
     const bodyWidth = radius * 1.4;
-    const topY = Math.min(startY, endY);
-    const bottomY = Math.max(startY, endY);
-    const bodyHeight = Math.max(2, bottomY - topY);
+    const bodyTop = isActive ? Math.min(endY, hitZoneY) : Math.min(startY, endY);
+    const bodyBottom = isActive ? hitZoneY : Math.max(startY, endY);
+    const bodyHeight = Math.max(0, bodyBottom - bodyTop);
 
-    this.ctx.save();
-    this.ctx.fillStyle = color + '60';
-    this.ctx.strokeStyle = color;
-    this.ctx.lineWidth = 2;
-    this.ctx.shadowColor = color;
-    this.ctx.shadowBlur = 12;
-    this.ctx.beginPath();
-    this.ctx.roundRect(x - bodyWidth / 2, topY, bodyWidth, bodyHeight, 4);
-    this.ctx.fill();
-    this.ctx.stroke();
-
-    // Held progress overlay: fill from the head upward.
-    if (heldProgress > 0) {
-      const heldHeight = bodyHeight * heldProgress;
-      this.ctx.fillStyle = color + 'B0';
+    if (bodyHeight > 0) {
+      this.ctx.save();
+      this.ctx.fillStyle = color + '60';
+      this.ctx.strokeStyle = color;
+      this.ctx.lineWidth = 2;
+      this.ctx.shadowColor = color;
+      this.ctx.shadowBlur = 12;
       this.ctx.beginPath();
-      this.ctx.roundRect(x - bodyWidth / 2, bottomY - heldHeight, bodyWidth, heldHeight, 4);
+      this.ctx.roundRect(x - bodyWidth / 2, bodyTop, bodyWidth, bodyHeight, 4);
       this.ctx.fill();
+      this.ctx.stroke();
+      this.ctx.restore();
     }
-
-    this.ctx.restore();
 
     // Head
     if (drawHead) {
@@ -1527,7 +1517,10 @@ export class Gameplay implements AfterViewInit, OnDestroy {
     }
 
     // Tail
-    this.drawLightbulb(x, endY, radius * 0.7, color, false);
+    const tailVisible = isActive ? endY <= hitZoneY : true;
+    if (tailVisible && endY > -radius * 2 && endY < this.canvas.height + radius * 2) {
+      this.drawLightbulb(x, endY, radius * 0.7, color, false);
+    }
   }
 
   private drawBombNote(x: number, y: number, radius: number): void {
