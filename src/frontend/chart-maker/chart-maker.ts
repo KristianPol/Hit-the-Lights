@@ -111,6 +111,7 @@ export class ChartMaker implements AfterViewInit, OnDestroy {
   private resizingHoldNote: EditorNote | null = null;
   private resizeStartTime = 0;
   private resizeStartDuration = 0;
+  private resizeMode: 'tail' | 'body' = 'tail';
 
   // Hover
   private hoverLane: number | null = null;
@@ -665,6 +666,19 @@ export class ChartMaker implements AfterViewInit, OnDestroy {
     }) ?? null;
   }
 
+  private findHoldBodyAt(lane: number, time: number): EditorNote | null {
+    const headToleranceMs = 3;
+    const tailToleranceMs = 15 / this.zoom();
+    return this.notes().find(n => {
+      if (n.type !== NoteType.Hold || n.lane !== lane || !n.durationMs) return false;
+      const tailTime = n.time + n.durationMs;
+      return (
+        time > n.time + headToleranceMs &&
+        time < tailTime - tailToleranceMs
+      );
+    }) ?? null;
+  }
+
   // ─── Interaction ──────────────────────────────────────────
 
   onCanvasMouseDown(event: MouseEvent): void {
@@ -681,9 +695,21 @@ export class ChartMaker implements AfterViewInit, OnDestroy {
       const tailHold = this.findHoldTailAt(lane, time);
       if (tailHold) {
         this.isResizingHold = true;
+        this.resizeMode = 'tail';
         this.resizingHoldNote = tailHold;
         this.resizeStartTime = time;
         this.resizeStartDuration = tailHold.durationMs ?? 500;
+        document.body.style.cursor = 'ns-resize';
+        return;
+      }
+
+      const bodyHold = this.findHoldBodyAt(lane, time);
+      if (bodyHold) {
+        this.isResizingHold = true;
+        this.resizeMode = 'body';
+        this.resizingHoldNote = bodyHold;
+        this.resizeStartTime = time;
+        this.resizeStartDuration = bodyHold.durationMs ?? 500;
         document.body.style.cursor = 'ns-resize';
         return;
       }
@@ -704,7 +730,10 @@ export class ChartMaker implements AfterViewInit, OnDestroy {
     const lane = this.xToLane(x, width);
     this.hoverLane = lane;
     this.hoverTime = time;
-    this.hoverResize.set(lane !== null && this.findHoldTailAt(lane, time) !== null);
+    this.hoverResize.set(
+      lane !== null &&
+      (this.findHoldTailAt(lane, time) !== null || this.findHoldBodyAt(lane, time) !== null)
+    );
 
     // Snap cursor to nearest note if close
     if (lane !== null) {
@@ -724,6 +753,7 @@ export class ChartMaker implements AfterViewInit, OnDestroy {
     if (this.isResizingHold) {
       this.isResizingHold = false;
       this.resizingHoldNote = null;
+      this.resizeMode = 'tail';
       document.body.style.cursor = '';
       return;
     }
@@ -791,8 +821,17 @@ export class ChartMaker implements AfterViewInit, OnDestroy {
 
     const time = Math.round(Math.max(0, Math.min(this.yToTime(y), this.durationMs())));
     const note = this.resizingHoldNote;
-    const newEndTime = Math.max(note.time + 100, Math.min(time, this.durationMs()));
-    const newDuration = Math.round(newEndTime - note.time);
+    let newDuration: number;
+
+    if (this.resizeMode === 'body') {
+      const deltaMs = time - this.resizeStartTime;
+      const maxDuration = this.durationMs() - note.time;
+      newDuration = Math.max(100, Math.min(Math.round(this.resizeStartDuration + deltaMs), maxDuration));
+    } else {
+      const newEndTime = Math.max(note.time + 100, Math.min(time, this.durationMs()));
+      newDuration = Math.round(newEndTime - note.time);
+    }
+
     this.notes.update(notes => notes.map(n =>
       n === note ? { ...n, durationMs: newDuration } : n
     ));
@@ -803,6 +842,7 @@ export class ChartMaker implements AfterViewInit, OnDestroy {
     if (this.isResizingHold) {
       this.isResizingHold = false;
       this.resizingHoldNote = null;
+      this.resizeMode = 'tail';
       document.body.style.cursor = '';
     }
   }
