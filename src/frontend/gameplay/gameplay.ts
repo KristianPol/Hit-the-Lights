@@ -1075,10 +1075,30 @@ export class Gameplay implements AfterViewInit, OnDestroy {
     hold.released = true;
 
     const endTime = hold.note.time + (hold.note.durationMs ?? 500);
-    const releaseDelta = Math.abs(audioTime - endTime);
-    const releaseResult = this.judgeTiming(releaseDelta);
+    const releaseResult = this.judgeHoldReleaseTiming(audioTime, endTime);
 
     this.finalizeHoldScoring(hold, releaseResult);
+  }
+
+  private judgeHoldReleaseTiming(
+    releaseTime: number,
+    endTime: number
+  ): { points: number; grade: 'perfect' | 'good' | 'glimmer' | 'miss'; label: string; color: string } {
+    const lateMs = releaseTime - endTime;
+
+    if (lateMs < 0) {
+      return { points: 0, grade: 'miss', label: 'Shattered', color: '#ff9ea8' };
+    }
+    if (lateMs < 100) {
+      return { points: 3, grade: 'perfect', label: 'Radiant', color: this.accentColor };
+    }
+    if (lateMs < 200) {
+      return { points: 2, grade: 'good', label: 'Shinning', color: '#78dcff' };
+    }
+    if (lateMs < 300) {
+      return { points: 1, grade: 'glimmer', label: 'Glimmer', color: '#d2c7ff' };
+    }
+    return { points: 0, grade: 'miss', label: 'Shattered', color: '#ff9ea8' };
   }
 
   private finalizeHoldAsMiss(note: ChartNote): void {
