@@ -561,8 +561,8 @@ export class SongService {
   public async addSongDifficulty(
     songId: number,
     ownerId: number,
-    difficulty: number,
-    notes: ChartNoteInput[]
+    notes: ChartNoteInput[],
+    difficulty?: number
   ): Promise<AddSongDifficultyResponse> {
     try {
       if (!Number.isInteger(songId) || songId <= 0) {
@@ -571,10 +571,6 @@ export class SongService {
 
       if (!Number.isInteger(ownerId) || ownerId <= 0) {
         return { success: false, error: 'ownerId is required' };
-      }
-
-      if (!Number.isInteger(difficulty) || difficulty < 1 || difficulty > 10) {
-        return { success: false, error: 'Difficulty must be between 1 and 10' };
       }
 
       if (!Array.isArray(notes) || notes.length === 0) {
@@ -611,15 +607,6 @@ export class SongService {
         return { success: false, error: 'Only the owner can upload difficulties' };
       }
 
-      const existingStmt = this.unit.prepare<{ id: number }, { songId: number; difficulty: number }>(
-        'SELECT id FROM Difficulty WHERE song_id = $songId AND difficulty = $difficulty',
-        { songId, difficulty }
-      );
-
-      if (await existingStmt.get()) {
-        return { success: false, error: 'This difficulty already exists for the selected song' };
-      }
-
       const durationParts = song.length.split(':').map(Number);
       const durationSeconds = (durationParts[0] || 0) * 60 + (durationParts[1] || 0);
       const durationMs = durationSeconds * 1000;
@@ -640,10 +627,27 @@ export class SongService {
         bombCount
       });
 
+      const resolvedDifficulty = difficulty !== undefined
+        ? difficulty
+        : Math.min(10, Math.max(1, Math.round(difficultyEstimate)));
+
+      if (!Number.isInteger(resolvedDifficulty) || resolvedDifficulty < 1 || resolvedDifficulty > 10) {
+        return { success: false, error: 'Difficulty must be between 1 and 10' };
+      }
+
+      const existingStmt = this.unit.prepare<{ id: number }, { songId: number; difficulty: number }>(
+        'SELECT id FROM Difficulty WHERE song_id = $songId AND difficulty = $difficulty',
+        { songId, difficulty: resolvedDifficulty }
+      );
+
+      if (await existingStmt.get()) {
+        return { success: false, error: 'This difficulty already exists for the selected song' };
+      }
+
       const insertDifficulty = this.unit.prepare<unknown, { songId: number; difficulty: number; noteCount: number; difficultyEstimate: number }>(
         `INSERT INTO Difficulty (song_id, difficulty, note_count, difficulty_estimate)
          VALUES ($songId, $difficulty, $noteCount, $difficultyEstimate)`,
-        { songId, difficulty, noteCount: notes.length, difficultyEstimate }
+        { songId, difficulty: resolvedDifficulty, noteCount: notes.length, difficultyEstimate }
       );
       await insertDifficulty.run();
 
@@ -671,7 +675,7 @@ export class SongService {
         success: true,
         difficulty: {
           id: difficultyId,
-          difficulty,
+          difficulty: resolvedDifficulty,
           noteCount: notes.length,
           difficultyEstimate
         }
@@ -1689,7 +1693,7 @@ export class SongService {
 
   private async getDifficultiesBySongId(songId: number): Promise<SongDifficultyResponse[]> {
     const stmt = this.unit.prepare<SongDifficultyRecord, { songId: number }>(
-      'SELECT id, song_id, difficulty, note_count, difficulty_estimate FROM Difficulty WHERE song_id = $songId ORDER BY difficulty ASC',
+      'SELECT id, song_id, difficulty, note_count, difficulty_estimate FROM Difficulty WHERE song_id = $songId ORDER BY difficulty_estimate ASC',
       { songId }
     );
 

@@ -378,10 +378,10 @@ export class Gameplay implements AfterViewInit, OnDestroy {
   // readonly canvasHeight = 800;
   private get noteSize(): number {
     if (!this.canvas) {
-      return 80;
+      return 96;
     }
     const geometry = this.getLaneGeometry(this.canvas.width);
-    return Math.max(48, Math.min(80, geometry.laneWidth * 0.62));
+    return Math.max(48, Math.min(96, geometry.laneWidth * 0.78));
   }
 
   private get hitAreaRadius(): number {

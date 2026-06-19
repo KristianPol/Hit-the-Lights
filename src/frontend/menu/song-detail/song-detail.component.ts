@@ -7,11 +7,9 @@ import { AuthService, User } from '../../../app/services/auth.service';
 import {
   SongService,
   SongDifficulty,
-  DifficultyLevel,
   LeaderboardEntry,
   UpdateSongRequest,
-  difficultyNumberToName,
-  difficultyNameToNumber
+  difficultyNumberToName
 } from '../../../app/services/song.service';
 import { AchievementService } from '../../../app/services/achievement.service';
 import { MultiplayerService } from '../../../app/services/multiplayer.service';
@@ -36,7 +34,6 @@ interface DifficultyPickerState {
   difficulties: SongDifficulty[];
   selectedDifficultyId: number | null;
   showUploadForm: boolean;
-  uploadDifficulty?: DifficultyLevel;
   uploadChartFile?: File;
 }
 
@@ -270,8 +267,6 @@ export class SongDetailComponent implements OnInit, OnDestroy {
   commentDraft = signal<string>('');
   replyingTo = signal<number | null>(null);
   loadingComments = signal<boolean>(false);
-
-  uploadDifficultyChoice = signal<DifficultyLevel | null>(null);
 
   activeCommentMenuId = signal<number | null>(null);
   playDropdownOpen = signal<boolean>(false);
@@ -630,20 +625,16 @@ export class SongDetailComponent implements OnInit, OnDestroy {
     this.difficultyPickerState.update(state => ({
       ...state,
       showUploadForm: true,
-      uploadDifficulty: undefined,
       uploadChartFile: undefined
     }));
-    this.uploadDifficultyChoice.set(null);
   }
 
   closeUploadDifficultyForm(): void {
     this.difficultyPickerState.update(state => ({
       ...state,
       showUploadForm: false,
-      uploadDifficulty: undefined,
       uploadChartFile: undefined
     }));
-    this.uploadDifficultyChoice.set(null);
   }
 
   onChartFileSelected(event: Event): void {
@@ -661,10 +652,9 @@ export class SongDetailComponent implements OnInit, OnDestroy {
 
   uploadChartDifficulty(): void {
     const song = this.song();
-    const choice = this.uploadDifficultyChoice();
     const state = this.difficultyPickerState();
-    if (!song || !choice || !state.uploadChartFile || !this.currentUser()?.id) {
-      alert('Please fill in all fields');
+    if (!song || !state.uploadChartFile || !this.currentUser()?.id) {
+      alert('Please select a chart file');
       return;
     }
     const reader = new FileReader();
@@ -677,7 +667,6 @@ export class SongDetailComponent implements OnInit, OnDestroy {
           return;
         }
         this.songService.addSongDifficulty(song.id, {
-          difficulty: difficultyNameToNumber(choice),
           notes: chartData.notes
         }).subscribe({
           next: response => {
@@ -696,11 +685,6 @@ export class SongDetailComponent implements OnInit, OnDestroy {
       }
     };
     reader.readAsText(state.uploadChartFile);
-  }
-
-  isDifficultyAvailable(difficultyLevel: DifficultyLevel): boolean {
-    const numLevel = difficultyNameToNumber(difficultyLevel);
-    return !this.difficultyPickerState().difficulties.some(existing => existing.difficulty === numLevel);
   }
 
   getSelectedDifficultyLevel(): string {
