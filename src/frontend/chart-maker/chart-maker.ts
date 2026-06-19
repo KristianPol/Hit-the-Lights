@@ -832,9 +832,20 @@ export class ChartMaker implements AfterViewInit, OnDestroy {
       newDuration = Math.round(newEndTime - note.time);
     }
 
-    this.notes.update(notes => notes.map(n =>
-      n === note ? { ...n, durationMs: newDuration } : n
-    ));
+    this.notes.update(notes => {
+      let updatedNote: EditorNote | null = null;
+      const updated = notes.map(n => {
+        if (n === note) {
+          updatedNote = { ...n, durationMs: newDuration };
+          return updatedNote;
+        }
+        return n;
+      });
+      if (updatedNote) {
+        this.resizingHoldNote = updatedNote;
+      }
+      return updated;
+    });
   }
 
   @HostListener('window:mouseup')
