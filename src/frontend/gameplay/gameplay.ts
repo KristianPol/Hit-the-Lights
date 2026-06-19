@@ -166,6 +166,7 @@ export class Gameplay implements AfterViewInit, OnDestroy {
   private challengeFromUserId: number | null = null;
   readonly challengeSent = signal(false);
   readonly isChallengeMode = signal(false);
+  readonly isChartTest = signal(false);
 
   readonly isMultiplayerMode = signal(false);
   readonly multiplayerCountdown = signal<number | null>(null);
@@ -176,6 +177,12 @@ export class Gameplay implements AfterViewInit, OnDestroy {
   private multiplayerRoomId: string | null = null;
   private multiplayerStartTimeMs = 0;
   private lastStateEmitMs = 0;
+
+  // Context needed to return from a chart playtest back to the chart maker
+  private returnSelectedSongId: number | null = null;
+  private returnAudioFileName = '';
+  private returnEditingDifficultyId: number | null = null;
+  private returnEditingDifficulty: SongDifficulty | null = null;
   private lastJudgment: string | null = null;
   private lastLaneActivity: LaneActivity | null = null;
 
@@ -492,6 +499,35 @@ export class Gameplay implements AfterViewInit, OnDestroy {
     void this.router.navigate(['/menu']);
   }
 
+  returnToCharting(): void {
+    const metadata = {
+      title: this.chartMetadata().title || 'Untitled',
+      artist: this.chartMetadata().artist || 'Unknown',
+      bpm: this.chartMetadata().bpm ?? this.currentSong()?.bpm ?? 120,
+      duration_ms: this.chartMetadata().duration_ms || this.totalSongDurationMs() || 0
+    };
+
+    const notes = this.chartNotes.map(note => ({
+      time: note.time,
+      lane: note.lane,
+      type: note.type,
+      durationMs: note.durationMs ?? null
+    }));
+
+    this.teardown();
+    void this.router.navigate(['/chart-maker'], {
+      state: {
+        returnToCharting: true,
+        chart: { metadata, notes },
+        song: this.currentSong(),
+        selectedSongId: this.returnSelectedSongId,
+        audioFileName: this.returnAudioFileName,
+        editingDifficultyId: this.returnEditingDifficultyId,
+        editingDifficulty: this.returnEditingDifficulty
+      }
+    });
+  }
+
   private async initializeGame(): Promise<void> {
     const state = window.history.state;
     const testChart = state?.chartTest as boolean | undefined;
@@ -511,6 +547,12 @@ export class Gameplay implements AfterViewInit, OnDestroy {
     }
 
     if (testChart && testChartData && testChartData.notes) {
+      this.isChartTest.set(true);
+      this.returnSelectedSongId = state?.selectedSongId ?? null;
+      this.returnAudioFileName = state?.audioFileName ?? '';
+      this.returnEditingDifficultyId = state?.editingDifficultyId ?? null;
+      this.returnEditingDifficulty = state?.editingDifficulty ?? null;
+
       this.currentSong.set(stateSong ?? null);
       this.chartMetadata.set(testChartData.metadata ?? {});
       this.chartNotes = testChartData.notes

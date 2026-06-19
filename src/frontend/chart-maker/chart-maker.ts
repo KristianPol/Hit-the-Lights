@@ -156,6 +156,11 @@ export class ChartMaker implements AfterViewInit, OnDestroy {
         this.tryLoadChartForEditing(songId, difficultyId);
       }
     });
+
+    const navState = window.history.state as any;
+    if (navState?.returnToCharting && navState.chart) {
+      this.restoreFromGameplayState(navState);
+    }
   }
 
   private tryLoadChartForEditing(songId: number, difficultyId: number): void {
@@ -994,6 +999,32 @@ export class ChartMaker implements AfterViewInit, OnDestroy {
     this.currentTimeMs.set(0);
   }
 
+  private restoreFromGameplayState(state: any): void {
+    const chart = state.chart;
+    if (!chart) return;
+
+    this.loadChartJson(chart);
+
+    const song = state.song as Song | undefined;
+    if (song?.songUrl) {
+      this.audio.src = song.songUrl;
+      this.audio.load();
+      this.isAudioLoaded.set(true);
+      this.updateDurationFromAudio(this.durationMs());
+    }
+
+    this.selectedSongId.set(state.selectedSongId ?? null);
+    this.audioFileName.set(state.audioFileName ?? '');
+
+    const editingDifficultyId = state.editingDifficultyId ?? null;
+    const editingDifficulty = state.editingDifficulty ?? null;
+    if (editingDifficultyId) {
+      this.editingDifficultyId.set(editingDifficultyId);
+      this.editingDifficulty.set(editingDifficulty);
+      this.assignDifficulty.set(editingDifficulty?.difficulty ?? 1);
+    }
+  }
+
   onLoadSongChange(songIdStr: string): void {
     const id = Number(songIdStr);
     if (!id || isNaN(id)) {
@@ -1116,7 +1147,15 @@ export class ChartMaker implements AfterViewInit, OnDestroy {
     };
 
     this.router.navigate(['/gameplay'], {
-      state: { song, chartTest: true, chart }
+      state: {
+        song,
+        chartTest: true,
+        chart,
+        selectedSongId: this.selectedSongId(),
+        audioFileName: this.audioFileName(),
+        editingDifficultyId: this.editingDifficultyId(),
+        editingDifficulty: this.editingDifficulty()
+      }
     });
   }
 

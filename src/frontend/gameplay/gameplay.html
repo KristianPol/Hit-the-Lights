@@ -279,6 +279,9 @@
               <span class="challenge-status sending"><i class="fas fa-paper-plane"></i> Sending challenge response...</span>
             }
           }
+          @if (isChartTest()) {
+            <button type="button" class="menu-button" (click)="returnToCharting()">Go back to charting</button>
+          }
           <button type="button" class="menu-button" (click)="returnToMenu()">Back to Menu</button>
         </div>
       </div>
