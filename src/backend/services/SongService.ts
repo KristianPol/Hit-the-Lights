@@ -1457,7 +1457,7 @@ export class SongService {
         difficulty_id: difficultyId,
         score: Math.round(request.score),
         max_combo: Math.round(request.maxCombo),
-        accuracy: Math.round(request.accuracy),
+        accuracy: request.accuracy,
         date: request.date ?? new Date().toISOString()
       };
 

@@ -28,6 +28,7 @@ interface ChartNote {
   durationMs?: number | null;
   judged?: boolean;
   missed?: boolean; // Track if note was missed vs just judged
+  resolved?: boolean; // Fully judged for accuracy/scoring purposes
 }
 
 interface ActiveHold {
@@ -218,6 +219,7 @@ export class Gameplay implements AfterViewInit, OnDestroy {
   private readonly maxSongScore = 1_000_000;
   private scoreUnits = 0;
   private scorePenalty = 0;
+  private resolvedMaxUnits = 0;
 
   readonly displayTitleText = computed(() => this.currentSong()?.name || this.chartMetadata().title || 'Prototype Chart');
   readonly displayArtistText = computed(() => this.currentSong()?.author || this.chartMetadata().artist || 'Hit the Lights');
@@ -857,21 +859,11 @@ export class Gameplay implements AfterViewInit, OnDestroy {
 
       // Bombs that pass by unhit are simply ignored.
       if (timeSinceNote > this.hitWindow) {
-        note.judged = true;
-        if (note.type === NoteType.Bomb || note.type === NoteType.Hold) {
+        if (note.type === NoteType.Bomb) {
+          note.judged = true;
           continue;
         }
-        note.missed = true;
-        this.stats.update(stats => ({
-          ...stats,
-          miss: stats.miss + 1,
-          combo: 0
-        }));
-        this.updateAccuracy();
-        this.spawnHitFeedback(note.lane, 'Shattered', '#ff9ea8');
-        this.playMissSound();
-        this.lastJudgment = 'Shattered';
-        this.lastLaneActivity = { lane: note.lane as 0 | 1 | 2 | 3, judgment: 'shattered' };
+        this.resolveNoteAsMiss(note, 'Shattered');
       }
     }
   }
@@ -914,7 +906,7 @@ export class Gameplay implements AfterViewInit, OnDestroy {
         return;
       }
       if (nextNote.type === NoteType.Hold) {
-        this.finalizeHoldAsMiss(nextNote);
+        this.resolveNoteAsMiss(nextNote, 'Shattered');
         return;
       }
       nextNote.missed = true;
@@ -952,6 +944,8 @@ export class Gameplay implements AfterViewInit, OnDestroy {
 
     nextNote.judged = true;
     nextNote.missed = false;
+    nextNote.resolved = true;
+    this.resolvedMaxUnits += this.getNoteMaxUnits(nextNote);
 
     this.triggerBulbFlash(lane);
 
@@ -1101,22 +1095,33 @@ export class Gameplay implements AfterViewInit, OnDestroy {
     return { points: 0, grade: 'miss', label: 'Shattered', color: '#ff9ea8' };
   }
 
-  private finalizeHoldAsMiss(note: ChartNote): void {
+  private resolveNoteAsMiss(note: ChartNote, feedbackText: string): void {
+    if (note.resolved) {
+      return;
+    }
     note.judged = true;
     note.missed = true;
+    note.resolved = true;
+    this.resolvedMaxUnits += this.getNoteMaxUnits(note);
     this.stats.update(stats => ({
       ...stats,
       miss: stats.miss + 1,
       combo: 0
     }));
     this.updateAccuracy();
-    this.spawnHitFeedback(note.lane, 'Shattered', '#ff9ea8');
+    this.spawnHitFeedback(note.lane, feedbackText, '#ff9ea8');
     this.playMissSound();
+    this.lastJudgment = 'Shattered';
+    this.lastLaneActivity = { lane: note.lane as 0 | 1 | 2 | 3, judgment: 'shattered' };
   }
 
   private finalizeHoldScoring(hold: ActiveHold, releaseResult: { points: number; grade: 'perfect' | 'good' | 'glimmer' | 'miss'; label: string; color: string }): void {
     const worsePoints = Math.min(hold.pressPoints, releaseResult.points);
     const worseGrade = this.worseGrade(hold.pressGrade, releaseResult.grade);
+
+    hold.note.resolved = true;
+    hold.note.missed = worseGrade === 'miss';
+    this.resolvedMaxUnits += this.getNoteMaxUnits(hold.note);
 
     this.scoreUnits += worsePoints;
 
@@ -1171,13 +1176,9 @@ export class Gameplay implements AfterViewInit, OnDestroy {
 
       // Key released early
       if (!this.keyStates[hold.lane] && audioTime < endTime + this.hitWindow) {
-        hold.missed = true;
-        this.stats.update(stats => ({ ...stats, combo: 0 }));
-        this.spawnHitFeedback(hold.lane, 'Dropped', '#ff9ea8');
-        this.playMissSound();
+        this.resolveNoteAsMiss(hold.note, 'Dropped');
         this.activeHolds.splice(i, 1);
         this.updateScaledScore();
-        this.updateAccuracy();
         continue;
       }
 
@@ -1212,10 +1213,10 @@ export class Gameplay implements AfterViewInit, OnDestroy {
       // Skip notes that are too far in the past (way beyond the hit window)
       const timeSinceNote = audioTime - note.time;
       if (timeSinceNote > this.hitWindow + 50) {
-        // Auto-mark this old note as judged so we don't keep returning it
-        note.judged = true;
         if (note.type !== NoteType.Bomb) {
-          note.missed = true;
+          this.resolveNoteAsMiss(note, 'Shattered');
+        } else {
+          note.judged = true;
         }
         continue;
       }
@@ -1238,7 +1239,7 @@ export class Gameplay implements AfterViewInit, OnDestroy {
       return;
     }
 
-    const maxUnitsForJudged = judgedCount * 3; // 3 units is the max per note
+    const maxUnitsForJudged = this.resolvedMaxUnits;
     let accuracy = (this.scoreUnits / maxUnitsForJudged) * 100;
     if (!Number.isFinite(accuracy) || accuracy < 0) accuracy = 0;
     if (accuracy > 100) accuracy = 100;
@@ -1663,6 +1664,7 @@ export class Gameplay implements AfterViewInit, OnDestroy {
     this.highscoreImproved.set(null);
     this.scoreUnits = 0;
     this.scorePenalty = 0;
+    this.resolvedMaxUnits = 0;
     this.keyStates = [false, false, false, false]; // Reset key states
     this.activeHolds = [];
     this.notes = this.cloneNotes(this.chartNotes);
@@ -1681,7 +1683,7 @@ export class Gameplay implements AfterViewInit, OnDestroy {
   }
 
   private allNotesJudged(): boolean {
-    return this.notes.every(n => n.judged);
+    return this.notes.every(n => (n.type === NoteType.Hold ? n.resolved : n.judged));
   }
 
   private finishGame(): void {
@@ -1694,29 +1696,16 @@ export class Gameplay implements AfterViewInit, OnDestroy {
     // Finalize any active holds as misses
     for (const hold of this.activeHolds) {
       if (!hold.released && !hold.missed) {
-        hold.missed = true;
-        this.stats.update(stats => ({ ...stats, miss: stats.miss + 1, combo: 0 }));
+        this.resolveNoteAsMiss(hold.note, 'Shattered');
       }
     }
     this.activeHolds = [];
 
-    // Count any remaining unjudged notes as misses (bombs and holds are ignored)
-    let remainingMisses = 0;
+    // Count any remaining unjudged notes as misses (bombs are ignored)
     for (const note of this.notes) {
-      if (!note.judged) {
-        note.judged = true;
-        if (note.type !== NoteType.Bomb && note.type !== NoteType.Hold) {
-          note.missed = true;
-          remainingMisses++;
-        }
+      if (!note.judged && note.type !== NoteType.Bomb) {
+        this.resolveNoteAsMiss(note, 'Shattered');
       }
-    }
-
-    if (remainingMisses > 0) {
-      this.stats.update(stats => ({
-        ...stats,
-        miss: stats.miss + remainingMisses
-      }));
     }
 
     this.updateAccuracy();

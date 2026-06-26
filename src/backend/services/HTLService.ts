@@ -385,7 +385,7 @@ export class HTLService {
       difficulty_id: json.difficulty_id,
       score: Math.round(json.score),
       max_combo: Math.round(json.max_combo),
-      accuracy: Math.round(json.accuracy),
+      accuracy: json.accuracy,
       date: dateStr
     };
   }

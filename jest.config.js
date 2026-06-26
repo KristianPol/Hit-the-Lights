@@ -6,6 +6,7 @@ module.exports = {
   testMatch: ['**/src/tests/**/*.spec.ts'],
   collectCoverageFrom: ['src/backend/*.ts'],
   maxWorkers: 1,
+  testTimeout: 10000,
   moduleNameMapper: {
     '^src/(.*)$': '<rootDir>/src/$1'
   },

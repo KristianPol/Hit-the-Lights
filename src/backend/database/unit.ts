@@ -463,7 +463,7 @@ export class Unit {
         difficulty_id INTEGER NOT NULL,
         score INTEGER NOT NULL,
         max_combo INTEGER NOT NULL,
-        accuracy INTEGER NOT NULL,
+        accuracy REAL NOT NULL,
         sp REAL NOT NULL DEFAULT 0,
         date TEXT NOT NULL,
         CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES "User"(id),
@@ -481,6 +481,23 @@ export class Unit {
     try {
       await getSql().unsafe(`ALTER TABLE "User" ALTER COLUMN total_sp TYPE REAL USING total_sp::real`);
       await getSql().unsafe(`ALTER TABLE Highscore ALTER COLUMN sp TYPE REAL USING sp::real`);
+    } catch (e: any) {
+      // ignore
+    }
+
+    // Store accuracy with decimal precision so values like 99.6% are not rounded to 100%.
+    try {
+      await getSql().unsafe(`
+        DO $$
+        BEGIN
+          IF EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name = 'highscore' AND column_name = 'accuracy' AND data_type = 'integer'
+          ) THEN
+            ALTER TABLE Highscore ALTER COLUMN accuracy TYPE REAL USING accuracy::real;
+          END IF;
+        END $$
+      `);
     } catch (e: any) {
       // ignore
     }
@@ -632,7 +649,7 @@ export class Unit {
         user_id INTEGER NOT NULL,
         score INTEGER NOT NULL,
         max_combo INTEGER NOT NULL,
-        accuracy INTEGER NOT NULL,
+        accuracy REAL NOT NULL,
         radiant INTEGER NOT NULL,
         shinning INTEGER NOT NULL,
         glimmer INTEGER NOT NULL,
@@ -647,6 +664,23 @@ export class Unit {
     await getSql().unsafe(`
       CREATE INDEX IF NOT EXISTS idx_gameroomresult_room ON GameRoomResult(room_id)
     `);
+
+    // Store match result accuracy with decimal precision.
+    try {
+      await getSql().unsafe(`
+        DO $$
+        BEGIN
+          IF EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name = 'gameroomresult' AND column_name = 'accuracy' AND data_type = 'integer'
+          ) THEN
+            ALTER TABLE GameRoomResult ALTER COLUMN accuracy TYPE REAL USING accuracy::real;
+          END IF;
+        END $$
+      `);
+    } catch (e: any) {
+      // ignore
+    }
 
     // Remove duplicate highscores (keep best per user+difficulty)
     await getSql().unsafe(`
